@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Reserve bounded exact-definition admission independently of BM25 mentions,
+  with derived declaration metadata rebuilt automatically for older indexes.
+- Score candidate bodies from persisted token evidence across chunk boundaries;
+  preserve declaration camel-case components and complete qualified identities,
+  and omit enhanced results supported only by discarded stopwords.
+- Evaluate relevance at source grain with a fixed clock, repeated ordering/score
+  checks, and larger latency samples; retain raw BM25 and MCP contracts.
 - Add a reproducible raw-versus-ranked evaluation harness with feature
   ablations, retrieval metrics, latency percentiles, update timing, and
   WAL-aware database sizing.

@@ -37,6 +37,83 @@ fn search(store: &Store, args: Value) -> Value {
     )
     .unwrap()
 }
+
+#[test]
+fn enhanced_tools_suppress_unsupported_hits_without_changing_raw_search() {
+    let dir = tempfile::tempdir().unwrap();
+    let store = Store::open(&dir.path().join("evidence.sqlite3")).unwrap();
+    for (kind, collection, tool) in [
+        ("project", "project", "search_project"),
+        ("session", "owner", "search_sessions"),
+    ] {
+        let source = Source {
+            key: kind.into(),
+            collection: collection.into(),
+            path: "notes.txt".into(),
+            version: "v1".into(),
+            kind: kind.into(),
+        };
+        store
+            .replace_source(
+                &source,
+                [Ok(Chunk {
+                    text: "why does this happen".into(),
+                    ..Default::default()
+                })],
+            )
+            .unwrap();
+        let filter = SearchFilter {
+            collection: collection.into(),
+            kind: kind.into(),
+            ..Default::default()
+        };
+        let raw = store
+            .search("why does indexing fail", &filter, 10)
+            .unwrap()
+            .1;
+        assert_eq!(raw.len(), 1);
+        assert!(raw[0].score > 0.0);
+        let result = dispatch(
+            &store,
+            "project",
+            "owner",
+            tool,
+            json!({"query":"why does indexing fail"}),
+            "ready",
+            Coverage::default(),
+            true,
+        )
+        .unwrap();
+        assert_eq!(result["results"], json!([]), "{kind}: {result}");
+
+        store
+            .replace_source(
+                &Source {
+                    version: "v2".into(),
+                    ..source
+                },
+                [Ok(Chunk {
+                    text: "is".into(),
+                    ..Default::default()
+                })],
+            )
+            .unwrap();
+        let fallback = dispatch(
+            &store,
+            "project",
+            "owner",
+            tool,
+            json!({"query":"is"}),
+            "ready",
+            Coverage::default(),
+            true,
+        )
+        .unwrap();
+        assert_eq!(fallback["results"].as_array().unwrap().len(), 1);
+        assert!(fallback["results"][0]["score"].as_f64().unwrap() > 0.0);
+    }
+}
+
 #[test]
 fn filters_are_applied_before_top_k_and_collections_are_isolated() {
     let dir = tempfile::tempdir().unwrap();

@@ -132,6 +132,30 @@ fn mcp_search_refresh_and_multiple_clients() {
 }
 
 #[test]
+fn mcp_search_excludes_incidental_stopwords_but_keeps_lexical_fallback() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().join("project");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("notes.txt"), "why does this happen").unwrap();
+    let mut client = Client::start(&root, &dir.path().join("cache"), &dir.path().join("homes"));
+    let supported = client.until("happen", |value| {
+        value["status"] == "ready"
+            && value["results"]
+                .as_array()
+                .is_some_and(|results| !results.is_empty())
+    });
+    assert_eq!(supported["results"][0]["relative_path"], "notes.txt");
+    assert_eq!(
+        client.search("why does indexing fail")["results"],
+        json!([])
+    );
+    let fallback = client.search("why");
+    assert_eq!(fallback["results"].as_array().unwrap().len(), 1);
+    assert_eq!(fallback["results"][0]["relative_path"], "notes.txt");
+    assert!(fallback["results"][0]["score"].as_f64().unwrap() > 0.0);
+}
+
+#[test]
 fn codex_history_is_scoped_and_context_uses_the_same_tool() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path().join("project");

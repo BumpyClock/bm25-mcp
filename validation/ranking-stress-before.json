@@ -1,0 +1,124 @@
+{
+  "cases": {
+    "distinct": {
+      "admission_counts": null,
+      "candidate_count": 200,
+      "collection": "stress",
+      "compact_ms": 1.342167,
+      "database_bytes": 8175744,
+      "database_bytes_after_close": 3907584,
+      "database_bytes_after_close_files": {
+        "main": 3907584,
+        "shm": 0,
+        "total": 3907584,
+        "wal": 0
+      },
+      "database_bytes_after_rebuild": null,
+      "database_bytes_after_rebuild_files": null,
+      "database_bytes_open": {
+        "main": 3907584,
+        "shm": 32768,
+        "total": 8175744,
+        "wal": 4235392
+      },
+      "database_bytes_stage": "store-open-post-compact",
+      "declaration_rebuild": {
+        "supported": false
+      },
+      "deterministic": true,
+      "deterministic_checks": 34,
+      "documents": 220,
+      "expansion_probes": 0,
+      "final_pool_size": 200,
+      "indexing_ms": 445.9745,
+      "kind": "project",
+      "latency_ms": {
+        "p50_ms": 513.422791,
+        "p95_ms": 517.3432919999999
+      },
+      "rss_bytes": {
+        "after": 201326592,
+        "before": 47906816,
+        "observed_peak": 201326592
+      },
+      "samples": 30,
+      "text_bytes": {
+        "max": 16052,
+        "min": 16050
+      },
+      "update_ms": 2.623167,
+      "warmups": 5
+    },
+    "identical": {
+      "admission_counts": null,
+      "candidate_count": 200,
+      "collection": "stress",
+      "compact_ms": 1.699333,
+      "database_bytes": 8077296,
+      "database_bytes_after_close": 3833856,
+      "database_bytes_after_close_files": {
+        "main": 3833856,
+        "shm": 0,
+        "total": 3833856,
+        "wal": 0
+      },
+      "database_bytes_after_rebuild": null,
+      "database_bytes_after_rebuild_files": null,
+      "database_bytes_open": {
+        "main": 3833856,
+        "shm": 32768,
+        "total": 8077296,
+        "wal": 4210672
+      },
+      "database_bytes_stage": "store-open-post-compact",
+      "declaration_rebuild": {
+        "supported": false
+      },
+      "deterministic": true,
+      "deterministic_checks": 34,
+      "documents": 220,
+      "expansion_probes": 0,
+      "final_pool_size": 200,
+      "indexing_ms": 452.61612499999995,
+      "kind": "project",
+      "latency_ms": {
+        "p50_ms": 174.47616599999998,
+        "p95_ms": 176.005708
+      },
+      "rss_bytes": {
+        "after": 47874048,
+        "before": 12419072,
+        "observed_peak": 47874048
+      },
+      "samples": 30,
+      "text_bytes": {
+        "max": 16031,
+        "min": 16031
+      },
+      "update_ms": 2.425333,
+      "warmups": 5
+    }
+  },
+  "clock_mode": "BM25_EVALUATION_NOW environment seam",
+  "evaluation_now": "2026-09-21T00:00:00Z",
+  "mode": "bounded_ranking_stress",
+  "notes": [
+    "release-mode bounded stress probe",
+    "220 documents force the 200-candidate cap",
+    "each chunk is below the 16 KiB production bound",
+    "admission lane counts are unavailable in the frozen baseline API",
+    "the frozen baseline has no declaration derived table to rebuild",
+    "SQLite main/WAL/SHM bytes, process RSS, update and compaction costs are reported",
+    "declaration_rebuild is unsupported in the frozen baseline",
+    "timings are machine-local and require same-machine pre/post comparison"
+  ],
+  "platform": {
+    "arch": "aarch64",
+    "os": "macos"
+  },
+  "revision": "efa7f606f2403d2f99d1683ccc16c6c02c3f04d3",
+  "samples": 30,
+  "schema": 2,
+  "toolchain": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "warmups": 5
+}

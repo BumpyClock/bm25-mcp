@@ -59,27 +59,47 @@ pub fn tokenize(text: &str) -> Vec<String> {
 /// exact-dedup spill backend rejects the source instead of silently dropping
 /// or duplicating terms.
 pub fn tokenize_checked(text: &str) -> std::io::Result<Vec<String>> {
+    Ok(tokenize_with_surfaces_checked(text)?.0)
+}
+
+/// Return normalized terms together with the complete surface for each
+/// lexical occurrence. The surface list excludes CamelCase components while
+/// preserving compound forms such as `foo.bar` and `foo::bar`.
+pub fn tokenize_with_surfaces_checked(text: &str) -> std::io::Result<(Vec<String>, Vec<String>)> {
     let mut tokenizer = StreamingTokenizer::new();
     let mut terms = Vec::new();
+    let mut surfaces = Vec::new();
     let mut occurrence = Vec::new();
     for character in text.chars() {
         tokenizer.try_push(character, &mut |term| occurrence.push(term))?;
-        if !character.is_alphanumeric() && character != '_' && !is_surface_separator(character) {
-            append_query_occurrence(&mut terms, &mut occurrence);
+        if !character.is_alphanumeric()
+            && character != '_'
+            && !is_surface_separator(character)
+            && let Some(surface) = append_query_occurrence(&mut terms, &mut occurrence)
+        {
+            surfaces.push(surface);
         }
     }
     tokenizer.try_finish(&mut |term| occurrence.push(term))?;
-    append_query_occurrence(&mut terms, &mut occurrence);
-    Ok(terms)
+    if let Some(surface) = append_query_occurrence(&mut terms, &mut occurrence) {
+        surfaces.push(surface);
+    }
+    Ok((terms, surfaces))
 }
 
-fn append_query_occurrence(output: &mut Vec<String>, occurrence: &mut Vec<String>) {
+fn append_query_occurrence(
+    output: &mut Vec<String>,
+    occurrence: &mut Vec<String>,
+) -> Option<String> {
     if let Some(whole) = occurrence.pop() {
         // Streaming ingestion emits component forms as soon as their boundary
         // is known. The historical query API emits the whole identifier first;
         // retain that order while sharing the exact same normalizer.
-        output.push(whole);
+        output.push(whole.clone());
         output.append(occurrence);
+        Some(whole.trim_end_matches(is_surface_separator).to_owned())
+    } else {
+        None
     }
 }
 

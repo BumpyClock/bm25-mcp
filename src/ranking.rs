@@ -6,7 +6,7 @@
 use crate::{
     model::Hit,
     query::{QueryClass, QueryPlan, is_stop},
-    text::{fold, tokenize_checked},
+    text::{fold, tokenize_checked, tokenize_with_surfaces_checked},
 };
 use anyhow::Result;
 use chrono::{DateTime, Utc};
@@ -95,6 +95,21 @@ pub struct Trace {
     pub selection_score: f64,
     pub position: usize,
 }
+
+#[derive(Clone, Debug, Default)]
+pub struct BodyEvidence {
+    pub terms: BTreeMap<String, usize>,
+    pub length: usize,
+}
+
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct CandidateCounts {
+    pub lexical: usize,
+    pub definitions: usize,
+    pub path: usize,
+    pub expansion: usize,
+}
+
 #[derive(Debug)]
 pub struct RankedSearch {
     pub generation: u64,
@@ -102,6 +117,7 @@ pub struct RankedSearch {
     pub traces: Vec<Trace>,
     pub probes: Vec<crate::query::Probe>,
     pub candidate_count: usize,
+    pub admission_counts: CandidateCounts,
 }
 
 #[derive(Default)]
@@ -138,28 +154,62 @@ impl Field {
         for term in tokens {
             *terms.entry(term.clone()).or_default() += 1;
         }
+        Self::from_terms(name, terms, tokens.len(), weight, normalization, average)
+    }
+
+    fn from_terms(
+        name: &'static str,
+        terms: BTreeMap<String, usize>,
+        length: usize,
+        weight: f64,
+        normalization: f64,
+        average: f64,
+    ) -> Self {
         Self {
             name,
             weight,
             normalization,
             average,
-            length: tokens.len(),
+            length,
             terms,
         }
+    }
+
+    fn from_evidence(
+        name: &'static str,
+        evidence: BodyEvidence,
+        weight: f64,
+        normalization: f64,
+        average: f64,
+    ) -> Self {
+        Self::from_terms(
+            name,
+            evidence.terms,
+            evidence.length,
+            weight,
+            normalization,
+            average,
+        )
     }
 }
 
 #[derive(Default)]
 struct TokenCache {
-    entries: HashMap<String, Arc<Vec<String>>>,
+    entries: HashMap<String, Arc<CachedTokens>>,
+}
+
+struct CachedTokens {
+    terms: Vec<String>,
+    surfaces: Vec<String>,
 }
 
 impl TokenCache {
-    fn get(&mut self, text: &str) -> Result<Arc<Vec<String>>> {
+    fn get(&mut self, text: &str) -> Result<Arc<CachedTokens>> {
         if let Some(tokens) = self.entries.get(text) {
             return Ok(tokens.clone());
         }
-        let tokens = Arc::new(tokenize_checked(text)?);
+        let (terms, surfaces) = tokenize_with_surfaces_checked(text)?;
+        let tokens = Arc::new(CachedTokens { terms, surfaces });
         self.entries.insert(text.to_owned(), tokens.clone());
         Ok(tokens)
     }
@@ -176,7 +226,7 @@ fn cached_field(
     let tokens = cache.get(text)?;
     Ok(Field::from_tokens(
         name,
-        &tokens,
+        &tokens.terms,
         weight,
         normalization,
         average,
@@ -209,16 +259,18 @@ fn bounded(text: &str) -> &str {
     &text[..end]
 }
 
-fn complete_identifiers(text: &str) -> Vec<String> {
-    text.split(|c: char| !(c.is_alphanumeric() || c == '_'))
-        .filter(|part| !part.is_empty() && part.len() <= MAX_FIELD_BYTES)
-        .map(fold)
+fn complete_identifiers(surfaces: &[String]) -> BTreeSet<String> {
+    surfaces
+        .iter()
+        .filter(|surface| surface.len() <= MAX_FIELD_BYTES)
+        .cloned()
         .collect()
 }
 
 // Recognize explicit declaration syntax, not arbitrary mentions. This avoids
 // giving repeated prose a definition tier. No claim of compiler-level parsing.
-fn declarations(text: &str) -> (String, String, BTreeSet<String>) {
+fn declaration_details(text: &str) -> (Vec<String>, String, BTreeSet<String>) {
+    let mut names = Vec::new();
     let mut symbols = BTreeSet::new();
     let mut signatures = String::new();
     for line in text.lines() {
@@ -283,25 +335,57 @@ fn declarations(text: &str) -> (String, String, BTreeSet<String>) {
                 .split(|c: char| !(c.is_alphanumeric() || matches!(c, '_' | ':' | '.')))
                 .next()
                 .unwrap_or("");
-            if !name.is_empty() {
+            if !name.is_empty() && name.len() <= MAX_FIELD_BYTES {
+                names.push(name.to_owned());
                 symbols.insert(fold(name));
                 signatures.push_str(line.split('{').next().unwrap_or(line));
                 signatures.push('\n');
             }
         }
     }
-    (
-        symbols.iter().cloned().collect::<Vec<_>>().join(" "),
-        signatures,
-        symbols,
-    )
+    (names, signatures, symbols)
+}
+
+fn declarations(text: &str) -> (String, String, BTreeSet<String>) {
+    let (names, signatures, symbols) = declaration_details(text);
+    (names.join(" "), signatures, symbols)
+}
+
+pub(crate) fn declared_symbols(text: &str) -> BTreeSet<String> {
+    declaration_details(bounded(text)).2
+}
+
+fn body_evidence_from_tokens(tokens: &[String]) -> BodyEvidence {
+    let mut terms = BTreeMap::new();
+    for token in tokens {
+        *terms.entry(token.clone()).or_default() += 1;
+    }
+    BodyEvidence {
+        terms,
+        length: tokens.len(),
+    }
 }
 
 pub fn prepare(hits: Vec<Hit>, plan: &QueryPlan) -> Result<Vec<Prepared>> {
+    let mut indexed = Vec::new();
+    for hit in hits.into_iter().take(CANDIDATE_LIMIT) {
+        let tokens = tokenize_checked(bounded(&hit.chunk.text))?;
+        indexed.push((hit, body_evidence_from_tokens(&tokens)));
+    }
+    prepare_indexed_inner(indexed, plan)
+}
+
+pub fn prepare_indexed(hits: Vec<(Hit, BodyEvidence)>, plan: &QueryPlan) -> Result<Vec<Prepared>> {
+    prepare_indexed_inner(hits.into_iter().take(CANDIDATE_LIMIT), plan)
+}
+
+fn prepare_indexed_inner(
+    hits: impl IntoIterator<Item = (Hit, BodyEvidence)>,
+    plan: &QueryPlan,
+) -> Result<Vec<Prepared>> {
     let mut cache = TokenCache::default();
     hits.into_iter()
-        .take(CANDIDATE_LIMIT)
-        .map(|hit| {
+        .map(|(hit, body_evidence)| {
             let text = bounded(&hit.chunk.text);
             let body = fold(text);
             let mut fields = Vec::new();
@@ -354,7 +438,7 @@ pub fn prepare(hits: Vec<Hit>, plan: &QueryPlan) -> Result<Vec<Prepared>> {
                 fields.push(cached_field(
                     &mut cache, "comment", &comments, 1.5, 0.5, 64.,
                 )?);
-                fields.push(cached_field(&mut cache, "body", text, 1., 0.75, 0.)?);
+                fields.push(Field::from_evidence("body", body_evidence, 1., 0.75, 0.));
             } else {
                 let (name, weight) =
                     match (hit.chunk.field_kind.as_deref(), hit.chunk.role.as_deref()) {
@@ -368,7 +452,7 @@ pub fn prepare(hits: Vec<Hit>, plan: &QueryPlan) -> Result<Vec<Prepared>> {
                 // Session tool output is often a very large repeated payload.  A
                 // bounded metadata prior keeps it from winning solely because the
                 // corpus average was inflated by one pathological response.
-                fields.push(cached_field(&mut cache, name, text, weight, 0.9, 128.)?);
+                fields.push(Field::from_evidence(name, body_evidence, weight, 0.9, 128.));
                 let diagnostics = text
                     .lines()
                     .filter(|line| {
@@ -407,10 +491,10 @@ pub fn prepare(hits: Vec<Hit>, plan: &QueryPlan) -> Result<Vec<Prepared>> {
                     32.,
                 )?);
             }
-            let sequence_tokens = cache.get(text)?;
-            let sequence = sequence_tokens.as_ref().clone();
-            let surfaces: BTreeSet<_> = sequence_tokens.iter().cloned().collect();
-            let identities: BTreeSet<_> = complete_identifiers(text).into_iter().collect();
+            let cached_tokens = cache.get(text)?;
+            let sequence = cached_tokens.terms.clone();
+            let surfaces: BTreeSet<_> = cached_tokens.terms.iter().cloned().collect();
+            let identities = complete_identifiers(&cached_tokens.surfaces);
             let mut salient = BTreeMap::new();
             for field in &fields {
                 for term in field.terms.keys() {
@@ -525,7 +609,7 @@ fn exact_class(c: &Prepared, p: &QueryPlan) -> (ExactClass, u8) {
                     2,
                 );
             }
-            if literal.contains("::") && c.surfaces.contains(literal) {
+            if literal.contains("::") && c.identities.contains(literal) {
                 return (ExactClass::HistoricalIdentity, 1);
             }
             if c.hit.source.kind == "session" && c.identities.contains(literal) {
@@ -718,13 +802,15 @@ pub fn rerank(
     limit: usize,
 ) -> Result<(Vec<Hit>, Vec<Trace>)> {
     let mut expanded = BTreeMap::<String, f64>::new();
-    for probe in &plan.probes {
-        for term in tokenize_checked(&probe.query)? {
-            if !plan.original.contains(&term) {
-                expanded
-                    .entry(term)
-                    .and_modify(|w| *w = w.max(probe.weight))
-                    .or_insert(probe.weight);
+    if options.expansion {
+        for probe in &plan.probes {
+            for term in tokenize_checked(&probe.query)? {
+                if !plan.original.contains(&term) {
+                    expanded
+                        .entry(term)
+                        .and_modify(|w| *w = w.max(probe.weight))
+                        .or_insert(probe.weight);
+                }
             }
         }
     }
@@ -804,6 +890,11 @@ pub fn rerank(
         salient.truncate(MAX_SALIENT);
         c.salient = salient.into_iter().collect();
     }
+    candidates.retain(|c| {
+        c.trace.original_contribution > 0.
+            || c.trace.expanded_contribution > 0.
+            || c.exact != ExactClass::None
+    });
     candidates.sort_by(|a, b| {
         b.tier
             .cmp(&a.tier)

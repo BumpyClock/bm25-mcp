@@ -39,7 +39,10 @@ Queries are plain lexical text, at most 8192 UTF-8 bytes. There are no Boolean,
 regex or semantic/vector query operators. Identifier normalization retains
 complete case-folded identifiers and camel/snake components. Natural-language
 ranking suppresses common stopwords when useful and falls back to the literal
-terms if reduction would empty the query; there is no stemming.
+terms if reduction would empty the query; there is no stemming. Incidental
+stopword matches without remaining query evidence are not returned by enhanced
+search. Indexed body evidence is preserved even when a token crosses a storage
+chunk boundary.
 
 Responses include generation, coverage, verification timestamps, and `building`, `ready`, `refreshing`, or `degraded` status. Ongoing indexing is a successful tool response with `building` or `refreshing` status, even when separate coverage diagnostics exist; `degraded` describes a completed reconciliation with coverage issues. Reconciliation can return partial or empty results; check coverage before treating absence as definitive. Date filtering uses inclusive `after` and exclusive `before`; undated session events do not satisfy date filters. Excerpt budgets count serialized UTF-8 bytes, not model tokens. Search excerpts are compact contiguous windows of at most 640 UTF-8 bytes, centered on a query match. Each hit reports `excerpt_byte_offset` within its full decoded indexed chunk and `excerpt_truncated`; the original chunk/event source bounds are preserved. Response-level `truncated` reports further trimming to satisfy the response budget. Session context expansion retains its existing pagination and larger text windows.
 
@@ -76,7 +79,11 @@ Search keeps the raw `Store::search` BM25 API as its oracle and applies the
 bounded field-aware ranker through `Store::search_ranked`. Ranking uses
 deterministic query classes, exact symbol/path/diagnostic tiers, bounded
 lexical expansion, phrase proximity, session-only time decay, structural
-deduplication, weighted Jaccard, and MMR. Field weights and approximation
+deduplication, weighted Jaccard, and MMR. A separately indexed, bounded
+declaration lane prevents ordinary mentions from consuming all exact-definition
+admission capacity. Declaration recognition remains heuristic, not a language
+parser, and the final reranking pool remains capped at 200 chunks.
+Field weights and approximation
 limits are documented in [docs/ranking-implementation.md](docs/ranking-implementation.md).
 Embeddings and model-based rerankers are intentionally deferred.
 
@@ -84,8 +91,11 @@ Run `cargo run --release --quiet --example evaluate_ranking > validation/ranking
 to compare raw, enhanced, and leave-one-feature-out variants on the synthetic
 fixture. The report includes Recall@10/20, MRR, nDCG@10, duplicate rate, p50/p95
 latency, candidate/probe counts, indexing/update latency, and SQLite database
-bytes including WAL/SHM sidecars. Fixture numbers are regression evidence and
-do not represent production-wide retrieval quality.
+bytes including WAL/SHM sidecars. Relevance metrics use deduplicated source
+rankings; duplicate diagnostics retain the uncollapsed chunk results. Evaluation
+uses a fixed timestamp through `Store::search_ranked_with_at`, while normal
+search continues to use the current time. Fixture numbers are regression
+evidence and do not represent production-wide retrieval quality.
 
 For a read-only source-tree smoke check, run
 `cargo run --quiet --example evaluate_real_ranking -- /path/to/tree`; it

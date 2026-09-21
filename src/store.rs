@@ -25,6 +25,11 @@ mod upstream;
 
 const SCHEMA_VERSION: &str = "bm25-mcp-store-v2";
 const MAX_CONTEXT_ROWS: usize = 4096;
+const DECLARATION_INDEX_VERSION: &str = "bm25-mcp-declarations-v1";
+// Exact declarations are admitted independently, with match_id order making
+// the bounded overflow choice reproducible.
+const DEFINITION_RESERVE: usize = 40;
+const BODY_EVIDENCE_BATCH: usize = 64;
 
 #[derive(Default)]
 struct QueryGate {
@@ -558,6 +563,19 @@ impl Store {
         limit: usize,
         options: ranking::RankingOptions,
     ) -> Result<ranking::RankedSearch> {
+        self.search_ranked_with_at(query_text, filter, limit, options, chrono::Utc::now())
+    }
+
+    /// Search using an explicit clock for deterministic ranking tests and
+    /// evaluation. Production callers should use [`Self::search_ranked_with`].
+    pub fn search_ranked_with_at(
+        &self,
+        query_text: &str,
+        filter: &SearchFilter,
+        limit: usize,
+        options: ranking::RankingOptions,
+        now: chrono::DateTime<chrono::Utc>,
+    ) -> Result<ranking::RankedSearch> {
         let _permit = self.queries.enter()?;
         let path_glob = compile_path_glob(filter.path_glob.as_deref())?;
         let mut plan = query::QueryPlan::new(query_text, options.classification)?;
@@ -573,10 +591,15 @@ impl Store {
                 traces: Vec::new(),
                 probes: plan.probes,
                 candidate_count: 0,
+                admission_counts: ranking::CandidateCounts::default(),
             });
         }
         let mut candidates = std::collections::BTreeMap::<String, Hit>::new();
         let mut original_ids = HashSet::new();
+        let mut lexical_ids = HashSet::new();
+        let mut definition_ids = HashSet::new();
+        let mut path_ids = HashSet::new();
+        let mut expansion_ids = HashSet::new();
         let mut expanded_scores = HashMap::<String, f32>::new();
         // Keep the raw tokenizer's multiplicity and stopword behavior for the
         // first retrieval. QueryPlan terms are the reranker surface, not the
@@ -592,18 +615,27 @@ impl Store {
             ranking::CANDIDATE_LIMIT,
         )?;
         for hit in initial {
+            lexical_ids.insert(hit.match_id.clone());
             original_ids.insert(hit.match_id.clone());
             candidates.entry(hit.match_id.clone()).or_insert(hit);
+        }
+        if filter.kind == "project" && plan.class == query::QueryClass::Identifier {
+            for hit in retrieve_declaration_hits(&tx, &plan.literal, filter, DEFINITION_RESERVE)? {
+                definition_ids.insert(hit.match_id.clone());
+                candidates.entry(hit.match_id.clone()).or_insert(hit);
+            }
         }
         // Fallback probes are issued only when the literal pool
         // is thin; this preserves literal evidence and bounds query work.
         let mut active_probes = Vec::new();
         let strongest = candidates
             .values()
+            .filter(|hit| original_ids.contains(&hit.match_id))
             .map(|hit| hit.score)
             .fold(0.0_f32, f32::max);
         let weak_pool = options.expansion
-            && (candidates.len() < ranking::THIN_POOL || strongest < ranking::WEAK_BM25_THRESHOLD);
+            && (original_ids.len() < ranking::THIN_POOL
+                || strongest < ranking::WEAK_BM25_THRESHOLD);
         if weak_pool {
             for probe in plan.probes.iter().cloned() {
                 let probe_terms = tokenize_checked(&probe.query)?;
@@ -619,6 +651,7 @@ impl Store {
                     if !original_ids.contains(&hit.match_id) {
                         // Expanded-only rows are useful candidates, but they
                         // have no baseline score from the user's query.
+                        expansion_ids.insert(hit.match_id.clone());
                         expanded_scores
                             .entry(hit.match_id.clone())
                             .and_modify(|score| *score = score.max(hit.score))
@@ -651,89 +684,33 @@ impl Store {
             )?;
             for hit in rows {
                 let hit = hit?;
+                path_ids.insert(hit.match_id.clone());
                 candidates.entry(hit.match_id.clone()).or_insert(hit);
             }
         }
-        let mut hits: Vec<_> = candidates.into_values().collect();
-        let literal = crate::text::fold(&plan.literal.replace('\\', "/"));
-        hits.sort_by(|a, b| {
-            let exact_path = |hit: &Hit| {
-                let path = crate::text::fold(&hit.source.path.replace('\\', "/"));
-                (path == literal || path.ends_with(&format!("/{literal}"))) as u8
-            };
-            let exact_order = if matches!(plan.class, query::QueryClass::Path) {
-                exact_path(b).cmp(&exact_path(a))
-            } else {
-                std::cmp::Ordering::Equal
-            };
-            exact_order
-                .then_with(|| {
-                    original_ids
-                        .contains(&b.match_id)
-                        .cmp(&original_ids.contains(&a.match_id))
-                })
-                .then_with(|| b.score.total_cmp(&a.score))
-                .then_with(|| a.match_id.cmp(&b.match_id))
-        });
-        if weak_pool && !expanded_scores.is_empty() {
-            let reserve = ranking::EXPANSION_RESERVE.min(ranking::CANDIDATE_LIMIT);
-            let original_limit = ranking::CANDIDATE_LIMIT - reserve;
-            let mut originals = Vec::with_capacity(hits.len());
-            let mut expanded = Vec::with_capacity(hits.len());
-            for hit in hits {
-                if original_ids.contains(&hit.match_id) {
-                    originals.push(hit);
-                } else {
-                    expanded.push(hit);
-                }
-            }
-            originals.truncate(original_limit);
-            expanded.sort_by(|a, b| {
-                let exact_path = |hit: &Hit| {
-                    let path = crate::text::fold(&hit.source.path.replace('\\', "/"));
-                    (matches!(plan.class, query::QueryClass::Path)
-                        && (path == literal || path.ends_with(&format!("/{literal}"))))
-                        as u8
-                };
-                exact_path(b)
-                    .cmp(&exact_path(a))
-                    .then_with(|| {
-                        expanded_scores
-                            .get(&b.match_id)
-                            .unwrap_or(&0.)
-                            .total_cmp(expanded_scores.get(&a.match_id).unwrap_or(&0.))
-                    })
-                    .then(a.match_id.cmp(&b.match_id))
-            });
-            expanded.truncate(reserve);
-            originals.extend(expanded);
-            originals.sort_by(|a, b| {
-                let exact_path = |hit: &Hit| {
-                    let path = crate::text::fold(&hit.source.path.replace('\\', "/"));
-                    (matches!(plan.class, query::QueryClass::Path)
-                        && (path == literal || path.ends_with(&format!("/{literal}"))))
-                        as u8
-                };
-                exact_path(b)
-                    .cmp(&exact_path(a))
-                    .then_with(|| {
-                        original_ids
-                            .contains(&b.match_id)
-                            .cmp(&original_ids.contains(&a.match_id))
-                    })
-                    .then_with(|| b.score.total_cmp(&a.score))
-                    .then_with(|| a.match_id.cmp(&b.match_id))
-            });
-            hits = originals;
-        } else {
-            hits.truncate(ranking::CANDIDATE_LIMIT);
-        }
+        let hits = admit_ranked_candidates(
+            candidates.into_values().collect(),
+            &original_ids,
+            &definition_ids,
+            &expanded_scores,
+            &plan,
+            weak_pool,
+        );
         let candidate_count = hits.len();
-        let prepared = ranking::prepare(hits, &plan)?;
+        let mut body_evidence = hydrate_body_evidence(&tx, &hits)?;
+        let indexed_hits = hits
+            .into_iter()
+            .map(|hit| {
+                let evidence = body_evidence
+                    .remove(&hit.match_id)
+                    .ok_or_else(|| anyhow!("missing body evidence for {}", hit.match_id))?;
+                Ok((hit, evidence))
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let prepared = ranking::prepare_indexed(indexed_hits, &plan)?;
         let stat_terms = ranking::statistics_terms(&prepared, &plan)?;
         let stats = corpus_stats(&tx, filter, &stat_terms)?;
-        let (hits, traces) =
-            ranking::rerank(prepared, &plan, &stats, options, chrono::Utc::now(), limit)?;
+        let (hits, traces) = ranking::rerank(prepared, &plan, &stats, options, now, limit)?;
         tx.commit()?;
         Ok(ranking::RankedSearch {
             generation,
@@ -741,6 +718,12 @@ impl Store {
             traces,
             probes: plan.probes,
             candidate_count,
+            admission_counts: ranking::CandidateCounts {
+                lexical: lexical_ids.len(),
+                definitions: definition_ids.len(),
+                path: path_ids.len(),
+                expansion: expansion_ids.len(),
+            },
         })
     }
 
@@ -1208,6 +1191,13 @@ fn initialize(conn: &mut Connection) -> Result<()> {
              doc_freq INTEGER NOT NULL,
              PRIMARY KEY(collection, kind, term_id)
          );
+         CREATE TABLE IF NOT EXISTS declarations(
+             chunk_id INTEGER NOT NULL REFERENCES chunks(id) ON DELETE CASCADE,
+             symbol TEXT NOT NULL,
+             PRIMARY KEY(chunk_id, symbol)
+         );
+         CREATE INDEX IF NOT EXISTS declarations_symbol
+             ON declarations(symbol, chunk_id);
          COMMIT;",
     )?;
 
@@ -1271,6 +1261,59 @@ fn initialize(conn: &mut Connection) -> Result<()> {
         set_generation(&tx, generation)?;
         tx.commit()?;
     }
+    rebuild_declarations(conn)?;
+    Ok(())
+}
+
+fn rebuild_declarations(conn: &mut Connection) -> Result<()> {
+    let version: Option<String> = conn
+        .query_row(
+            "SELECT value FROM meta WHERE key='declaration_index_version'",
+            [],
+            |row| row.get(0),
+        )
+        .optional()?;
+    if version.as_deref() == Some(DECLARATION_INDEX_VERSION) {
+        return Ok(());
+    }
+
+    let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
+    tx.execute("DELETE FROM declarations", [])?;
+    let mut last_id = 0_i64;
+    loop {
+        let rows = {
+            let mut stmt = tx.prepare(
+                "SELECT c.id,c.text FROM chunks c
+                 JOIN sources s ON s.key=c.source_key
+                 WHERE c.id>?1 AND s.kind='project'
+                 ORDER BY c.id LIMIT ?2",
+            )?;
+            let rows = stmt.query_map(params![last_id, BODY_EVIDENCE_BATCH as i64], |row| {
+                Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?))
+            })?;
+            rows.collect::<rusqlite::Result<Vec<_>>>()?
+        };
+        if rows.is_empty() {
+            break;
+        }
+        let mut insert =
+            tx.prepare_cached("INSERT INTO declarations(chunk_id,symbol) VALUES (?1,?2)")?;
+        for (chunk_id, text) in rows {
+            last_id = chunk_id;
+            if text.is_empty() {
+                continue;
+            }
+            for symbol in ranking::declared_symbols(&text) {
+                insert.execute(params![chunk_id, symbol])?;
+            }
+        }
+    }
+    tx.execute(
+        "INSERT INTO meta(key,value) VALUES ('declaration_index_version',?1)
+         ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        [DECLARATION_INDEX_VERSION],
+    )?;
+    tx.commit()?;
     Ok(())
 }
 
@@ -1340,6 +1383,13 @@ fn insert_chunk(
         term_stmt.execute(params![term])?;
         let term_id: i64 = term_id_stmt.query_row(params![term], |row| row.get(0))?;
         posting_stmt.execute(params![chunk_id, term_id, i64::from(tf)])?;
+    }
+    if source.kind == "project" {
+        let mut declaration_stmt =
+            tx.prepare_cached("INSERT INTO declarations(chunk_id,symbol) VALUES (?1,?2)")?;
+        for symbol in ranking::declared_symbols(&chunk.text) {
+            declaration_stmt.execute(params![chunk_id, symbol])?;
+        }
     }
     Ok(())
 }
@@ -1482,6 +1532,176 @@ fn register_search_functions(conn: &Connection, path_glob: Option<GlobSet>) -> R
         Ok(crate::text::fold(&path.replace('\\', "/")))
     })?;
     Ok(())
+}
+
+fn admit_ranked_candidates(
+    mut hits: Vec<Hit>,
+    original_ids: &HashSet<String>,
+    definition_ids: &HashSet<String>,
+    expanded_scores: &HashMap<String, f32>,
+    plan: &query::QueryPlan,
+    weak_pool: bool,
+) -> Vec<Hit> {
+    let literal = crate::text::fold(&plan.literal.replace('\\', "/"));
+    let exact_path = |hit: &Hit| {
+        let path = crate::text::fold(&hit.source.path.replace('\\', "/"));
+        (path == literal || path.ends_with(&format!("/{literal}"))) as u8
+    };
+    let compare = |a: &Hit, b: &Hit| {
+        let exact_order = if matches!(plan.class, query::QueryClass::Path) {
+            exact_path(b).cmp(&exact_path(a))
+        } else {
+            std::cmp::Ordering::Equal
+        };
+        exact_order
+            .then_with(|| {
+                original_ids
+                    .contains(&b.match_id)
+                    .cmp(&original_ids.contains(&a.match_id))
+            })
+            .then_with(|| b.score.total_cmp(&a.score))
+            .then_with(|| a.match_id.cmp(&b.match_id))
+    };
+
+    hits.sort_by(compare);
+    let mut definitions = hits
+        .iter()
+        .filter(|hit| definition_ids.contains(&hit.match_id))
+        .cloned()
+        .collect::<Vec<_>>();
+    definitions.sort_by(|a, b| {
+        b.score
+            .total_cmp(&a.score)
+            .then_with(|| a.match_id.cmp(&b.match_id))
+    });
+    definitions.truncate(DEFINITION_RESERVE.min(ranking::CANDIDATE_LIMIT));
+    let definition_keep: HashSet<_> = definitions.iter().map(|hit| hit.match_id.clone()).collect();
+
+    let mut remaining = hits
+        .into_iter()
+        .filter(|hit| !definition_keep.contains(&hit.match_id))
+        .collect::<Vec<_>>();
+    let mut expanded = Vec::new();
+    if weak_pool && !expanded_scores.is_empty() {
+        expanded = remaining
+            .iter()
+            .filter(|hit| !original_ids.contains(&hit.match_id))
+            .cloned()
+            .collect();
+        expanded.sort_by(|a, b| {
+            exact_path(b)
+                .cmp(&exact_path(a))
+                .then_with(|| {
+                    expanded_scores
+                        .get(&b.match_id)
+                        .unwrap_or(&0.)
+                        .total_cmp(expanded_scores.get(&a.match_id).unwrap_or(&0.))
+                })
+                .then_with(|| a.match_id.cmp(&b.match_id))
+        });
+        expanded.truncate(ranking::EXPANSION_RESERVE.min(ranking::CANDIDATE_LIMIT));
+    }
+    let expanded_keep: HashSet<_> = expanded.iter().map(|hit| hit.match_id.clone()).collect();
+    remaining.retain(|hit| !expanded_keep.contains(&hit.match_id));
+    remaining.sort_by(compare);
+
+    let reserved = definitions.len().saturating_add(expanded.len());
+    remaining.truncate(ranking::CANDIDATE_LIMIT.saturating_sub(reserved));
+    definitions.extend(expanded);
+    definitions.extend(remaining);
+    definitions.sort_by(compare);
+    definitions.truncate(ranking::CANDIDATE_LIMIT);
+    definitions
+}
+
+fn retrieve_declaration_hits(
+    tx: &Transaction<'_>,
+    symbol: &str,
+    filter: &SearchFilter,
+    limit: usize,
+) -> Result<Vec<Hit>> {
+    if symbol.is_empty() || limit == 0 {
+        return Ok(Vec::new());
+    }
+    let mut stmt = tx.prepare(
+        "SELECT c.match_id,0.0,c.source_key,c.source_version,c.ordinal,c.text,
+                c.start_line,c.end_line,c.start_byte,c.end_byte,c.agent,c.session_id,
+                c.event_id,c.timestamp,c.role,c.tool,s.collection,s.path,s.version,
+                s.kind,s.verified_at,c.field_kind
+         FROM declarations d
+         JOIN chunks c ON c.id=d.chunk_id
+         JOIN sources s ON s.key=c.source_key AND s.eligible=1
+         WHERE d.symbol=?1 AND s.collection=?2 AND s.kind=?3
+           AND (?4 IS NULL OR c.agent=?4)
+           AND (?5 IS NULL OR c.session_id=?5)
+           AND (?6 IS NULL OR c.timestamp>=?6)
+           AND (?7 IS NULL OR c.timestamp<?7)
+           AND bm25_path_matches(s.path)
+         ORDER BY c.match_id
+         LIMIT ?8",
+    )?;
+    let rows = stmt.query_map(
+        params![
+            symbol,
+            filter.collection,
+            filter.kind,
+            filter.agent,
+            filter.session_id,
+            filter.after,
+            filter.before,
+            i64::try_from(limit)?,
+        ],
+        hit_from_row,
+    )?;
+    rows.collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(Into::into)
+}
+
+fn hydrate_body_evidence(
+    tx: &Transaction<'_>,
+    hits: &[Hit],
+) -> Result<HashMap<String, ranking::BodyEvidence>> {
+    let mut evidence = HashMap::with_capacity(hits.len());
+    for batch in hits.chunks(BODY_EVIDENCE_BATCH) {
+        if batch.is_empty() {
+            continue;
+        }
+        let placeholders = std::iter::repeat_n("?", batch.len())
+            .collect::<Vec<_>>()
+            .join(",");
+        let sql = format!(
+            "SELECT c.match_id,c.token_len,t.term,p.tf
+             FROM chunks c
+             LEFT JOIN postings p ON p.chunk_id=c.id
+             LEFT JOIN terms t ON t.id=p.term_id
+             WHERE c.match_id IN ({placeholders})
+             ORDER BY c.match_id,t.term"
+        );
+        let mut stmt = tx.prepare(&sql)?;
+        let mut rows = stmt.query(rusqlite::params_from_iter(
+            batch.iter().map(|hit| hit.match_id.as_str()),
+        ))?;
+        while let Some(row) = rows.next()? {
+            let match_id: String = row.get(0)?;
+            let length =
+                usize::try_from(row.get::<_, i64>(1)?).context("negative indexed token length")?;
+            let entry = evidence
+                .entry(match_id)
+                .or_insert_with(|| ranking::BodyEvidence {
+                    terms: std::collections::BTreeMap::new(),
+                    length,
+                });
+            if let Some(term) = row.get::<_, Option<String>>(2)? {
+                let tf = usize::try_from(
+                    row.get::<_, i64>(3)
+                        .context("missing indexed term frequency")?,
+                )
+                .context("negative indexed term frequency")?;
+                entry.terms.insert(term, tf);
+            }
+        }
+    }
+    Ok(evidence)
 }
 
 fn retrieve_terms(

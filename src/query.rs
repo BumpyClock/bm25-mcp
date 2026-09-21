@@ -1,5 +1,5 @@
 //! Deterministic intent and bounded, provenance-carrying lexical fallback.
-use crate::text::{fold, tokenize_checked};
+use crate::text::{fold, tokenize_with_surfaces_checked};
 use anyhow::Result;
 use serde::Serialize;
 use std::collections::BTreeSet;
@@ -179,8 +179,12 @@ impl QueryPlan {
         } else {
             QueryClass::Mixed
         };
-        let literal = fold(query.trim().trim_matches('"'));
-        let terms = tokenize_checked(query)?;
+        let (terms, surfaces) = tokenize_with_surfaces_checked(query)?;
+        let literal = if class == QueryClass::Identifier && surfaces.len() == 1 {
+            surfaces[0].clone()
+        } else {
+            fold(query.trim().trim_matches('"'))
+        };
         let mut seen = BTreeSet::new();
         let all_terms: Vec<_> = terms
             .iter()
@@ -203,10 +207,11 @@ impl QueryPlan {
         };
         let mut probes = Vec::new();
         if matches!(class, QueryClass::Natural | QueryClass::Mixed) {
-            let reduced = tokenize_checked(query)?
-                .into_iter()
-                .filter(|t| !is_stop(t))
+            let reduced = terms
+                .iter()
+                .filter(|term| !is_stop(term))
                 .take(16)
+                .cloned()
                 .collect::<Vec<_>>()
                 .join(" ");
             if !reduced.is_empty() && reduced != literal {

@@ -1,29 +1,18 @@
 {
-  "chunks": 252,
-  "indexing_ms": 233.69037500000002,
+  "chunks": 257,
+  "database_bytes": 8742920,
+  "evaluation_now": "2026-09-21T00:00:00Z",
+  "indexing_ms": 253.15433399999998,
   "notes": [
     "read-only source scan into a disposable index",
+    "regressions use a separate synthetic real-ingest fixture and are not relevance claims",
     "latency includes local SQLite and concurrent machine workload"
   ],
   "queries": [
     {
-      "baseline_ms": 0.589375,
-      "baseline_rank": 2,
+      "baseline_ms": 0.6809999999999999,
+      "baseline_rank": 1,
       "baseline_top": [
-        {
-          "lines": [
-            301,
-            360
-          ],
-          "path": "tools.rs"
-        },
-        {
-          "lines": [
-            481,
-            540
-          ],
-          "path": "store.rs"
-        },
         {
           "lines": [
             541,
@@ -33,31 +22,45 @@
         },
         {
           "lines": [
-            1501,
-            1560
+            301,
+            360
+          ],
+          "path": "tools.rs"
+        },
+        {
+          "lines": [
+            1681,
+            1740
           ],
           "path": "store.rs"
         },
         {
           "lines": [
-            1621,
-            1680
+            961,
+            1020
           ],
           "path": "store.rs"
+        },
+        {
+          "lines": [
+            61,
+            120
+          ],
+          "path": "ranking.rs"
         }
       ],
       "candidate_count": 50,
-      "latency_ms": 33.727833,
+      "latency_ms": 74.1185,
       "query": "search_ranked",
       "ranked_rank": 1,
       "results": [
         {
           "lines": [
-            481,
-            540
+            541,
+            600
           ],
           "path": "store.rs",
-          "symbol_or_excerpt": "        if changed > 0 {"
+          "symbol_or_excerpt": ""
         },
         {
           "lines": [
@@ -69,11 +72,11 @@
         },
         {
           "lines": [
-            541,
-            600
+            1501,
+            1560
           ],
           "path": "store.rs",
-          "symbol_or_excerpt": "        query_text: &str,"
+          "symbol_or_excerpt": "fn register_search_functions(conn: &Connection, path_glob: Option<GlobSet>) -> Result<()> {"
         },
         {
           "lines": [
@@ -85,17 +88,17 @@
         },
         {
           "lines": [
-            1501,
-            1560
+            1681,
+            1740
           ],
           "path": "store.rs",
-          "symbol_or_excerpt": "        Ok(hits)"
+          "symbol_or_excerpt": "        let mut rows = stmt.query(rusqlite::params_from_iter("
         }
       ],
       "target_path": "store.rs"
     },
     {
-      "baseline_ms": 0.5285,
+      "baseline_ms": 0.642916,
       "baseline_rank": 2,
       "baseline_top": [
         {
@@ -114,28 +117,28 @@
         },
         {
           "lines": [
-            241,
-            300
+            781,
+            840
           ],
           "path": "ranking.rs"
         },
         {
           "lines": [
-            721,
-            780
+            601,
+            660
           ],
-          "path": "ranking.rs"
+          "path": "store.rs"
         },
         {
           "lines": [
-            721,
-            780
+            661,
+            720
           ],
           "path": "store.rs"
         }
       ],
-      "candidate_count": 40,
-      "latency_ms": 29.899333,
+      "candidate_count": 43,
+      "latency_ms": 68.71362500000001,
       "query": "RankingOptions",
       "ranked_rank": 1,
       "results": [
@@ -149,27 +152,11 @@
         },
         {
           "lines": [
-            241,
-            300
-          ],
-          "path": "ranking.rs",
-          "symbol_or_excerpt": "                    | \"def\""
-        },
-        {
-          "lines": [
             541,
             600
           ],
           "path": "store.rs",
-          "symbol_or_excerpt": "        query_text: &str,"
-        },
-        {
-          "lines": [
-            721,
-            780
-          ],
-          "path": "ranking.rs",
-          "symbol_or_excerpt": "        }"
+          "symbol_or_excerpt": ""
         },
         {
           "lines": [
@@ -177,22 +164,31 @@
             840
           ],
           "path": "ranking.rs",
-          "symbol_or_excerpt": "        );"
+          "symbol_or_excerpt": "        return false;"
+        },
+        {
+          "lines": [
+            901,
+            960
+          ],
+          "path": "ranking.rs",
+          "symbol_or_excerpt": "            .then(b.trace.relevance.total_cmp(&a.trace.relevance))"
+        },
+        {
+          "lines": [
+            841,
+            900
+          ],
+          "path": "ranking.rs",
+          "symbol_or_excerpt": "            expansion / raw_expansion"
         }
       ],
       "target_path": "ranking.rs"
     },
     {
-      "baseline_ms": 0.49391599999999997,
-      "baseline_rank": 2,
+      "baseline_ms": 0.573791,
+      "baseline_rank": 1,
       "baseline_top": [
-        {
-          "lines": [
-            121,
-            180
-          ],
-          "path": "query.rs"
-        },
         {
           "lines": [
             61,
@@ -202,28 +198,35 @@
         },
         {
           "lines": [
-            481,
-            540
-          ],
-          "path": "ranking.rs"
-        },
-        {
-          "lines": [
-            121,
-            180
-          ],
-          "path": "ranking.rs"
-        },
-        {
-          "lines": [
-            1261,
-            1320
+            1321,
+            1380
           ],
           "path": "store.rs"
+        },
+        {
+          "lines": [
+            541,
+            600
+          ],
+          "path": "ranking.rs"
+        },
+        {
+          "lines": [
+            601,
+            660
+          ],
+          "path": "store.rs"
+        },
+        {
+          "lines": [
+            1,
+            60
+          ],
+          "path": "ranking.rs"
         }
       ],
-      "candidate_count": 25,
-      "latency_ms": 18.236124999999998,
+      "candidate_count": 24,
+      "latency_ms": 37.707542,
       "query": "tokenize_checked",
       "ranked_rank": 1,
       "results": [
@@ -237,19 +240,19 @@
         },
         {
           "lines": [
-            121,
-            180
+            1321,
+            1380
           ],
-          "path": "query.rs",
-          "symbol_or_excerpt": "            | \"has\""
+          "path": "store.rs",
+          "symbol_or_excerpt": "    if source.key.is_empty() {"
         },
         {
           "lines": [
-            481,
-            540
+            541,
+            600
           ],
           "path": "ranking.rs",
-          "symbol_or_excerpt": "                surfaces,"
+          "symbol_or_excerpt": "        .collect()"
         },
         {
           "lines": [
@@ -261,17 +264,17 @@
         },
         {
           "lines": [
-            121,
-            180
+            601,
+            660
           ],
-          "path": "ranking.rs",
-          "symbol_or_excerpt": "struct Field {"
+          "path": "store.rs",
+          "symbol_or_excerpt": "        let mut path_ids = HashSet::new();"
         }
       ],
       "target_path": "text.rs"
     },
     {
-      "baseline_ms": 0.732708,
+      "baseline_ms": 0.7698750000000001,
       "baseline_rank": 5,
       "baseline_top": [
         {
@@ -310,8 +313,8 @@
           "path": "store.rs"
         }
       ],
-      "candidate_count": 119,
-      "latency_ms": 75.821833,
+      "candidate_count": 120,
+      "latency_ms": 160.575875,
       "query": "session copies",
       "ranked_rank": 1,
       "results": [
@@ -321,7 +324,7 @@
             780
           ],
           "path": "store.rs",
-          "symbol_or_excerpt": "                        original_ids"
+          "symbol_or_excerpt": "            admission_counts: ranking::CandidateCounts {"
         },
         {
           "lines": [
@@ -359,7 +362,7 @@
       "target_path": "store.rs"
     },
     {
-      "baseline_ms": 0.690208,
+      "baseline_ms": 0.635583,
       "baseline_rank": 1,
       "baseline_top": [
         {
@@ -371,17 +374,24 @@
         },
         {
           "lines": [
-            1681,
-            1740
+            1861,
+            1920
           ],
           "path": "store.rs"
         },
         {
           "lines": [
-            1621,
-            1680
+            1921,
+            1980
           ],
           "path": "store.rs"
+        },
+        {
+          "lines": [
+            241,
+            300
+          ],
+          "path": "ranking.rs"
         },
         {
           "lines": [
@@ -389,27 +399,20 @@
             900
           ],
           "path": "store.rs"
-        },
-        {
-          "lines": [
-            181,
-            240
-          ],
-          "path": "ranking.rs"
         }
       ],
-      "candidate_count": 58,
-      "latency_ms": 40.786333,
+      "candidate_count": 60,
+      "latency_ms": 88.856875,
       "query": "BM25 candidate reranking",
       "ranked_rank": 1,
       "results": [
         {
           "lines": [
-            181,
-            240
+            241,
+            300
           ],
           "path": "ranking.rs",
-          "symbol_or_excerpt": "        normalization,"
+          "symbol_or_excerpt": "    /// identity checks must use the same normalization as field extraction;"
         },
         {
           "lines": [
@@ -421,42 +424,35 @@
         },
         {
           "lines": [
-            1681,
-            1740
-          ],
-          "path": "store.rs",
-          "symbol_or_excerpt": "        same_event = same_session_event_sql(\"copy.occurrence_id\", \"candidate.occurrence_id\")"
-        },
-        {
-          "lines": [
             481,
             540
           ],
           "path": "store.rs",
-          "symbol_or_excerpt": "        if changed > 0 {"
+          "symbol_or_excerpt": "        let changed = tx.execute("
         },
         {
           "lines": [
-            1621,
-            1680
+            1861,
+            1920
           ],
           "path": "store.rs",
-          "symbol_or_excerpt": "           AND NULLIF(TRIM(c.event_id),'') IS NOT NULL"
+          "symbol_or_excerpt": "         SELECT r.occurrence_id,k.source_key,k.agent,k.session_id,k.event_id,"
+        },
+        {
+          "lines": [
+            61,
+            120
+          ],
+          "path": "ranking.rs",
+          "symbol_or_excerpt": "    }"
         }
       ],
       "target_path": "ranking.rs"
     },
     {
-      "baseline_ms": 0.563666,
-      "baseline_rank": 3,
+      "baseline_ms": 0.6197499999999999,
+      "baseline_rank": 2,
       "baseline_top": [
-        {
-          "lines": [
-            601,
-            660
-          ],
-          "path": "text.rs"
-        },
         {
           "lines": [
             1,
@@ -466,28 +462,35 @@
         },
         {
           "lines": [
-            1,
-            60
+            2221,
+            2280
           ],
           "path": "store.rs"
         },
         {
           "lines": [
-            1981,
-            2040
+            661,
+            692
           ],
-          "path": "store.rs"
+          "path": "text.rs"
         },
         {
           "lines": [
-            2101,
-            2160
+            601,
+            660
+          ],
+          "path": "text.rs"
+        },
+        {
+          "lines": [
+            2281,
+            2340
           ],
           "path": "store.rs"
         }
       ],
-      "candidate_count": 101,
-      "latency_ms": 64.248333,
+      "candidate_count": 105,
+      "latency_ms": 141.599125,
       "query": "store.rs",
       "ranked_rank": 1,
       "results": [
@@ -501,11 +504,11 @@
         },
         {
           "lines": [
-            2041,
-            2100
+            2281,
+            2340
           ],
           "path": "store.rs",
-          "symbol_or_excerpt": "        };"
+          "symbol_or_excerpt": "    fn iterator_error_rolls_back_source_and_generation() -> Result<()> {"
         },
         {
           "lines": [
@@ -513,7 +516,7 @@
             120
           ],
           "path": "store.rs",
-          "symbol_or_excerpt": "#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]"
+          "symbol_or_excerpt": "        }"
         },
         {
           "lines": [
@@ -521,20 +524,89 @@
             1260
           ],
           "path": "store.rs",
-          "symbol_or_excerpt": "             doc_count INTEGER NOT NULL,"
+          "symbol_or_excerpt": "         COMMIT;\","
         },
         {
           "lines": [
-            601,
-            660
+            661,
+            720
           ],
           "path": "store.rs",
-          "symbol_or_excerpt": "        let mut active_probes = Vec::new();"
+          "symbol_or_excerpt": "                    }"
         }
       ],
       "target_path": "store.rs"
     }
   ],
+  "regressions": {
+    "boundary_compound": {
+      "ranked": [
+        "src/boundary-compound.rs"
+      ],
+      "raw": [
+        "src/boundary-compound.rs"
+      ]
+    },
+    "boundary_normal": {
+      "ranked": [
+        "src/boundary-normal.rs",
+        "src/boundary-unicode.rs"
+      ],
+      "raw": [
+        "src/boundary-normal.rs",
+        "src/boundary-unicode.rs"
+      ]
+    },
+    "boundary_unicode": {
+      "ranked": [
+        "src/boundary-unicode.rs",
+        "src/boundary-normal.rs"
+      ],
+      "raw": [
+        "src/boundary-unicode.rs",
+        "src/boundary-normal.rs"
+      ]
+    },
+    "chunks": 252,
+    "collection": "real-regression",
+    "declaration_admission_counts": {
+      "definitions": 1,
+      "expansion": 0,
+      "lexical": 200,
+      "path": 0
+    },
+    "declaration_candidate_count": 200,
+    "declaration_ranked_paths": [
+      "src/search_index.rs",
+      "mentions/040.rs",
+      "mentions/062.rs",
+      "mentions/076.rs",
+      "mentions/088.rs",
+      "mentions/051.rs",
+      "mentions/077.rs",
+      "mentions/070.rs",
+      "mentions/011.rs",
+      "mentions/061.rs"
+    ],
+    "multi_chunk": {
+      "path": "src/multi.rs",
+      "start_byte": 16384
+    },
+    "qualified_identity": [
+      "src/qualified.rs"
+    ],
+    "raw_missing_declaration": true,
+    "raw_top_200": 200,
+    "regression_coverage_only": true,
+    "replacement_invalidation_deletion": true,
+    "sources": 248,
+    "zero_evidence": {
+      "ranked_paths": [],
+      "raw_paths": [
+        "notes.txt"
+      ]
+    }
+  },
   "root": "src",
   "sources": 20
 }

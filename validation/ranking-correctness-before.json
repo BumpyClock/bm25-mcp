@@ -18,8 +18,8 @@
       "deterministic_checks": 54,
       "final_pool_size": null,
       "kind": "project",
-      "latency_ms_p50": 0.221042,
-      "latency_ms_p95": 0.253542,
+      "latency_ms_p50": 0.207166,
+      "latency_ms_p95": 0.245042,
       "metrics": {
         "duplicate_rate10": 0.9,
         "mrr": 0.0,
@@ -45,19 +45,14 @@
       "query": "HybridPersistenceCoordinator"
     },
     {
-      "admission_counts": {
-        "definitions": 1,
-        "expansion": 0,
-        "lexical": 21,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 21,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 21,
       "kind": "project",
-      "latency_ms_p50": 2.060333,
-      "latency_ms_p95": 2.217875,
+      "latency_ms_p50": 2.466708,
+      "latency_ms_p95": 2.647917,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -77,19 +72,14 @@
       "query": "HybridPersistenceCoordinator"
     },
     {
-      "admission_counts": {
-        "definitions": 1,
-        "expansion": 0,
-        "lexical": 21,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 21,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 21,
       "kind": "project",
-      "latency_ms_p50": 2.078167,
-      "latency_ms_p95": 2.320959,
+      "latency_ms_p50": 2.477042,
+      "latency_ms_p95": 2.725666,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -109,19 +99,14 @@
       "query": "HybridPersistenceCoordinator"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 21,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 21,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 21,
       "kind": "project",
-      "latency_ms_p50": 1.942459,
-      "latency_ms_p95": 2.0370000000000004,
+      "latency_ms_p50": 2.4865,
+      "latency_ms_p95": 2.7075419999999997,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 0.5,
@@ -141,19 +126,14 @@
       "query": "HybridPersistenceCoordinator"
     },
     {
-      "admission_counts": {
-        "definitions": 1,
-        "expansion": 0,
-        "lexical": 21,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 21,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 21,
       "kind": "project",
-      "latency_ms_p50": 2.0371669999999997,
-      "latency_ms_p95": 2.233125,
+      "latency_ms_p50": 2.52325,
+      "latency_ms_p95": 2.7495000000000003,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 0.5,
@@ -173,19 +153,14 @@
       "query": "HybridPersistenceCoordinator"
     },
     {
-      "admission_counts": {
-        "definitions": 1,
-        "expansion": 0,
-        "lexical": 21,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 21,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 21,
       "kind": "project",
-      "latency_ms_p50": 1.9304999999999999,
-      "latency_ms_p95": 2.079959,
+      "latency_ms_p50": 2.332833,
+      "latency_ms_p95": 2.6150409999999997,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -205,19 +180,14 @@
       "query": "HybridPersistenceCoordinator"
     },
     {
-      "admission_counts": {
-        "definitions": 1,
-        "expansion": 0,
-        "lexical": 21,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 21,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 21,
       "kind": "project",
-      "latency_ms_p50": 2.0430829999999998,
-      "latency_ms_p95": 2.288667,
+      "latency_ms_p50": 2.508083,
+      "latency_ms_p95": 2.807,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -237,19 +207,14 @@
       "query": "HybridPersistenceCoordinator"
     },
     {
-      "admission_counts": {
-        "definitions": 1,
-        "expansion": 0,
-        "lexical": 21,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 21,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 21,
       "kind": "project",
-      "latency_ms_p50": 2.072375,
-      "latency_ms_p95": 2.319208,
+      "latency_ms_p50": 2.484417,
+      "latency_ms_p95": 2.74375,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -269,19 +234,14 @@
       "query": "HybridPersistenceCoordinator"
     },
     {
-      "admission_counts": {
-        "definitions": 1,
-        "expansion": 0,
-        "lexical": 21,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 21,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 21,
       "kind": "project",
-      "latency_ms_p50": 2.172041,
-      "latency_ms_p95": 2.344166,
+      "latency_ms_p50": 2.50475,
+      "latency_ms_p95": 2.6866250000000003,
       "metrics": {
         "duplicate_rate10": 0.8,
         "mrr": 1.0,
@@ -307,19 +267,14 @@
       "query": "HybridPersistenceCoordinator"
     },
     {
-      "admission_counts": {
-        "definitions": 1,
-        "expansion": 0,
-        "lexical": 21,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 21,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 21,
       "kind": "project",
-      "latency_ms_p50": 2.04025,
-      "latency_ms_p95": 2.2386250000000003,
+      "latency_ms_p50": 2.4228750000000003,
+      "latency_ms_p95": 2.549708,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -339,19 +294,14 @@
       "query": "HybridPersistenceCoordinator"
     },
     {
-      "admission_counts": {
-        "definitions": 1,
-        "expansion": 0,
-        "lexical": 21,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 21,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 21,
       "kind": "project",
-      "latency_ms_p50": 2.112,
-      "latency_ms_p95": 2.301792,
+      "latency_ms_p50": 2.4375,
+      "latency_ms_p95": 2.600958,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -377,8 +327,8 @@
       "deterministic_checks": 54,
       "final_pool_size": null,
       "kind": "project",
-      "latency_ms_p50": 0.213792,
-      "latency_ms_p95": 0.296417,
+      "latency_ms_p50": 0.191,
+      "latency_ms_p95": 0.218083,
       "metrics": {
         "duplicate_rate10": 0.9,
         "mrr": 0.0,
@@ -404,30 +354,25 @@
       "query": "persistence coordinator"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 21,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 21,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 21,
       "kind": "project",
-      "latency_ms_p50": 1.885666,
-      "latency_ms_p95": 2.060833,
+      "latency_ms_p50": 2.36975,
+      "latency_ms_p95": 2.5117920000000002,
       "metrics": {
         "duplicate_rate10": 0.0,
-        "mrr": 0.5,
-        "ndcg10": 0.6576351038729463,
-        "rank": 2,
+        "mrr": 0.3333333333333333,
+        "ndcg10": 0.5610190285608107,
+        "rank": 3,
         "recall10": 1.0,
         "recall20": 1.0,
         "top": [
           "repeat-10",
-          "definition",
           "test",
+          "definition",
           "caller"
         ]
       },
@@ -436,19 +381,14 @@
       "query": "persistence coordinator"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 21,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 21,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 21,
       "kind": "project",
-      "latency_ms_p50": 1.865416,
-      "latency_ms_p95": 2.0635839999999996,
+      "latency_ms_p50": 2.390291,
+      "latency_ms_p95": 2.585708,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 0.25,
@@ -468,30 +408,25 @@
       "query": "persistence coordinator"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 21,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 21,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 21,
       "kind": "project",
-      "latency_ms_p50": 1.8983750000000001,
-      "latency_ms_p95": 2.150375,
+      "latency_ms_p50": 2.376208,
+      "latency_ms_p95": 2.529542,
       "metrics": {
         "duplicate_rate10": 0.0,
-        "mrr": 0.5,
-        "ndcg10": 0.6576351038729463,
-        "rank": 2,
+        "mrr": 0.3333333333333333,
+        "ndcg10": 0.5610190285608107,
+        "rank": 3,
         "recall10": 1.0,
         "recall20": 1.0,
         "top": [
           "repeat-10",
-          "definition",
           "test",
+          "definition",
           "caller"
         ]
       },
@@ -500,30 +435,25 @@
       "query": "persistence coordinator"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 21,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 21,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 21,
       "kind": "project",
-      "latency_ms_p50": 1.8856249999999999,
-      "latency_ms_p95": 2.1397500000000003,
+      "latency_ms_p50": 2.353709,
+      "latency_ms_p95": 2.6269169999999997,
       "metrics": {
         "duplicate_rate10": 0.0,
-        "mrr": 0.5,
-        "ndcg10": 0.6576351038729463,
-        "rank": 2,
+        "mrr": 0.3333333333333333,
+        "ndcg10": 0.5610190285608107,
+        "rank": 3,
         "recall10": 1.0,
         "recall20": 1.0,
         "top": [
           "repeat-10",
-          "definition",
           "test",
+          "definition",
           "caller"
         ]
       },
@@ -532,30 +462,25 @@
       "query": "persistence coordinator"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 21,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 21,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 21,
       "kind": "project",
-      "latency_ms_p50": 1.7045000000000001,
-      "latency_ms_p95": 1.720459,
+      "latency_ms_p50": 2.272416,
+      "latency_ms_p95": 2.502542,
       "metrics": {
         "duplicate_rate10": 0.0,
-        "mrr": 0.5,
-        "ndcg10": 0.6576351038729463,
-        "rank": 2,
+        "mrr": 0.3333333333333333,
+        "ndcg10": 0.5610190285608107,
+        "rank": 3,
         "recall10": 1.0,
         "recall20": 1.0,
         "top": [
           "repeat-10",
-          "definition",
           "test",
+          "definition",
           "caller"
         ]
       },
@@ -564,30 +489,25 @@
       "query": "persistence coordinator"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 21,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 21,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 21,
       "kind": "project",
-      "latency_ms_p50": 1.8591250000000001,
-      "latency_ms_p95": 2.046542,
+      "latency_ms_p50": 2.412875,
+      "latency_ms_p95": 2.646125,
       "metrics": {
         "duplicate_rate10": 0.0,
-        "mrr": 0.5,
-        "ndcg10": 0.6576351038729463,
-        "rank": 2,
+        "mrr": 0.3333333333333333,
+        "ndcg10": 0.5610190285608107,
+        "rank": 3,
         "recall10": 1.0,
         "recall20": 1.0,
         "top": [
           "repeat-10",
-          "definition",
           "test",
+          "definition",
           "caller"
         ]
       },
@@ -596,30 +516,25 @@
       "query": "persistence coordinator"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 21,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 21,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 21,
       "kind": "project",
-      "latency_ms_p50": 1.9105420000000002,
-      "latency_ms_p95": 2.13275,
+      "latency_ms_p50": 2.3985410000000003,
+      "latency_ms_p95": 2.6749579999999997,
       "metrics": {
         "duplicate_rate10": 0.0,
-        "mrr": 0.5,
-        "ndcg10": 0.6576351038729463,
-        "rank": 2,
+        "mrr": 0.3333333333333333,
+        "ndcg10": 0.5610190285608107,
+        "rank": 3,
         "recall10": 1.0,
         "recall20": 1.0,
         "top": [
           "repeat-10",
-          "definition",
           "test",
+          "definition",
           "caller"
         ]
       },
@@ -628,29 +543,24 @@
       "query": "persistence coordinator"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 21,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 21,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 21,
       "kind": "project",
-      "latency_ms_p50": 1.879208,
-      "latency_ms_p95": 1.893959,
+      "latency_ms_p50": 2.429625,
+      "latency_ms_p95": 2.7117080000000002,
       "metrics": {
         "duplicate_rate10": 0.8,
-        "mrr": 0.5,
-        "ndcg10": 0.5431738323726484,
-        "rank": 2,
-        "recall10": 1.0,
+        "mrr": 0.05,
+        "ndcg10": 0.07759626176752121,
+        "rank": 20,
+        "recall10": 0.0,
         "recall20": 1.0,
         "top": [
           "repeat-10",
-          "definition",
+          "test",
           "repeat-17",
           "repeat-11",
           "repeat-14",
@@ -666,30 +576,25 @@
       "query": "persistence coordinator"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 21,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 21,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 21,
       "kind": "project",
-      "latency_ms_p50": 1.7882079999999998,
-      "latency_ms_p95": 2.050333,
+      "latency_ms_p50": 2.368,
+      "latency_ms_p95": 2.6475829999999996,
       "metrics": {
         "duplicate_rate10": 0.0,
-        "mrr": 0.5,
-        "ndcg10": 0.6576351038729463,
-        "rank": 2,
+        "mrr": 0.3333333333333333,
+        "ndcg10": 0.5610190285608107,
+        "rank": 3,
         "recall10": 1.0,
         "recall20": 1.0,
         "top": [
           "repeat-10",
-          "definition",
           "test",
+          "definition",
           "caller"
         ]
       },
@@ -698,30 +603,25 @@
       "query": "persistence coordinator"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 21,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 21,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 21,
       "kind": "project",
-      "latency_ms_p50": 1.851333,
-      "latency_ms_p95": 1.9745420000000002,
+      "latency_ms_p50": 2.4151670000000003,
+      "latency_ms_p95": 2.600709,
       "metrics": {
         "duplicate_rate10": 0.0,
-        "mrr": 0.5,
-        "ndcg10": 0.6576351038729463,
-        "rank": 2,
+        "mrr": 0.3333333333333333,
+        "ndcg10": 0.5610190285608107,
+        "rank": 3,
         "recall10": 1.0,
         "recall20": 1.0,
         "top": [
           "repeat-10",
-          "definition",
           "test",
+          "definition",
           "caller"
         ]
       },
@@ -736,8 +636,8 @@
       "deterministic_checks": 54,
       "final_pool_size": null,
       "kind": "project",
-      "latency_ms_p50": 0.202041,
-      "latency_ms_p95": 0.210208,
+      "latency_ms_p50": 0.195667,
+      "latency_ms_p95": 0.2155,
       "metrics": {
         "duplicate_rate10": 0.9,
         "mrr": 0.0,
@@ -763,19 +663,14 @@
       "query": "manager-search.ts"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 18,
-        "path": 1
-      },
+      "admission_counts": null,
       "candidate_count": 19,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 19,
       "kind": "project",
-      "latency_ms_p50": 1.963125,
-      "latency_ms_p95": 2.118375,
+      "latency_ms_p50": 2.523917,
+      "latency_ms_p95": 2.795625,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -793,19 +688,14 @@
       "query": "manager-search.ts"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 18,
-        "path": 1
-      },
+      "admission_counts": null,
       "candidate_count": 19,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 19,
       "kind": "project",
-      "latency_ms_p50": 1.9845829999999998,
-      "latency_ms_p95": 2.208417,
+      "latency_ms_p50": 2.521125,
+      "latency_ms_p95": 2.734208,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -823,19 +713,14 @@
       "query": "manager-search.ts"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 18,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 18,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 18,
       "kind": "project",
-      "latency_ms_p50": 1.785917,
-      "latency_ms_p95": 2.080584,
+      "latency_ms_p50": 2.3361660000000004,
+      "latency_ms_p95": 2.623417,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 0.0,
@@ -852,19 +737,14 @@
       "query": "manager-search.ts"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 18,
-        "path": 1
-      },
+      "admission_counts": null,
       "candidate_count": 19,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 19,
       "kind": "project",
-      "latency_ms_p50": 1.921,
-      "latency_ms_p95": 2.159875,
+      "latency_ms_p50": 2.473416,
+      "latency_ms_p95": 2.592666,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 0.5,
@@ -882,19 +762,14 @@
       "query": "manager-search.ts"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 18,
-        "path": 1
-      },
+      "admission_counts": null,
       "candidate_count": 19,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 19,
       "kind": "project",
-      "latency_ms_p50": 1.853041,
-      "latency_ms_p95": 2.1177919999999997,
+      "latency_ms_p50": 2.367333,
+      "latency_ms_p95": 2.563708,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -912,19 +787,14 @@
       "query": "manager-search.ts"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 18,
-        "path": 1
-      },
+      "admission_counts": null,
       "candidate_count": 19,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 19,
       "kind": "project",
-      "latency_ms_p50": 1.997709,
-      "latency_ms_p95": 2.1938750000000002,
+      "latency_ms_p50": 2.4497910000000003,
+      "latency_ms_p95": 2.6142090000000002,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -942,19 +812,14 @@
       "query": "manager-search.ts"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 18,
-        "path": 1
-      },
+      "admission_counts": null,
       "candidate_count": 19,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 19,
       "kind": "project",
-      "latency_ms_p50": 1.992083,
-      "latency_ms_p95": 2.231459,
+      "latency_ms_p50": 2.466292,
+      "latency_ms_p95": 2.751875,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -972,19 +837,14 @@
       "query": "manager-search.ts"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 18,
-        "path": 1
-      },
+      "admission_counts": null,
       "candidate_count": 19,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 19,
       "kind": "project",
-      "latency_ms_p50": 2.086083,
-      "latency_ms_p95": 2.427625,
+      "latency_ms_p50": 2.4827909999999997,
+      "latency_ms_p95": 2.6025,
       "metrics": {
         "duplicate_rate10": 0.8,
         "mrr": 1.0,
@@ -1010,19 +870,14 @@
       "query": "manager-search.ts"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 18,
-        "path": 1
-      },
+      "admission_counts": null,
       "candidate_count": 19,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 19,
       "kind": "project",
-      "latency_ms_p50": 2.0115,
-      "latency_ms_p95": 2.272167,
+      "latency_ms_p50": 2.475291,
+      "latency_ms_p95": 2.664375,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -1040,19 +895,14 @@
       "query": "manager-search.ts"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 18,
-        "path": 1
-      },
+      "admission_counts": null,
       "candidate_count": 19,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 19,
       "kind": "project",
-      "latency_ms_p50": 2.032916,
-      "latency_ms_p95": 2.292167,
+      "latency_ms_p50": 2.4303749999999997,
+      "latency_ms_p95": 2.594625,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -1076,8 +926,8 @@
       "deterministic_checks": 54,
       "final_pool_size": null,
       "kind": "project",
-      "latency_ms_p50": 0.209042,
-      "latency_ms_p95": 0.249708,
+      "latency_ms_p50": 0.197542,
+      "latency_ms_p95": 0.223333,
       "metrics": {
         "duplicate_rate10": 0.9,
         "mrr": 0.0,
@@ -1103,19 +953,14 @@
       "query": "src/empty-manager.ts"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 18,
-        "path": 1
-      },
+      "admission_counts": null,
       "candidate_count": 19,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 19,
       "kind": "project",
-      "latency_ms_p50": 1.83775,
-      "latency_ms_p95": 2.125292,
+      "latency_ms_p50": 2.381167,
+      "latency_ms_p95": 2.625792,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -1133,19 +978,14 @@
       "query": "src/empty-manager.ts"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 18,
-        "path": 1
-      },
+      "admission_counts": null,
       "candidate_count": 19,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 19,
       "kind": "project",
-      "latency_ms_p50": 1.836667,
-      "latency_ms_p95": 2.1648330000000002,
+      "latency_ms_p50": 2.371709,
+      "latency_ms_p95": 2.5847919999999998,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -1163,19 +1003,14 @@
       "query": "src/empty-manager.ts"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 18,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 18,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 18,
       "kind": "project",
-      "latency_ms_p50": 1.750625,
-      "latency_ms_p95": 2.003791,
+      "latency_ms_p50": 2.32325,
+      "latency_ms_p95": 2.475583,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 0.0,
@@ -1192,19 +1027,14 @@
       "query": "src/empty-manager.ts"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 18,
-        "path": 1
-      },
+      "admission_counts": null,
       "candidate_count": 19,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 19,
       "kind": "project",
-      "latency_ms_p50": 1.802833,
-      "latency_ms_p95": 1.857292,
+      "latency_ms_p50": 2.418917,
+      "latency_ms_p95": 2.616916,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -1222,19 +1052,14 @@
       "query": "src/empty-manager.ts"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 18,
-        "path": 1
-      },
+      "admission_counts": null,
       "candidate_count": 19,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 19,
       "kind": "project",
-      "latency_ms_p50": 1.791292,
-      "latency_ms_p95": 2.1377089999999996,
+      "latency_ms_p50": 2.333709,
+      "latency_ms_p95": 2.557334,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -1252,19 +1077,14 @@
       "query": "src/empty-manager.ts"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 18,
-        "path": 1
-      },
+      "admission_counts": null,
       "candidate_count": 19,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 19,
       "kind": "project",
-      "latency_ms_p50": 1.8337080000000001,
-      "latency_ms_p95": 2.04375,
+      "latency_ms_p50": 2.386167,
+      "latency_ms_p95": 2.587916,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -1282,19 +1102,14 @@
       "query": "src/empty-manager.ts"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 18,
-        "path": 1
-      },
+      "admission_counts": null,
       "candidate_count": 19,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 19,
       "kind": "project",
-      "latency_ms_p50": 1.855916,
-      "latency_ms_p95": 2.0573330000000003,
+      "latency_ms_p50": 2.4085,
+      "latency_ms_p95": 2.6314580000000003,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -1312,19 +1127,14 @@
       "query": "src/empty-manager.ts"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 18,
-        "path": 1
-      },
+      "admission_counts": null,
       "candidate_count": 19,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 19,
       "kind": "project",
-      "latency_ms_p50": 1.900292,
-      "latency_ms_p95": 2.001583,
+      "latency_ms_p50": 2.3692919999999997,
+      "latency_ms_p95": 2.554042,
       "metrics": {
         "duplicate_rate10": 0.8,
         "mrr": 1.0,
@@ -1350,19 +1160,14 @@
       "query": "src/empty-manager.ts"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 18,
-        "path": 1
-      },
+      "admission_counts": null,
       "candidate_count": 19,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 19,
       "kind": "project",
-      "latency_ms_p50": 1.8303749999999999,
-      "latency_ms_p95": 2.080125,
+      "latency_ms_p50": 2.3290830000000002,
+      "latency_ms_p95": 2.51575,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -1380,19 +1185,14 @@
       "query": "src/empty-manager.ts"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 18,
-        "path": 1
-      },
+      "admission_counts": null,
       "candidate_count": 19,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 19,
       "kind": "project",
-      "latency_ms_p50": 1.857958,
-      "latency_ms_p95": 2.009875,
+      "latency_ms_p50": 2.345875,
+      "latency_ms_p95": 2.51425,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -1416,8 +1216,8 @@
       "deterministic_checks": 54,
       "final_pool_size": null,
       "kind": "project",
-      "latency_ms_p50": 0.164459,
-      "latency_ms_p95": 0.179459,
+      "latency_ms_p50": 0.160875,
+      "latency_ms_p95": 0.198333,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -1434,19 +1234,14 @@
       "query": "Foo::Bar::bazValue"
     },
     {
-      "admission_counts": {
-        "definitions": 1,
-        "expansion": 0,
-        "lexical": 1,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 1,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 1,
       "kind": "project",
-      "latency_ms_p50": 0.324208,
-      "latency_ms_p95": 0.37429199999999996,
+      "latency_ms_p50": 0.222292,
+      "latency_ms_p95": 0.234125,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -1463,19 +1258,14 @@
       "query": "Foo::Bar::bazValue"
     },
     {
-      "admission_counts": {
-        "definitions": 1,
-        "expansion": 0,
-        "lexical": 1,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 1,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 1,
       "kind": "project",
-      "latency_ms_p50": 0.32666599999999996,
-      "latency_ms_p95": 0.409625,
+      "latency_ms_p50": 0.22249999999999998,
+      "latency_ms_p95": 0.24329199999999998,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -1492,19 +1282,14 @@
       "query": "Foo::Bar::bazValue"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 1,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 1,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 1,
       "kind": "project",
-      "latency_ms_p50": 0.30979199999999996,
-      "latency_ms_p95": 0.34433400000000003,
+      "latency_ms_p50": 0.279667,
+      "latency_ms_p95": 0.325625,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -1521,19 +1306,14 @@
       "query": "Foo::Bar::bazValue"
     },
     {
-      "admission_counts": {
-        "definitions": 1,
-        "expansion": 0,
-        "lexical": 1,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 1,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 1,
       "kind": "project",
-      "latency_ms_p50": 0.32699999999999996,
-      "latency_ms_p95": 0.44387499999999996,
+      "latency_ms_p50": 0.224375,
+      "latency_ms_p95": 0.278041,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -1550,19 +1330,14 @@
       "query": "Foo::Bar::bazValue"
     },
     {
-      "admission_counts": {
-        "definitions": 1,
-        "expansion": 0,
-        "lexical": 1,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 1,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 1,
       "kind": "project",
-      "latency_ms_p50": 0.32337499999999997,
-      "latency_ms_p95": 0.3605,
+      "latency_ms_p50": 0.22037500000000002,
+      "latency_ms_p95": 0.224,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -1579,19 +1354,14 @@
       "query": "Foo::Bar::bazValue"
     },
     {
-      "admission_counts": {
-        "definitions": 1,
-        "expansion": 0,
-        "lexical": 1,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 1,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 1,
       "kind": "project",
-      "latency_ms_p50": 0.326417,
-      "latency_ms_p95": 0.406084,
+      "latency_ms_p50": 0.221083,
+      "latency_ms_p95": 0.22595800000000002,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -1608,19 +1378,14 @@
       "query": "Foo::Bar::bazValue"
     },
     {
-      "admission_counts": {
-        "definitions": 1,
-        "expansion": 0,
-        "lexical": 1,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 1,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 1,
       "kind": "project",
-      "latency_ms_p50": 0.316,
-      "latency_ms_p95": 0.385833,
+      "latency_ms_p50": 0.219209,
+      "latency_ms_p95": 0.25816700000000004,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -1637,19 +1402,14 @@
       "query": "Foo::Bar::bazValue"
     },
     {
-      "admission_counts": {
-        "definitions": 1,
-        "expansion": 0,
-        "lexical": 1,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 1,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 1,
       "kind": "project",
-      "latency_ms_p50": 0.317458,
-      "latency_ms_p95": 0.357375,
+      "latency_ms_p50": 0.22545900000000002,
+      "latency_ms_p95": 0.279333,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -1666,19 +1426,14 @@
       "query": "Foo::Bar::bazValue"
     },
     {
-      "admission_counts": {
-        "definitions": 1,
-        "expansion": 0,
-        "lexical": 1,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 1,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 1,
       "kind": "project",
-      "latency_ms_p50": 0.32704099999999997,
-      "latency_ms_p95": 0.38225,
+      "latency_ms_p50": 0.215292,
+      "latency_ms_p95": 0.319083,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -1695,19 +1450,14 @@
       "query": "Foo::Bar::bazValue"
     },
     {
-      "admission_counts": {
-        "definitions": 1,
-        "expansion": 0,
-        "lexical": 1,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 1,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 1,
       "kind": "project",
-      "latency_ms_p50": 0.312875,
-      "latency_ms_p95": 0.354417,
+      "latency_ms_p50": 0.22325,
+      "latency_ms_p95": 0.268166,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -1730,8 +1480,8 @@
       "deterministic_checks": 54,
       "final_pool_size": null,
       "kind": "session",
-      "latency_ms_p50": 1.143167,
-      "latency_ms_p95": 1.358292,
+      "latency_ms_p50": 1.134375,
+      "latency_ms_p95": 1.286792,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -1749,19 +1499,14 @@
       "query": "\"Zone Not Found\""
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 2,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 2,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 2,
       "kind": "session",
-      "latency_ms_p50": 1.347459,
-      "latency_ms_p95": 1.437042,
+      "latency_ms_p50": 1.2824170000000001,
+      "latency_ms_p95": 1.401083,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -1779,19 +1524,14 @@
       "query": "\"Zone Not Found\""
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 2,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 2,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 2,
       "kind": "session",
-      "latency_ms_p50": 1.3628749999999998,
-      "latency_ms_p95": 1.567583,
+      "latency_ms_p50": 1.289959,
+      "latency_ms_p95": 1.467292,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -1809,19 +1549,14 @@
       "query": "\"Zone Not Found\""
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 2,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 2,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 2,
       "kind": "session",
-      "latency_ms_p50": 1.353667,
-      "latency_ms_p95": 1.523125,
+      "latency_ms_p50": 1.284292,
+      "latency_ms_p95": 1.500125,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -1839,19 +1574,14 @@
       "query": "\"Zone Not Found\""
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 2,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 2,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 2,
       "kind": "session",
-      "latency_ms_p50": 1.3442910000000001,
-      "latency_ms_p95": 1.619042,
+      "latency_ms_p50": 1.285458,
+      "latency_ms_p95": 1.410625,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -1869,19 +1599,14 @@
       "query": "\"Zone Not Found\""
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 2,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 2,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 2,
       "kind": "session",
-      "latency_ms_p50": 1.389916,
-      "latency_ms_p95": 1.5285,
+      "latency_ms_p50": 1.272958,
+      "latency_ms_p95": 1.456167,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -1899,19 +1624,14 @@
       "query": "\"Zone Not Found\""
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 2,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 2,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 2,
       "kind": "session",
-      "latency_ms_p50": 1.336208,
-      "latency_ms_p95": 1.5312080000000001,
+      "latency_ms_p50": 1.281375,
+      "latency_ms_p95": 1.389875,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -1929,19 +1649,14 @@
       "query": "\"Zone Not Found\""
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 2,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 2,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 2,
       "kind": "session",
-      "latency_ms_p50": 1.37225,
-      "latency_ms_p95": 1.553834,
+      "latency_ms_p50": 1.28775,
+      "latency_ms_p95": 1.446541,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -1959,19 +1674,14 @@
       "query": "\"Zone Not Found\""
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 2,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 2,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 2,
       "kind": "session",
-      "latency_ms_p50": 1.379042,
-      "latency_ms_p95": 1.6303750000000001,
+      "latency_ms_p50": 1.2958749999999999,
+      "latency_ms_p95": 1.4465000000000001,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -1989,19 +1699,14 @@
       "query": "\"Zone Not Found\""
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 2,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 2,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 2,
       "kind": "session",
-      "latency_ms_p50": 1.4423750000000002,
-      "latency_ms_p95": 1.565625,
+      "latency_ms_p50": 1.271666,
+      "latency_ms_p95": 1.412792,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -2019,19 +1724,14 @@
       "query": "\"Zone Not Found\""
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 2,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 2,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 2,
       "kind": "session",
-      "latency_ms_p50": 1.350208,
-      "latency_ms_p95": 1.495625,
+      "latency_ms_p50": 1.2760420000000001,
+      "latency_ms_p95": 1.440042,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -2055,8 +1755,8 @@
       "deterministic_checks": 54,
       "final_pool_size": null,
       "kind": "session",
-      "latency_ms_p50": 1.342333,
-      "latency_ms_p95": 1.507834,
+      "latency_ms_p50": 1.309083,
+      "latency_ms_p95": 1.379125,
       "metrics": {
         "duplicate_rate10": 0.8,
         "mrr": 1.0,
@@ -2082,19 +1782,14 @@
       "query": "why did subscriptions disappear after cloud sync?"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 20,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 20,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 20,
       "kind": "session",
-      "latency_ms_p50": 12.628833,
-      "latency_ms_p95": 13.317167,
+      "latency_ms_p50": 16.487084,
+      "latency_ms_p95": 16.800666,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -2113,19 +1808,14 @@
       "query": "why did subscriptions disappear after cloud sync?"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 20,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 20,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 20,
       "kind": "session",
-      "latency_ms_p50": 12.732208,
-      "latency_ms_p95": 13.063125,
+      "latency_ms_p50": 16.516625,
+      "latency_ms_p95": 16.785416,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -2144,19 +1834,14 @@
       "query": "why did subscriptions disappear after cloud sync?"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 20,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 20,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 20,
       "kind": "session",
-      "latency_ms_p50": 12.892249999999999,
-      "latency_ms_p95": 13.397499999999999,
+      "latency_ms_p50": 16.45025,
+      "latency_ms_p95": 16.756458,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -2175,19 +1860,14 @@
       "query": "why did subscriptions disappear after cloud sync?"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 20,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 20,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 20,
       "kind": "session",
-      "latency_ms_p50": 12.754167,
-      "latency_ms_p95": 13.228416999999999,
+      "latency_ms_p50": 16.389167,
+      "latency_ms_p95": 16.859208,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -2206,19 +1886,14 @@
       "query": "why did subscriptions disappear after cloud sync?"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 20,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 20,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 20,
       "kind": "session",
-      "latency_ms_p50": 12.469584000000001,
-      "latency_ms_p95": 12.973125,
+      "latency_ms_p50": 16.131375,
+      "latency_ms_p95": 16.511542000000002,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -2237,19 +1912,14 @@
       "query": "why did subscriptions disappear after cloud sync?"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 20,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 20,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 20,
       "kind": "session",
-      "latency_ms_p50": 12.821375,
-      "latency_ms_p95": 13.244125,
+      "latency_ms_p50": 16.319667,
+      "latency_ms_p95": 16.634708,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -2268,19 +1938,14 @@
       "query": "why did subscriptions disappear after cloud sync?"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 20,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 20,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 20,
       "kind": "session",
-      "latency_ms_p50": 12.761042,
-      "latency_ms_p95": 13.164250000000001,
+      "latency_ms_p50": 16.464166,
+      "latency_ms_p95": 16.784958,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -2299,19 +1964,14 @@
       "query": "why did subscriptions disappear after cloud sync?"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 20,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 20,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 20,
       "kind": "session",
-      "latency_ms_p50": 12.826167,
-      "latency_ms_p95": 13.187458000000001,
+      "latency_ms_p50": 16.558875,
+      "latency_ms_p95": 17.767249999999997,
       "metrics": {
         "duplicate_rate10": 0.8,
         "mrr": 1.0,
@@ -2337,19 +1997,14 @@
       "query": "why did subscriptions disappear after cloud sync?"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 20,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 20,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 20,
       "kind": "session",
-      "latency_ms_p50": 12.765792,
-      "latency_ms_p95": 13.188,
+      "latency_ms_p50": 16.503292,
+      "latency_ms_p95": 17.119459,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -2368,19 +2023,14 @@
       "query": "why did subscriptions disappear after cloud sync?"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 20,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 20,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 20,
       "kind": "session",
-      "latency_ms_p50": 12.730917,
-      "latency_ms_p95": 13.136750000000001,
+      "latency_ms_p50": 16.552375,
+      "latency_ms_p95": 17.101125,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -2405,8 +2055,8 @@
       "deterministic_checks": 54,
       "final_pool_size": null,
       "kind": "project",
-      "latency_ms_p50": 0.176958,
-      "latency_ms_p95": 0.190125,
+      "latency_ms_p50": 0.16729200000000002,
+      "latency_ms_p95": 0.175625,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -2425,19 +2075,14 @@
       "query": "why did subscriptions disappear after cloud sync?"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 3,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 3,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 3,
       "kind": "project",
-      "latency_ms_p50": 0.451292,
-      "latency_ms_p95": 0.5119589999999999,
+      "latency_ms_p50": 0.417833,
+      "latency_ms_p95": 0.49379100000000004,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -2456,19 +2101,14 @@
       "query": "why did subscriptions disappear after cloud sync?"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 3,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 3,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 3,
       "kind": "project",
-      "latency_ms_p50": 0.453,
-      "latency_ms_p95": 0.5237080000000001,
+      "latency_ms_p50": 0.412334,
+      "latency_ms_p95": 0.473958,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -2487,19 +2127,14 @@
       "query": "why did subscriptions disappear after cloud sync?"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 3,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 3,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 3,
       "kind": "project",
-      "latency_ms_p50": 0.45825,
-      "latency_ms_p95": 0.504167,
+      "latency_ms_p50": 0.41120799999999996,
+      "latency_ms_p95": 0.434208,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -2518,19 +2153,14 @@
       "query": "why did subscriptions disappear after cloud sync?"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 3,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 3,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 3,
       "kind": "project",
-      "latency_ms_p50": 0.45375,
-      "latency_ms_p95": 0.622666,
+      "latency_ms_p50": 0.40549999999999997,
+      "latency_ms_p95": 0.444959,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -2549,19 +2179,14 @@
       "query": "why did subscriptions disappear after cloud sync?"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 3,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 3,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 3,
       "kind": "project",
-      "latency_ms_p50": 0.44958299999999995,
-      "latency_ms_p95": 0.507542,
+      "latency_ms_p50": 0.412125,
+      "latency_ms_p95": 0.454125,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -2580,19 +2205,14 @@
       "query": "why did subscriptions disappear after cloud sync?"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 3,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 3,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 3,
       "kind": "project",
-      "latency_ms_p50": 0.399208,
-      "latency_ms_p95": 0.5550830000000001,
+      "latency_ms_p50": 0.36112500000000003,
+      "latency_ms_p95": 0.40125,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -2611,19 +2231,14 @@
       "query": "why did subscriptions disappear after cloud sync?"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 3,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 3,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 3,
       "kind": "project",
-      "latency_ms_p50": 0.456542,
-      "latency_ms_p95": 0.5058750000000001,
+      "latency_ms_p50": 0.4105,
+      "latency_ms_p95": 0.462959,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -2642,19 +2257,14 @@
       "query": "why did subscriptions disappear after cloud sync?"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 3,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 3,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 3,
       "kind": "project",
-      "latency_ms_p50": 0.44341600000000003,
-      "latency_ms_p95": 0.5108750000000001,
+      "latency_ms_p50": 0.403167,
+      "latency_ms_p95": 0.449542,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -2673,19 +2283,14 @@
       "query": "why did subscriptions disappear after cloud sync?"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 3,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 3,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 3,
       "kind": "project",
-      "latency_ms_p50": 0.446708,
-      "latency_ms_p95": 0.562,
+      "latency_ms_p50": 0.403042,
+      "latency_ms_p95": 0.43875000000000003,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -2704,19 +2309,14 @@
       "query": "why did subscriptions disappear after cloud sync?"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 3,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 3,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 3,
       "kind": "project",
-      "latency_ms_p50": 0.450583,
-      "latency_ms_p95": 0.489291,
+      "latency_ms_p50": 0.398667,
+      "latency_ms_p95": 0.4015,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -2741,8 +2341,8 @@
       "deterministic_checks": 54,
       "final_pool_size": null,
       "kind": "session",
-      "latency_ms_p50": 1.350708,
-      "latency_ms_p95": 1.6221670000000001,
+      "latency_ms_p50": 1.2966250000000001,
+      "latency_ms_p95": 1.420042,
       "metrics": {
         "duplicate_rate10": 0.8,
         "mrr": 1.0,
@@ -2768,19 +2368,14 @@
       "query": "architectural decision atomic checkpoint"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 21,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 21,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 21,
       "kind": "session",
-      "latency_ms_p50": 12.902708,
-      "latency_ms_p95": 13.173375,
+      "latency_ms_p50": 16.494083,
+      "latency_ms_p95": 16.909083,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -2800,19 +2395,14 @@
       "query": "architectural decision atomic checkpoint"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 21,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 21,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 21,
       "kind": "session",
-      "latency_ms_p50": 12.684583,
-      "latency_ms_p95": 13.070666,
+      "latency_ms_p50": 16.477249999999998,
+      "latency_ms_p95": 16.827749999999998,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -2832,19 +2422,14 @@
       "query": "architectural decision atomic checkpoint"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 21,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 21,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 21,
       "kind": "session",
-      "latency_ms_p50": 12.642875,
-      "latency_ms_p95": 13.217917,
+      "latency_ms_p50": 16.466125,
+      "latency_ms_p95": 16.872167,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -2864,19 +2449,14 @@
       "query": "architectural decision atomic checkpoint"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 21,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 21,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 21,
       "kind": "session",
-      "latency_ms_p50": 12.907791,
-      "latency_ms_p95": 13.257125,
+      "latency_ms_p50": 16.472458,
+      "latency_ms_p95": 16.874209,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -2896,19 +2476,14 @@
       "query": "architectural decision atomic checkpoint"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 21,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 21,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 21,
       "kind": "session",
-      "latency_ms_p50": 12.478375,
-      "latency_ms_p95": 12.825292000000001,
+      "latency_ms_p50": 16.280959000000003,
+      "latency_ms_p95": 16.642709,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -2928,19 +2503,14 @@
       "query": "architectural decision atomic checkpoint"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 21,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 21,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 21,
       "kind": "session",
-      "latency_ms_p50": 12.794,
-      "latency_ms_p95": 13.243542,
+      "latency_ms_p50": 16.61475,
+      "latency_ms_p95": 17.063792000000003,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -2960,19 +2530,14 @@
       "query": "architectural decision atomic checkpoint"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 21,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 21,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 21,
       "kind": "session",
-      "latency_ms_p50": 12.853833999999999,
-      "latency_ms_p95": 13.312707999999999,
+      "latency_ms_p50": 16.489041999999998,
+      "latency_ms_p95": 16.85125,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -2992,19 +2557,14 @@
       "query": "architectural decision atomic checkpoint"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 21,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 21,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 21,
       "kind": "session",
-      "latency_ms_p50": 12.74525,
-      "latency_ms_p95": 13.281334000000001,
+      "latency_ms_p50": 16.616791,
+      "latency_ms_p95": 16.941333,
       "metrics": {
         "duplicate_rate10": 0.6,
         "mrr": 1.0,
@@ -3030,19 +2590,14 @@
       "query": "architectural decision atomic checkpoint"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 21,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 21,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 21,
       "kind": "session",
-      "latency_ms_p50": 12.801583,
-      "latency_ms_p95": 13.301167,
+      "latency_ms_p50": 16.487834,
+      "latency_ms_p95": 16.880792,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -3062,19 +2617,14 @@
       "query": "architectural decision atomic checkpoint"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 21,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 21,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 21,
       "kind": "session",
-      "latency_ms_p50": 12.814792,
-      "latency_ms_p95": 13.430375,
+      "latency_ms_p50": 16.581084,
+      "latency_ms_p95": 17.050959000000002,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -3100,8 +2650,8 @@
       "deterministic_checks": 54,
       "final_pool_size": null,
       "kind": "session",
-      "latency_ms_p50": 1.120417,
-      "latency_ms_p95": 1.329084,
+      "latency_ms_p50": 1.117,
+      "latency_ms_p95": 1.3485839999999998,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -3118,19 +2668,14 @@
       "query": "HybridPersistenceCoordinator"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 1,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 1,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 1,
       "kind": "session",
-      "latency_ms_p50": 1.254625,
-      "latency_ms_p95": 1.381291,
+      "latency_ms_p50": 1.236125,
+      "latency_ms_p95": 1.4215829999999998,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -3147,19 +2692,14 @@
       "query": "HybridPersistenceCoordinator"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 1,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 1,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 1,
       "kind": "session",
-      "latency_ms_p50": 1.238083,
-      "latency_ms_p95": 1.429416,
+      "latency_ms_p50": 1.2257500000000001,
+      "latency_ms_p95": 1.408625,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -3176,19 +2716,14 @@
       "query": "HybridPersistenceCoordinator"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 1,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 1,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 1,
       "kind": "session",
-      "latency_ms_p50": 2.108708,
-      "latency_ms_p95": 2.260958,
+      "latency_ms_p50": 1.976916,
+      "latency_ms_p95": 2.151334,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -3205,19 +2740,14 @@
       "query": "HybridPersistenceCoordinator"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 1,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 1,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 1,
       "kind": "session",
-      "latency_ms_p50": 1.256208,
-      "latency_ms_p95": 1.402917,
+      "latency_ms_p50": 1.208375,
+      "latency_ms_p95": 1.297625,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -3234,19 +2764,14 @@
       "query": "HybridPersistenceCoordinator"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 1,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 1,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 1,
       "kind": "session",
-      "latency_ms_p50": 1.242916,
-      "latency_ms_p95": 1.328,
+      "latency_ms_p50": 1.1907079999999999,
+      "latency_ms_p95": 1.357458,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -3263,19 +2788,14 @@
       "query": "HybridPersistenceCoordinator"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 1,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 1,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 1,
       "kind": "session",
-      "latency_ms_p50": 1.255375,
-      "latency_ms_p95": 1.402083,
+      "latency_ms_p50": 1.191625,
+      "latency_ms_p95": 1.2467089999999998,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -3292,19 +2812,14 @@
       "query": "HybridPersistenceCoordinator"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 1,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 1,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 1,
       "kind": "session",
-      "latency_ms_p50": 1.255375,
-      "latency_ms_p95": 1.4537499999999999,
+      "latency_ms_p50": 1.1884160000000001,
+      "latency_ms_p95": 1.322708,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -3321,19 +2836,14 @@
       "query": "HybridPersistenceCoordinator"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 1,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 1,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 1,
       "kind": "session",
-      "latency_ms_p50": 1.243417,
-      "latency_ms_p95": 1.367041,
+      "latency_ms_p50": 1.192,
+      "latency_ms_p95": 1.383875,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -3350,19 +2860,14 @@
       "query": "HybridPersistenceCoordinator"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 1,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 1,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 1,
       "kind": "session",
-      "latency_ms_p50": 1.2378339999999999,
-      "latency_ms_p95": 1.3707909999999999,
+      "latency_ms_p50": 1.199042,
+      "latency_ms_p95": 1.379541,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -3379,19 +2884,14 @@
       "query": "HybridPersistenceCoordinator"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 1,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 1,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 1,
       "kind": "session",
-      "latency_ms_p50": 1.260125,
-      "latency_ms_p95": 1.357792,
+      "latency_ms_p50": 1.190375,
+      "latency_ms_p95": 1.2855830000000001,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -3414,8 +2914,8 @@
       "deterministic_checks": 54,
       "final_pool_size": null,
       "kind": "project",
-      "latency_ms_p50": 0.155625,
-      "latency_ms_p95": 0.16783299999999998,
+      "latency_ms_p50": 0.14754199999999998,
+      "latency_ms_p95": 0.196083,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 0.5,
@@ -3433,19 +2933,14 @@
       "query": "subscription active state"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 2,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 2,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 2,
       "kind": "project",
-      "latency_ms_p50": 0.34816699999999995,
-      "latency_ms_p95": 0.409292,
+      "latency_ms_p50": 0.30366699999999996,
+      "latency_ms_p95": 0.3875,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 0.5,
@@ -3463,19 +2958,14 @@
       "query": "subscription active state"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 2,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 2,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 2,
       "kind": "project",
-      "latency_ms_p50": 0.332542,
-      "latency_ms_p95": 0.531875,
+      "latency_ms_p50": 0.29500000000000004,
+      "latency_ms_p95": 0.327792,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 0.5,
@@ -3493,19 +2983,14 @@
       "query": "subscription active state"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 2,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 2,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 2,
       "kind": "project",
-      "latency_ms_p50": 0.3355,
-      "latency_ms_p95": 0.38625,
+      "latency_ms_p50": 0.29870800000000003,
+      "latency_ms_p95": 0.327833,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 0.5,
@@ -3523,19 +3008,14 @@
       "query": "subscription active state"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 2,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 2,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 2,
       "kind": "project",
-      "latency_ms_p50": 0.33512499999999995,
-      "latency_ms_p95": 0.387167,
+      "latency_ms_p50": 0.29870800000000003,
+      "latency_ms_p95": 0.350625,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 0.5,
@@ -3553,19 +3033,14 @@
       "query": "subscription active state"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 2,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 2,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 2,
       "kind": "project",
-      "latency_ms_p50": 0.335084,
-      "latency_ms_p95": 0.443125,
+      "latency_ms_p50": 0.2875,
+      "latency_ms_p95": 0.310666,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 0.5,
@@ -3583,19 +3058,14 @@
       "query": "subscription active state"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 2,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 2,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 2,
       "kind": "project",
-      "latency_ms_p50": 0.350084,
-      "latency_ms_p95": 0.43908400000000003,
+      "latency_ms_p50": 0.286916,
+      "latency_ms_p95": 0.317875,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 0.5,
@@ -3613,19 +3083,14 @@
       "query": "subscription active state"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 2,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 2,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 2,
       "kind": "project",
-      "latency_ms_p50": 0.32579199999999997,
-      "latency_ms_p95": 0.448875,
+      "latency_ms_p50": 0.300834,
+      "latency_ms_p95": 0.401583,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 0.5,
@@ -3643,19 +3108,14 @@
       "query": "subscription active state"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 2,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 2,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 2,
       "kind": "project",
-      "latency_ms_p50": 0.345375,
-      "latency_ms_p95": 0.453334,
+      "latency_ms_p50": 0.30562500000000004,
+      "latency_ms_p95": 0.344584,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 0.5,
@@ -3673,19 +3133,14 @@
       "query": "subscription active state"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 2,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 2,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 2,
       "kind": "project",
-      "latency_ms_p50": 0.33775,
-      "latency_ms_p95": 0.41300000000000003,
+      "latency_ms_p50": 0.282208,
+      "latency_ms_p95": 0.321708,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 0.5,
@@ -3703,19 +3158,14 @@
       "query": "subscription active state"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 2,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 2,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 2,
       "kind": "project",
-      "latency_ms_p50": 0.325459,
-      "latency_ms_p95": 0.401292,
+      "latency_ms_p50": 0.295375,
+      "latency_ms_p95": 0.337792,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 0.5,
@@ -3739,8 +3189,8 @@
       "deterministic_checks": 54,
       "final_pool_size": null,
       "kind": "project",
-      "latency_ms_p50": 0.13487500000000002,
-      "latency_ms_p95": 0.14216700000000002,
+      "latency_ms_p50": 0.12670800000000002,
+      "latency_ms_p95": 0.130875,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 0.0,
@@ -3755,19 +3205,14 @@
       "query": "panic"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 1,
-        "lexical": 0,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 1,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 1,
       "kind": "project",
-      "latency_ms_p50": 0.225041,
-      "latency_ms_p95": 0.25525,
+      "latency_ms_p50": 0.203209,
+      "latency_ms_p95": 0.204792,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -3784,19 +3229,14 @@
       "query": "panic"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 1,
-        "lexical": 0,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 1,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 1,
       "kind": "project",
-      "latency_ms_p50": 0.23983300000000002,
-      "latency_ms_p95": 0.347375,
+      "latency_ms_p50": 0.202375,
+      "latency_ms_p95": 0.205375,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -3813,19 +3253,14 @@
       "query": "panic"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 1,
-        "lexical": 0,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 1,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 1,
       "kind": "project",
-      "latency_ms_p50": 0.23366599999999998,
-      "latency_ms_p95": 0.24858299999999997,
+      "latency_ms_p50": 0.202041,
+      "latency_ms_p95": 0.203667,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -3842,19 +3277,14 @@
       "query": "panic"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 1,
-        "lexical": 0,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 1,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 1,
       "kind": "project",
-      "latency_ms_p50": 0.236,
-      "latency_ms_p95": 0.34225,
+      "latency_ms_p50": 0.202167,
+      "latency_ms_p95": 0.208083,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -3871,19 +3301,14 @@
       "query": "panic"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 1,
-        "lexical": 0,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 1,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 1,
       "kind": "project",
-      "latency_ms_p50": 0.22304200000000002,
-      "latency_ms_p95": 0.27075,
+      "latency_ms_p50": 0.202417,
+      "latency_ms_p95": 0.206792,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -3900,19 +3325,14 @@
       "query": "panic"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 0,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 0,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 0,
       "kind": "project",
-      "latency_ms_p50": 0.162542,
-      "latency_ms_p95": 0.174167,
+      "latency_ms_p50": 0.157375,
+      "latency_ms_p95": 0.170125,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 0.0,
@@ -3927,19 +3347,14 @@
       "query": "panic"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 1,
-        "lexical": 0,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 1,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 1,
       "kind": "project",
-      "latency_ms_p50": 0.22962500000000002,
-      "latency_ms_p95": 0.355292,
+      "latency_ms_p50": 0.204833,
+      "latency_ms_p95": 0.210125,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -3956,19 +3371,14 @@
       "query": "panic"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 1,
-        "lexical": 0,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 1,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 1,
       "kind": "project",
-      "latency_ms_p50": 0.236417,
-      "latency_ms_p95": 0.300459,
+      "latency_ms_p50": 0.20791700000000002,
+      "latency_ms_p95": 0.24758400000000003,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -3985,19 +3395,14 @@
       "query": "panic"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 1,
-        "lexical": 0,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 1,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 1,
       "kind": "project",
-      "latency_ms_p50": 0.233542,
-      "latency_ms_p95": 0.274125,
+      "latency_ms_p50": 0.204959,
+      "latency_ms_p95": 0.213417,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -4014,19 +3419,14 @@
       "query": "panic"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 1,
-        "lexical": 0,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 1,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 1,
       "kind": "project",
-      "latency_ms_p50": 0.22683299999999998,
-      "latency_ms_p95": 0.312791,
+      "latency_ms_p50": 0.198833,
+      "latency_ms_p95": 0.213458,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -4049,8 +3449,8 @@
       "deterministic_checks": 54,
       "final_pool_size": null,
       "kind": "project",
-      "latency_ms_p50": 0.164083,
-      "latency_ms_p95": 0.250166,
+      "latency_ms_p50": 0.14825,
+      "latency_ms_p95": 0.181458,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -4068,19 +3468,14 @@
       "query": "fixCache"
     },
     {
-      "admission_counts": {
-        "definitions": 1,
-        "expansion": 0,
-        "lexical": 2,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 2,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 2,
       "kind": "project",
-      "latency_ms_p50": 0.341875,
-      "latency_ms_p95": 0.41329099999999996,
+      "latency_ms_p50": 0.229708,
+      "latency_ms_p95": 0.276375,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -4098,19 +3493,14 @@
       "query": "fixCache"
     },
     {
-      "admission_counts": {
-        "definitions": 1,
-        "expansion": 0,
-        "lexical": 2,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 2,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 2,
       "kind": "project",
-      "latency_ms_p50": 0.356625,
-      "latency_ms_p95": 0.48241700000000004,
+      "latency_ms_p50": 0.227459,
+      "latency_ms_p95": 0.23625,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -4128,19 +3518,14 @@
       "query": "fixCache"
     },
     {
-      "admission_counts": {
-        "definitions": 0,
-        "expansion": 0,
-        "lexical": 2,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 2,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 2,
       "kind": "project",
-      "latency_ms_p50": 0.347917,
-      "latency_ms_p95": 0.388666,
+      "latency_ms_p50": 0.302666,
+      "latency_ms_p95": 0.308208,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -4158,19 +3543,14 @@
       "query": "fixCache"
     },
     {
-      "admission_counts": {
-        "definitions": 1,
-        "expansion": 0,
-        "lexical": 2,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 2,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 2,
       "kind": "project",
-      "latency_ms_p50": 0.33587500000000003,
-      "latency_ms_p95": 0.452208,
+      "latency_ms_p50": 0.22325,
+      "latency_ms_p95": 0.2255,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -4188,19 +3568,14 @@
       "query": "fixCache"
     },
     {
-      "admission_counts": {
-        "definitions": 1,
-        "expansion": 0,
-        "lexical": 2,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 2,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 2,
       "kind": "project",
-      "latency_ms_p50": 0.356,
-      "latency_ms_p95": 0.461959,
+      "latency_ms_p50": 0.22233299999999998,
+      "latency_ms_p95": 0.223291,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -4218,19 +3593,14 @@
       "query": "fixCache"
     },
     {
-      "admission_counts": {
-        "definitions": 1,
-        "expansion": 0,
-        "lexical": 2,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 2,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 2,
       "kind": "project",
-      "latency_ms_p50": 0.339,
-      "latency_ms_p95": 0.498458,
+      "latency_ms_p50": 0.23149999999999998,
+      "latency_ms_p95": 0.257208,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -4248,19 +3618,14 @@
       "query": "fixCache"
     },
     {
-      "admission_counts": {
-        "definitions": 1,
-        "expansion": 0,
-        "lexical": 2,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 2,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 2,
       "kind": "project",
-      "latency_ms_p50": 0.34825,
-      "latency_ms_p95": 0.418375,
+      "latency_ms_p50": 0.233667,
+      "latency_ms_p95": 0.280708,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -4278,19 +3643,14 @@
       "query": "fixCache"
     },
     {
-      "admission_counts": {
-        "definitions": 1,
-        "expansion": 0,
-        "lexical": 2,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 2,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 2,
       "kind": "project",
-      "latency_ms_p50": 0.339542,
-      "latency_ms_p95": 0.415375,
+      "latency_ms_p50": 0.228958,
+      "latency_ms_p95": 0.266833,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -4308,19 +3668,14 @@
       "query": "fixCache"
     },
     {
-      "admission_counts": {
-        "definitions": 1,
-        "expansion": 0,
-        "lexical": 2,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 2,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 2,
       "kind": "project",
-      "latency_ms_p50": 0.325625,
-      "latency_ms_p95": 0.483167,
+      "latency_ms_p50": 0.22983399999999998,
+      "latency_ms_p95": 0.25975,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -4338,19 +3693,14 @@
       "query": "fixCache"
     },
     {
-      "admission_counts": {
-        "definitions": 1,
-        "expansion": 0,
-        "lexical": 2,
-        "path": 0
-      },
+      "admission_counts": null,
       "candidate_count": 2,
       "deterministic": true,
       "deterministic_checks": 54,
       "final_pool_size": 2,
       "kind": "project",
-      "latency_ms_p50": 0.333459,
-      "latency_ms_p95": 0.401042,
+      "latency_ms_p50": 0.228125,
+      "latency_ms_p95": 0.262,
       "metrics": {
         "duplicate_rate10": 0.0,
         "mrr": 1.0,
@@ -4368,78 +3718,26 @@
       "query": "fixCache"
     }
   ],
-  "clock_mode": "search_ranked_with_at explicit timestamp",
-  "database_bytes": 4012696,
-  "database_bytes_after_close": 380928,
+  "clock_mode": "BM25_EVALUATION_NOW environment seam",
+  "database_bytes": 3889096,
+  "database_bytes_after_close": 360448,
   "database_bytes_after_close_files": {
-    "main": 380928,
+    "main": 360448,
     "shm": 0,
-    "total": 380928,
+    "total": 360448,
     "wal": 0
   },
-  "database_bytes_after_rebuild": 413696,
-  "database_bytes_after_rebuild_files": {
-    "main": 380928,
-    "shm": 32768,
-    "total": 413696,
-    "wal": 0
-  },
+  "database_bytes_after_rebuild": null,
+  "database_bytes_after_rebuild_files": null,
   "database_bytes_open": {
     "main": 4096,
     "shm": 32768,
-    "total": 4012696,
-    "wal": 3975832
+    "total": 3889096,
+    "wal": 3852232
   },
   "database_bytes_stage": "store-open-post-update",
   "declaration_rebuild": {
-    "database_bytes_after_close": 380928,
-    "database_bytes_after_close_files": {
-      "main": 380928,
-      "shm": 0,
-      "total": 380928,
-      "wal": 0
-    },
-    "database_bytes_after_rebuild": 413696,
-    "database_bytes_after_rebuild_files": {
-      "main": 380928,
-      "shm": 32768,
-      "total": 413696,
-      "wal": 0
-    },
-    "database_bytes_before_store_close": 4012696,
-    "database_bytes_delta_from_store_open": -3599000,
-    "database_bytes_growth_after_store_close": 32768,
-    "declaration_index_version": "bm25-mcp-declarations-v1",
-    "declarations_after": 7,
-    "declarations_before": 7,
-    "raw_statistics_after": [
-      50,
-      25384,
-      128,
-      141,
-      426
-    ],
-    "raw_statistics_before": [
-      50,
-      25384,
-      128,
-      141,
-      426
-    ],
-    "raw_statistics_unchanged": true,
-    "rebuild_ms": 1.097375,
-    "source_shape_after": [
-      50,
-      50,
-      "bm25-mcp-tokenizer-v4-unicode-17.0.0-casefold-9.0.0"
-    ],
-    "source_shape_before": [
-      50,
-      50,
-      "bm25-mcp-tokenizer-v4-unicode-17.0.0-casefold-9.0.0"
-    ],
-    "source_tokenizer_state_unchanged": true,
-    "supported": true
+    "supported": false
   },
   "evaluation_now": "2026-09-21T00:00:00Z",
   "high_fanout": {
@@ -4451,37 +3749,32 @@
         "deterministic": true,
         "deterministic_checks": 54,
         "final_pool_size": null,
-        "latency_ms_p50": 0.262709,
-        "latency_ms_p95": 0.320625,
+        "latency_ms_p50": 0.24350000000000002,
+        "latency_ms_p95": 0.350125,
         "mode": "raw"
       },
       {
-        "admission_counts": {
-          "definitions": 1,
-          "expansion": 0,
-          "lexical": 200,
-          "path": 0
-        },
+        "admission_counts": null,
         "candidate_count": 200,
-        "declaration_rank": 1,
+        "declaration_rank": null,
         "deterministic": true,
         "deterministic_checks": 54,
         "final_pool_size": 200,
-        "latency_ms_p50": 38.78875,
-        "latency_ms_p95": 40.000167000000005,
+        "latency_ms_p50": 47.915333,
+        "latency_ms_p95": 49.444791,
         "mode": "enhanced"
       }
     ],
-    "database_bytes": 4845552,
+    "database_bytes": 4825072,
     "database_bytes_open": {
-      "main": 602112,
+      "main": 581632,
       "shm": 32768,
-      "total": 4845552,
+      "total": 4825072,
       "wal": 4210672
     },
     "database_bytes_stage": "store-open-post-index",
     "documents": 241,
-    "indexing_ms": 100.20712499999999,
+    "indexing_ms": 94.29216699999999,
     "mention_documents": 240,
     "notes": [
       "Synthetic high-fanout declaration-admission latency workload.",
@@ -4494,14 +3787,15 @@
     "separate_from_quality_cases": true,
     "warmups": 5
   },
-  "indexing_ms": 46.331042000000004,
+  "indexing_ms": 40.043957999999996,
   "mode": "raw_and_ranked_fixture",
   "notes": [
-    "raw is Store.search; enhanced and ablations use Store.search_ranked_with_at with the fixed evaluation clock",
-    "database_bytes_open is captured before closing the store; checkpointed/backfill sizes are reported separately",
-    "declaration_rebuild drops only derived declarations metadata and verifies raw BM25 statistics are unchanged",
+    "raw is Store.search; enhanced and ablations use Store.search_ranked_with with the fixed BM25_EVALUATION_NOW clock",
+    "admission lane counts are unavailable in the frozen baseline API",
+    "the frozen baseline has no declaration derived table to rebuild",
     "the high_fanout workload is separate from historical relevance labels",
     "relevance metrics are source-level over first-hit source rankings; duplicate_rate10 is measured on the uncollapsed chunk list",
+    "database_bytes_open is captured before closing the store; checkpointed/backfill sizes are unavailable in the frozen baseline",
     "fixture is synthetic and does not establish production-wide quality"
   ],
   "platform": {
@@ -4557,22 +3851,22 @@
     {
       "delta": {
         "duplicate_rate10": -0.9,
-        "mrr": 0.5,
-        "ndcg10": 0.6576351038729463,
+        "mrr": 0.3333333333333333,
+        "ndcg10": 0.5610190285608107,
         "recall10": 1.0,
         "recall20": 1.0
       },
       "enhanced": {
         "duplicate_rate10": 0.0,
-        "mrr": 0.5,
-        "ndcg10": 0.6576351038729463,
-        "rank": 2,
+        "mrr": 0.3333333333333333,
+        "ndcg10": 0.5610190285608107,
+        "rank": 3,
         "recall10": 1.0,
         "recall20": 1.0,
         "top": [
           "repeat-10",
-          "definition",
           "test",
+          "definition",
           "caller"
         ]
       },
@@ -5014,11 +4308,10 @@
       }
     }
   ],
-  "revision": "working-tree",
+  "revision": "efa7f606f2403d2f99d1683ccc16c6c02c3f04d3",
   "samples": 50,
   "schema": 3,
-  "tokenizer": "v4",
   "toolchain": "rustc 1.98.1 (48a229cea 2026-09-01)",
-  "update_ms": 1.070333,
+  "update_ms": 0.81075,
   "warmups": 5
 }
