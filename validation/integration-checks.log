@@ -1,0 +1,49 @@
+   Compiling bm25-mcp v0.1.0 (/Users/adityasharma/Projects/bm25-mcp)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.12s
+     Running tests/checkpoints.rs (target/debug/deps/checkpoints-b5e5848049a5aebe)
+
+running 5 tests
+test crash_writer_helper ... ok
+test disk_parser_state_is_atomic_with_chunks_and_checkpoint ... ok
+test tokenizer_upgrade_discards_only_derived_index_state ... ok
+test session_chunks_and_offsets_commit_and_roll_back_together ... ok
+test crash_during_transaction_preserves_last_committed_offset ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/mcp.rs (target/debug/deps/mcp-8fcc73ffd46bb24d)
+
+running 2 tests
+test codex_history_is_scoped_and_context_uses_the_same_tool ... ok
+test mcp_search_refresh_and_multiple_clients ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.33s
+
+     Running tests/oracle.rs (target/debug/deps/oracle-28a4dc5aa7b59027)
+
+running 1 test
+test durable_replacements_and_deletions_match_fresh_upstream_builds ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
+
+     Running tests/recovery.rs (target/debug/deps/recovery-4f8cdf588883a041)
+
+running 5 tests
+test concurrent_frontends_replace_a_stale_endpoint_and_share_one_owner ... ok
+test live_frontend_recovers_after_its_owner_process_crashes ... ok
+test git_worktrees_share_sessions_but_keep_code_collections_separate ... ok
+test owner_releases_endpoint_and_lock_after_last_client_disconnects ... ok
+test restarted_owner_recovers_persisted_index_after_offline_edit ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.01s
+
+     Running tests/tools.rs (target/debug/deps/tools-1317fedbf0212663)
+
+running 4 tests
+test filters_are_applied_before_top_k_and_collections_are_isolated ... ok
+test responses_obey_utf8_budgets_and_reject_invalid_modes ... ok
+test budgeted_excerpt_keeps_a_late_matching_term_and_decoded_offset ... ok
+test session_context_paginates_utf8_without_losing_text ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+

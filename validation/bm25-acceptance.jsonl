@@ -1,0 +1,8 @@
+{"phase": "environment", "project": "BM25-Turbo-Rust-Python-WASM-CLI", "platform": "macOS-26.6.2-arm64-arm-64bit", "architecture": "arm64", "logical_cpus": 10, "timestamp_utc": "2026-09-21T02:35:57.396238+00:00", "binary_sha256": "c6f62c128e6607c0530e92448e4e95a624bd784dd7546dfd4dcb3ad50eaea130", "persistent_cache": true}
+{"phase": "session_snapshot", "files": 175, "bytes": 997887118, "contents": "unchanged actual histories; temporary copies removed after run"}
+{"phase": "initial", "tool": "search_project", "seconds": 0.1206747920000002, "status": "ready", "error_count": 0, "diagnostics": {"git_metadata_excluded": 77, "unchanged_index_reuse": 88}}
+{"phase": "initial", "tool": "search_sessions", "seconds": 69.52245466599999, "status": "degraded", "error_count": 11789, "diagnostics": {"ownership_excluded": 163, "unsupported_record": 11789}}
+{"phase": "real_history", "agent": "codex", "query": "error", "matching_results": 5, "pass": true}
+{"phase": "relevance", "query": "score_deterministic", "expected_path": "bm25_turbo/src/scoring.rs", "top_k": 10, "rank": 1, "pass": true, "judgment": "known symbol definition or exact error location"}
+{"phase": "queries", "clients": 1, "requests": 1000, "median_ms": 2.051000500003397, "p95_ms": 11.952708999999118, "latency_target_pass": true, "partial_responses": 0, "peak_owner_rss_bytes": 28000256, "memory_target_pass": true, "mix": "project, provider-filtered sessions, context when available"}
+{"phase": "queries", "clients": 4, "requests": 1000, "median_ms": 3.506520999998486, "p95_ms": 38.3151249999969, "latency_target_pass": true, "partial_responses": 0, "peak_owner_rss_bytes": 50462720, "memory_target_pass": true, "mix": "project, provider-filtered sessions, context when available"}

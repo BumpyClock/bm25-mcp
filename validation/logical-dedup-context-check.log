@@ -1,0 +1,24 @@
+   Compiling bm25-mcp v0.1.0 (/Users/adityasharma/Projects/bm25-mcp)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.45s
+     Running tests/tools.rs (target/debug/deps/tools-1317fedbf0212663)
+
+running 1 test
+test same_file_replayed_message_contexts_remain_separate ... FAILED
+
+failures:
+
+---- same_file_replayed_message_contexts_remain_separate stdout ----
+
+thread 'same_file_replayed_message_contexts_remain_separate' (35087200) panicked at tests/tools.rs:693:9:
+assertion `left == right` failed
+  left: [1, 2, 3, 5]
+ right: [1, 2, 3]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    same_file_replayed_message_contexts_remain_separate
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--test tools`

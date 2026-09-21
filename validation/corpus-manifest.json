@@ -1,0 +1,94 @@
+{
+  "created_utc": "2026-09-20T23:19:26.663520+00:00",
+  "limits": {
+    "max_file_bytes": 2097152,
+    "max_chunk_bytes": 65536,
+    "chunk_lines": 60
+  },
+  "selection": "All git-listed tracked and nonignored untracked files; tracked ignore matches also excluded; regular nonsymlink UTF-8 text only.",
+  "binary_detection": "Reject any NUL, DEL, or C0 control byte other than tab, LF, form feed, and CR.",
+  "notes": "Ignored untracked files never enter candidate counts. File and chunk size caps are benchmark bounds, not proposed product limits. Source trees are read-only; corpora contain private text and remain temporary.",
+  "corpora": [
+    {
+      "repo": "BM25-Turbo-Rust-Python-WASM-CLI",
+      "commit": "ecd28e3babb57cce63636f099a72ba26dc4cf643",
+      "temporary_corpus": "/tmp/bm25-BM25-Turbo-Rust-Python-WASM-CLI-clivvomk.jsonl",
+      "candidate_files": 88,
+      "excluded_files": {
+        "ignored": 0,
+        "git_metadata": 0,
+        "symlink_or_nonregular": 0,
+        "oversize_file": 0,
+        "read_error": 0,
+        "changed_during_read": 0,
+        "binary_control": 0,
+        "invalid_utf8": 0
+      },
+      "included_files": 88,
+      "included_file_bytes": 777312,
+      "chunks": 408,
+      "chunk_text_bytes": 777312,
+      "whitespace_chunks_skipped": 0,
+      "oversize_chunks_skipped": 0,
+      "oversize_chunk_bytes_skipped": 0,
+      "corpus_jsonl_bytes": 831247,
+      "enumeration_seconds": 0.020787,
+      "preparation_seconds": 0.051287,
+      "temporary_corpus_removed_after_run": true
+    },
+    {
+      "repo": "neutron",
+      "commit": "b924155589ef137708efdf2a8bc8167d53ddbd36",
+      "temporary_corpus": "/tmp/bm25-neutron-cso7gg3b.jsonl",
+      "candidate_files": 1343,
+      "excluded_files": {
+        "ignored": 0,
+        "git_metadata": 0,
+        "symlink_or_nonregular": 30,
+        "oversize_file": 1,
+        "read_error": 0,
+        "changed_during_read": 0,
+        "binary_control": 11,
+        "invalid_utf8": 0
+      },
+      "included_files": 1301,
+      "included_file_bytes": 13681399,
+      "chunks": 7415,
+      "chunk_text_bytes": 13681399,
+      "whitespace_chunks_skipped": 0,
+      "oversize_chunks_skipped": 0,
+      "oversize_chunk_bytes_skipped": 0,
+      "corpus_jsonl_bytes": 14450646,
+      "enumeration_seconds": 0.060943,
+      "preparation_seconds": 0.510093,
+      "temporary_corpus_removed_after_run": true
+    },
+    {
+      "repo": "t3code",
+      "commit": "c1b2210411da79350a3f9f5a65a4a64971e4acad",
+      "temporary_corpus": "/tmp/bm25-t3code-fk9wks11.jsonl",
+      "candidate_files": 21840,
+      "excluded_files": {
+        "ignored": 34,
+        "git_metadata": 0,
+        "symlink_or_nonregular": 3,
+        "oversize_file": 11,
+        "read_error": 0,
+        "changed_during_read": 0,
+        "binary_control": 266,
+        "invalid_utf8": 0
+      },
+      "included_files": 21526,
+      "included_file_bytes": 135987169,
+      "chunks": 73487,
+      "chunk_text_bytes": 133515816,
+      "whitespace_chunks_skipped": 0,
+      "oversize_chunks_skipped": 2,
+      "oversize_chunk_bytes_skipped": 2471353,
+      "corpus_jsonl_bytes": 141419721,
+      "enumeration_seconds": 0.313656,
+      "preparation_seconds": 6.459734,
+      "temporary_corpus_removed_after_run": true
+    }
+  ]
+}

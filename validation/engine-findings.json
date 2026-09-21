@@ -1,0 +1,29 @@
+{
+  "scope": "Bounded reuse feasibility probes; not full engine certification",
+  "platform": "Darwin arm64",
+  "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "checks": 9,
+  "passed": [
+    "default_snapshot_roundtrip",
+    "wal_append_restart",
+    "concurrent_immutable_queries",
+    "external_tokenization_snapshot_roundtrip"
+  ],
+  "failed": [
+    "compaction_fresh_build_equivalence",
+    "custom_tokenizer_roundtrip",
+    "custom_tokenizer_wal_consistency",
+    "recovery_after_compaction_before_base_save",
+    "truncated_final_wal_record_recovery"
+  ],
+  "recommendation": "Reuse BM25Builder::build_from_tokens, BM25Index::search_tokens, immutable concurrent reads, and snapshot serialization as candidates. Keep application-owned tokenization consistent at build/query time. Do not adopt current WAL unchanged. Evaluate rebuilding and publishing coherent index/metadata generations before repairing WAL.",
+  "limits": [
+    "Synthetic fixtures only; no representative workload performance benchmark yet",
+    "macOS ARM64 only; Windows runtime validation remains required",
+    "Recovery probes simulate selected failure boundaries, not a comprehensive fault-injection test",
+    "No running MCP server or multi-client lifecycle implementation was tested",
+    "Compaction fixture compares scores as well as IDs; observed score gaps are large, not float-rounding noise"
+  ],
+  "command": "cargo run --manifest-path validation/engine/Cargo.toml --quiet",
+  "result_format": "Each output JSON line contains passed; process exit zero means probes ran, not that all checks passed."
+}

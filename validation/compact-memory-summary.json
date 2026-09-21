@@ -1,0 +1,11 @@
+{
+  "chunks": 73101,
+  "note": "Term-interned numeric vectors, append-built only. Does not measure differential updates, tombstones, compaction, persistence, source text, sessions or concurrent publication.",
+  "phase": "memory_compact",
+  "repo": "t3code",
+  "streaming_load_tokenize_build_ms": 3133.660334,
+  "tokens": 13186191,
+  "vocabulary": 235350,
+  "peak_rss_bytes": 167952384,
+  "peak_rss_MiB": 160.171875
+}

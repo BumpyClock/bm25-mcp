@@ -1,0 +1,13 @@
+    Checking bm25-mcp v0.1.0 (/Users/adityasharma/Projects/bm25-mcp)
+error: unnecessary use of `get("binary_excluded").is_some()`
+    --> src/ingest.rs:1332:36
+     |
+1332 |         assert!(binary.diagnostics.get("binary_excluded").is_some());
+     |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: replace it with: `contains_key("binary_excluded")`
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#unnecessary_get_then_check
+     = note: `-D clippy::unnecessary-get-then-check` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::unnecessary_get_then_check)]`
+
+error: could not compile `bm25-mcp` (lib test) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...

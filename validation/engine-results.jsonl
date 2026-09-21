@@ -1,0 +1,9 @@
+{"after":{"ids":[2,0],"scores":[0.23138640820980072,0.18800145387649536]},"before":{"ids":[2,0],"scores":[0.23138640820980072,0.18800145387649536]},"check":"default_snapshot_roundtrip","passed":true}
+{"check":"compaction_fresh_build_equivalence","compacted":{"ids":[1,0,2],"scores":[0.23138640820980072,0.18800145387649536,0.0800006166100502]},"exact_overlay_before_compaction":{"ids":[2,0,3],"scores":[0.06573852896690369,0.053412556648254395,0.022728746756911278]},"fresh":{"ids":[1,0,2],"scores":[0.08467844128608704,0.07049373537302017,0.03868318721652031]},"passed":false}
+{"after":{"ids":[],"scores":[]},"before":{"ids":[0],"scores":[0.27725887298583984]},"check":"custom_tokenizer_roundtrip","passed":false}
+{"check":"custom_tokenizer_wal_consistency","passed":false,"results":{"ids":[0],"scores":[0.27725887298583984]}}
+{"check":"wal_append_restart","passed":true}
+{"check":"recovery_after_compaction_before_base_save","note":"Simulated process stop between compaction and saving the new base; not a power-loss test.","passed":false}
+{"check":"truncated_final_wal_record_recovery","error":"io error: failed to fill whole buffer","passed":false}
+{"check":"concurrent_immutable_queries","passed":true,"queries_per_thread":100,"threads":4}
+{"after":{"ids":[0],"scores":[0.27725887298583984]},"before":{"ids":[0],"scores":[0.27725887298583984]},"check":"external_tokenization_snapshot_roundtrip","passed":true}

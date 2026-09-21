@@ -1,0 +1,8 @@
+{"phase": "environment", "platform": "macOS-26.6.2-arm64-arm-64bit", "binary_sha256": "c6f62c128e6607c0530e92448e4e95a624bd784dd7546dfd4dcb3ad50eaea130", "huge_session_mib": 256, "clients": 4}
+{"phase": "ordinary_edit", "files": 1, "seconds": 0.20683666700000014, "target_pass": true, "peak_owner_rss_bytes": 20316160}
+{"phase": "ordinary_edit", "files": 10, "seconds": 0.41649766700000024, "target_pass": true, "peak_owner_rss_bytes": 21004288}
+{"phase": "branch", "branch": "beta", "seconds": 0.3606317500000005, "peak_owner_rss_bytes": 21004288, "diagnostics": {"content_cache_miss": 10, "git_metadata_excluded": 142}}
+{"phase": "branch", "branch": "alpha", "seconds": 0.3019650839999999, "peak_owner_rss_bytes": 21282816, "diagnostics": {"content_cache_hit": 10, "git_metadata_excluded": 142}}
+{"phase": "branch", "branch": "beta", "seconds": 0.30158941599999967, "peak_owner_rss_bytes": 21282816, "diagnostics": {"content_cache_hit": 10, "git_metadata_excluded": 142}}
+{"phase": "huge_text", "bytes": 29360148, "seconds": 2.821951792, "peak_owner_rss_bytes": 22052864}
+{"phase": "huge_session_record", "bytes": 268370202, "seconds": 34.869135375, "peak_owner_rss_bytes": 24051712, "memory_target_pass": true, "concurrent_readers": 4}

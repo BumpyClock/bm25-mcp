@@ -1,0 +1,33 @@
+{
+  "queries": 57,
+  "roots": 19,
+  "logical_target_top10": 57,
+  "logical_target_top3": 55,
+  "baseline_logical_target_top3": 55,
+  "indexed_source_checks": 554,
+  "latency_ms": {
+    "median": 54.018958,
+    "p95": 151.055791,
+    "max": 402.71725000000004
+  },
+  "neutron": [
+    {
+      "id": "session_1",
+      "distinct_logical_events": 10,
+      "max_copy_count": 3,
+      "logical_target_rank": 1
+    },
+    {
+      "id": "session_2",
+      "distinct_logical_events": 9,
+      "max_copy_count": 16,
+      "logical_target_rank": 1
+    },
+    {
+      "id": "session_3",
+      "distinct_logical_events": 9,
+      "max_copy_count": 16,
+      "logical_target_rank": 1
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "indexes_code_then_sessions": [
+    {
+      "chunks": 406,
+      "tokens": 85006,
+      "vocabulary": 6920
+    },
+    {
+      "chunks": 747,
+      "tokens": 144854,
+      "vocabulary": 9086
+    }
+  ],
+  "note": "Separate append-built code and session indexes retained together. Excludes differential generations, source text cache, SQLite cache, MCP and file watchers.",
+  "phase": "memory_pair",
+  "repo": "BM25-Turbo-Rust-Python-WASM-CLI",
+  "peak_rss_MiB": 8.765625,
+  "session_matched_files": 6
+}

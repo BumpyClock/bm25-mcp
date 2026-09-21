@@ -1,0 +1,1 @@
+{"concurrent_query_checks":363968,"generations":200,"limits":"Small synthetic corpus, no SQLite commit, no file verification, no source metadata. Does not establish production latency, bounded memory or crash recovery.","passed":true,"publish_lock_median_us":0.33299999999999996,"reader_checks":[99825,77066,95535,91542],"reader_threads":4,"update_and_cow_clone_median_us":5.541}

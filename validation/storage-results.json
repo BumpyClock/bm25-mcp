@@ -1,0 +1,70 @@
+{
+  "sqlite_version": "3.51.0",
+  "platform": "darwin",
+  "scope": "Synthetic chunk payload persistence and consistent SQL snapshots; no BM25 search or in-memory posting publication.",
+  "chunks": 73101,
+  "payload_bytes_per_chunk": 1800,
+  "settings": {
+    "journal_mode": "WAL",
+    "synchronous": "FULL",
+    "writer_connections": 1,
+    "reader_threads": 4
+  },
+  "batches": [
+    {
+      "changed_chunks": 1,
+      "samples_ms": [
+        4.437499999999983,
+        0.16112500000009522,
+        0.1091669999999656,
+        0.09933299999997924,
+        0.09083300000001238
+      ],
+      "median_ms": 0.1091669999999656,
+      "max_ms": 4.437499999999983
+    },
+    {
+      "changed_chunks": 23,
+      "samples_ms": [
+        0.24258300000001842,
+        0.1839169999999779,
+        0.3105419999999137,
+        0.1910410000000029,
+        0.20695800000003484
+      ],
+      "median_ms": 0.20695800000003484,
+      "max_ms": 0.3105419999999137
+    },
+    {
+      "changed_chunks": 7219,
+      "samples_ms": [
+        39.86108299999991,
+        39.04895799999997,
+        36.522000000000055,
+        38.756542,
+        37.525208000000035
+      ],
+      "median_ms": 38.756542,
+      "max_ms": 39.86108299999991
+    }
+  ],
+  "limits": [
+    "No power-loss test",
+    "No Windows test",
+    "No real source text",
+    "SQL snapshot checks are not search latency measurements",
+    "In-memory posting publication cost remains unmeasured",
+    "SQLite 3.51.0 is the local probe runtime; production must use a WAL-reset-fixed release. Only one connection writes/checkpoints during this probe."
+  ],
+  "consistent_reader_snapshots": 397,
+  "reader_counts": [
+    100,
+    99,
+    99,
+    99
+  ],
+  "reader_errors": [],
+  "uncommitted_rollback_passed": true,
+  "committed_restart_passed": true,
+  "integrity_check": "ok"
+}

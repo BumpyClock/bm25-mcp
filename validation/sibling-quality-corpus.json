@@ -1,0 +1,137 @@
+{
+  "projects": [
+    {
+      "project": "APayee",
+      "head": "8316622dbf016e9946a122ee19d95e54a603f713",
+      "tracked_worktree_dirty_at_audit": true
+    },
+    {
+      "project": "BM25-Turbo-Rust-Python-WASM-CLI",
+      "head": "ecd28e3babb57cce63636f099a72ba26dc4cf643",
+      "tracked_worktree_dirty_at_audit": false
+    },
+    {
+      "project": "CLIProxyAPIPlus",
+      "head": "98bdab72795c6083d64cebc71df4bbfb949b42cb",
+      "tracked_worktree_dirty_at_audit": true
+    },
+    {
+      "project": "CLIProxyAPIRust",
+      "head": "20b88beb40368487b8d257e272d669e658fbb706",
+      "tracked_worktree_dirty_at_audit": true
+    },
+    {
+      "project": "PersonalAssistant",
+      "head": "1062604622524299d74b08e04d1dac059ba7e93a",
+      "tracked_worktree_dirty_at_audit": true
+    },
+    {
+      "project": "agent-templates",
+      "head": "0e7157e5e3ccddfdfe438c99a4261dc0ea2261e4",
+      "tracked_worktree_dirty_at_audit": false
+    },
+    {
+      "project": "copilot-worktrees/CLIProxyAPIPlus/bumpyclock-automatic-memory",
+      "head": "b96a0a5bff118aeaf1460ef685462c6452834e96",
+      "tracked_worktree_dirty_at_audit": false
+    },
+    {
+      "project": "copilot-worktrees/CLIProxyAPIPlus/bumpyclock-silver-umbrella",
+      "head": "4fffae6c6b2f537ab67173e46c920f10ff748fe4",
+      "tracked_worktree_dirty_at_audit": false
+    },
+    {
+      "project": "copilot-worktrees/CLIProxyAPIPlus/copilot-prewarm-refactored-winner",
+      "head": "e197b6c0bfd699a54c3ee985c7fcbc6f5ecd8ee0",
+      "tracked_worktree_dirty_at_audit": false
+    },
+    {
+      "project": "copilot-worktrees/PersonalAssistant/bumpyclock-probable-succotash",
+      "head": "1062604622524299d74b08e04d1dac059ba7e93a",
+      "tracked_worktree_dirty_at_audit": false
+    },
+    {
+      "project": "copilot-worktrees/PersonalAssistant/bumpyclock-ubiquitous-spoon",
+      "head": "1062604622524299d74b08e04d1dac059ba7e93a",
+      "tracked_worktree_dirty_at_audit": false
+    },
+    {
+      "project": "copilot-worktrees/PersonalAssistant/copilot-prewarm-bookish-carnival",
+      "head": "1062604622524299d74b08e04d1dac059ba7e93a",
+      "tracked_worktree_dirty_at_audit": false
+    },
+    {
+      "project": "copilot-worktrees/dotfiles/copilot-prewarm-supreme-fiesta",
+      "head": "557148a2f641bf10ac4f7ce4ccd0db879fc9e281",
+      "tracked_worktree_dirty_at_audit": false
+    },
+    {
+      "project": "copilot-worktrees/neutron/bumpyclock-ideal-waddle",
+      "head": "3e8cc743dc03a48a217d01e122b1ba8eb6a32ccf",
+      "tracked_worktree_dirty_at_audit": false
+    },
+    {
+      "project": "copilot-worktrees/neutron/bumpyclock-potential-eureka",
+      "head": "06999473d3d3c765163880e96d92f227d2ae87ba",
+      "tracked_worktree_dirty_at_audit": false
+    },
+    {
+      "project": "copilot-worktrees/neutron/bumpyclock-symmetrical-fishstick",
+      "head": "06999473d3d3c765163880e96d92f227d2ae87ba",
+      "tracked_worktree_dirty_at_audit": false
+    },
+    {
+      "project": "copilot-worktrees/neutron/copilot-prewarm-super-telegram",
+      "head": "06999473d3d3c765163880e96d92f227d2ae87ba",
+      "tracked_worktree_dirty_at_audit": false
+    },
+    {
+      "project": "dotfiles",
+      "head": "dbd353b8b72862111d90c09c8f43c3981236749f",
+      "tracked_worktree_dirty_at_audit": true
+    },
+    {
+      "project": "neutron",
+      "head": "b924155589ef137708efdf2a8bc8167d53ddbd36",
+      "tracked_worktree_dirty_at_audit": false
+    },
+    {
+      "project": "oss/CLIProxyAPIPlus",
+      "head": "f654fa6f773090d52869cc7ec5f423bf897fc66d",
+      "tracked_worktree_dirty_at_audit": false
+    },
+    {
+      "project": "t3code",
+      "head": "c1b2210411da79350a3f9f5a65a4a64971e4acad",
+      "tracked_worktree_dirty_at_audit": false
+    }
+  ],
+  "excluded": [
+    {
+      "name": "mac-setup-backup-20260913-121249",
+      "reason": "setup/config backup, not a project"
+    },
+    {
+      "name": "cliproxyapi-backup-20260913-123134",
+      "reason": "setup/config backup, not a project"
+    }
+  ],
+  "query_manifest_sha256": "7d8c7f13face254ca141ff0a5b2fb5eacd4f19e7de30a425bb685843721872ad",
+  "query_count": 330,
+  "snapshot_files": 178,
+  "snapshot_providers": {
+    "codex": {
+      "files": 160,
+      "bytes": 795967699
+    },
+    "copilot": {
+      "files": 16,
+      "bytes": 212964230
+    },
+    "claude": {
+      "files": 2,
+      "bytes": 592444
+    }
+  },
+  "temporary_snapshot_removed_after_validation": true
+}

@@ -1,0 +1,1 @@
+{"check":"raw_postings_with_live_statistics_match_fresh_bm25","max_absolute_score_error":0.0,"passed":true,"query_comparisons":1309,"scope":"Synthetic algorithm probe reusing scoring kernels; not a production index, performance benchmark, persistence, or concurrency test.","update_steps":120}

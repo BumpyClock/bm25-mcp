@@ -1,0 +1,2580 @@
+{
+  "builds": {
+    "before": "56badbba8c8f3fb12e1f656a2a7af529d2ffaa61b5aee4adcc2e2ccdb8c2ebbd",
+    "after": "27c2ceba68b16588c2b561a59f8f9abb2d1a0db70ed4f48451778f99b2bd02fd"
+  },
+  "expected_roots": 21,
+  "expected_queries": 330,
+  "completed": {
+    "before": 21,
+    "after": 21
+  },
+  "failures": {
+    "before": [],
+    "after": []
+  },
+  "metrics": {
+    "all": {
+      "before": {
+        "queries": 309,
+        "target_top1": 186,
+        "target_top3": 247,
+        "target_top10": 272,
+        "visible_target_top10": 266,
+        "mean_returned": 6.252427184466019,
+        "mean_distinct_excerpts": 5.588996763754046,
+        "same_source_duplicate_hits": 6,
+        "returned_hits": 1932,
+        "hits_with_query_term": 1649,
+        "max_response_bytes": 16358,
+        "over_budget_queries": 0,
+        "source_matches": 1932,
+        "source_checked": 1932,
+        "mean_excerpt_bytes": 1576.843685300207,
+        "budget_truncated_queries": 285,
+        "unsettled_queries": 0
+      },
+      "after": {
+        "queries": 309,
+        "target_top1": 188,
+        "target_top3": 241,
+        "target_top10": 284,
+        "visible_target_top10": 279,
+        "mean_returned": 9.87378640776699,
+        "mean_distinct_excerpts": 9.06148867313916,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 3051,
+        "hits_with_query_term": 2451,
+        "max_response_bytes": 16235,
+        "over_budget_queries": 0,
+        "source_matches": 3051,
+        "source_checked": 3051,
+        "mean_excerpt_bytes": 583.0435922648312,
+        "budget_truncated_queries": 16,
+        "unsettled_queries": 0
+      }
+    },
+    "project": {
+      "before": {
+        "queries": 252,
+        "target_top1": 147,
+        "target_top3": 197,
+        "target_top10": 220,
+        "visible_target_top10": 214,
+        "mean_returned": 5.829365079365079,
+        "mean_distinct_excerpts": 5.7103174603174605,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 1469,
+        "hits_with_query_term": 1186,
+        "max_response_bytes": 16358,
+        "over_budget_queries": 0,
+        "source_matches": 1469,
+        "source_checked": 1469,
+        "mean_excerpt_bytes": 1864.0803267528931,
+        "budget_truncated_queries": 252,
+        "unsettled_queries": 0
+      },
+      "after": {
+        "queries": 252,
+        "target_top1": 147,
+        "target_top3": 197,
+        "target_top10": 232,
+        "visible_target_top10": 227,
+        "mean_returned": 9.86111111111111,
+        "mean_distinct_excerpts": 9.583333333333334,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 2485,
+        "hits_with_query_term": 1891,
+        "max_response_bytes": 16118,
+        "over_budget_queries": 0,
+        "source_matches": 2485,
+        "source_checked": 2485,
+        "mean_excerpt_bytes": 629.8064386317908,
+        "budget_truncated_queries": 12,
+        "unsettled_queries": 0
+      }
+    },
+    "sessions": {
+      "before": {
+        "queries": 57,
+        "target_top1": 39,
+        "target_top3": 50,
+        "target_top10": 52,
+        "visible_target_top10": 52,
+        "mean_returned": 8.12280701754386,
+        "mean_distinct_excerpts": 5.052631578947368,
+        "same_source_duplicate_hits": 6,
+        "returned_hits": 463,
+        "hits_with_query_term": 463,
+        "max_response_bytes": 16201,
+        "over_budget_queries": 0,
+        "source_matches": 463,
+        "source_checked": 463,
+        "mean_excerpt_bytes": 665.5032397408207,
+        "budget_truncated_queries": 33,
+        "unsettled_queries": 0
+      },
+      "after": {
+        "queries": 57,
+        "target_top1": 41,
+        "target_top3": 44,
+        "target_top10": 52,
+        "visible_target_top10": 52,
+        "mean_returned": 9.929824561403509,
+        "mean_distinct_excerpts": 6.754385964912281,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 566,
+        "hits_with_query_term": 560,
+        "max_response_bytes": 16235,
+        "over_budget_queries": 0,
+        "source_matches": 566,
+        "source_checked": 566,
+        "mean_excerpt_bytes": 377.7332155477032,
+        "budget_truncated_queries": 4,
+        "unsettled_queries": 0
+      }
+    }
+  },
+  "negative_queries": {
+    "before": {
+      "count": 21,
+      "unexpected_hits": 0
+    },
+    "after": {
+      "count": 21,
+      "unexpected_hits": 0
+    }
+  },
+  "visibility_regressions": [
+    {
+      "project": "copilot-worktrees/neutron/bumpyclock-ideal-waddle",
+      "id": "heading_2",
+      "kind": "project",
+      "before_rank": 1,
+      "after_rank": 1,
+      "all_query_terms_visible_in_target": true
+    },
+    {
+      "project": "copilot-worktrees/neutron/bumpyclock-potential-eureka",
+      "id": "heading_2",
+      "kind": "project",
+      "before_rank": 1,
+      "after_rank": 1,
+      "all_query_terms_visible_in_target": true
+    },
+    {
+      "project": "copilot-worktrees/neutron/bumpyclock-symmetrical-fishstick",
+      "id": "heading_2",
+      "kind": "project",
+      "before_rank": 1,
+      "after_rank": 1,
+      "all_query_terms_visible_in_target": true
+    },
+    {
+      "project": "copilot-worktrees/neutron/copilot-prewarm-super-telegram",
+      "id": "heading_2",
+      "kind": "project",
+      "before_rank": 1,
+      "after_rank": 1,
+      "all_query_terms_visible_in_target": true
+    },
+    {
+      "project": "neutron",
+      "id": "heading_2",
+      "kind": "project",
+      "before_rank": 1,
+      "after_rank": 1,
+      "all_query_terms_visible_in_target": true
+    }
+  ],
+  "rank_changes": [
+    {
+      "project": "BM25-Turbo-Rust-Python-WASM-CLI",
+      "id": "components_4",
+      "kind": "project",
+      "before_rank": null,
+      "after_rank": 10
+    },
+    {
+      "project": "BM25-Turbo-Rust-Python-WASM-CLI",
+      "id": "session_2",
+      "kind": "sessions",
+      "before_rank": 3,
+      "after_rank": 5
+    },
+    {
+      "project": "BM25-Turbo-Rust-Python-WASM-CLI",
+      "id": "session_3",
+      "kind": "sessions",
+      "before_rank": 2,
+      "after_rank": 3
+    },
+    {
+      "project": "CLIProxyAPIRust",
+      "id": "heading_2",
+      "kind": "project",
+      "before_rank": null,
+      "after_rank": 6
+    },
+    {
+      "project": "CLIProxyAPIRust",
+      "id": "session_1",
+      "kind": "sessions",
+      "before_rank": 2,
+      "after_rank": 4
+    },
+    {
+      "project": "CLIProxyAPIRust",
+      "id": "session_3",
+      "kind": "sessions",
+      "before_rank": 3,
+      "after_rank": 1
+    },
+    {
+      "project": "agent-templates",
+      "id": "identifier_1",
+      "kind": "project",
+      "before_rank": null,
+      "after_rank": 10
+    },
+    {
+      "project": "agent-templates",
+      "id": "components_1",
+      "kind": "project",
+      "before_rank": null,
+      "after_rank": 8
+    },
+    {
+      "project": "agent-templates",
+      "id": "identifier_3",
+      "kind": "project",
+      "before_rank": null,
+      "after_rank": 7
+    },
+    {
+      "project": "agent-templates",
+      "id": "identifier_4",
+      "kind": "project",
+      "before_rank": null,
+      "after_rank": 10
+    },
+    {
+      "project": "agent-templates",
+      "id": "components_5",
+      "kind": "project",
+      "before_rank": null,
+      "after_rank": 9
+    },
+    {
+      "project": "copilot-worktrees/dotfiles/copilot-prewarm-supreme-fiesta",
+      "id": "components_5",
+      "kind": "project",
+      "before_rank": null,
+      "after_rank": 8
+    },
+    {
+      "project": "dotfiles",
+      "id": "components_5",
+      "kind": "project",
+      "before_rank": null,
+      "after_rank": 8
+    },
+    {
+      "project": "PersonalAssistant",
+      "id": "session_1",
+      "kind": "sessions",
+      "before_rank": 2,
+      "after_rank": 1
+    },
+    {
+      "project": "PersonalAssistant",
+      "id": "session_2",
+      "kind": "sessions",
+      "before_rank": 2,
+      "after_rank": 1
+    },
+    {
+      "project": "copilot-worktrees/PersonalAssistant/bumpyclock-probable-succotash",
+      "id": "session_1",
+      "kind": "sessions",
+      "before_rank": 3,
+      "after_rank": 1
+    },
+    {
+      "project": "copilot-worktrees/PersonalAssistant/bumpyclock-ubiquitous-spoon",
+      "id": "session_1",
+      "kind": "sessions",
+      "before_rank": 3,
+      "after_rank": 1
+    },
+    {
+      "project": "copilot-worktrees/PersonalAssistant/copilot-prewarm-bookish-carnival",
+      "id": "session_1",
+      "kind": "sessions",
+      "before_rank": 3,
+      "after_rank": 1
+    },
+    {
+      "project": "APayee",
+      "id": "identifier_4",
+      "kind": "project",
+      "before_rank": null,
+      "after_rank": 8
+    },
+    {
+      "project": "APayee",
+      "id": "session_1",
+      "kind": "sessions",
+      "before_rank": 5,
+      "after_rank": 2
+    },
+    {
+      "project": "APayee",
+      "id": "session_2",
+      "kind": "sessions",
+      "before_rank": 3,
+      "after_rank": 1
+    },
+    {
+      "project": "copilot-worktrees/neutron/bumpyclock-ideal-waddle",
+      "id": "session_2",
+      "kind": "sessions",
+      "before_rank": 1,
+      "after_rank": 6
+    },
+    {
+      "project": "copilot-worktrees/neutron/bumpyclock-potential-eureka",
+      "id": "session_2",
+      "kind": "sessions",
+      "before_rank": 1,
+      "after_rank": 6
+    },
+    {
+      "project": "copilot-worktrees/neutron/bumpyclock-symmetrical-fishstick",
+      "id": "session_2",
+      "kind": "sessions",
+      "before_rank": 1,
+      "after_rank": 6
+    },
+    {
+      "project": "copilot-worktrees/neutron/copilot-prewarm-super-telegram",
+      "id": "session_2",
+      "kind": "sessions",
+      "before_rank": 1,
+      "after_rank": 6
+    },
+    {
+      "project": "neutron",
+      "id": "session_2",
+      "kind": "sessions",
+      "before_rank": 1,
+      "after_rank": 6
+    },
+    {
+      "project": "t3code",
+      "id": "identifier_1",
+      "kind": "project",
+      "before_rank": null,
+      "after_rank": 5
+    },
+    {
+      "project": "t3code",
+      "id": "identifier_5",
+      "kind": "project",
+      "before_rank": null,
+      "after_rank": 6
+    }
+  ],
+  "by_category": {
+    "identifier": {
+      "before": {
+        "queries": 105,
+        "target_top1": 65,
+        "target_top3": 83,
+        "target_top10": 91,
+        "visible_target_top10": 91,
+        "mean_returned": 5.904761904761905,
+        "mean_distinct_excerpts": 5.79047619047619,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 620,
+        "hits_with_query_term": 337,
+        "max_response_bytes": 16350,
+        "over_budget_queries": 0,
+        "source_matches": 620,
+        "source_checked": 620,
+        "mean_excerpt_bytes": 1834.1532258064517,
+        "budget_truncated_queries": 105,
+        "unsettled_queries": 0
+      },
+      "after": {
+        "queries": 105,
+        "target_top1": 65,
+        "target_top3": 83,
+        "target_top10": 97,
+        "visible_target_top10": 97,
+        "mean_returned": 9.857142857142858,
+        "mean_distinct_excerpts": 9.60952380952381,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 1035,
+        "hits_with_query_term": 441,
+        "max_response_bytes": 15593,
+        "over_budget_queries": 0,
+        "source_matches": 1035,
+        "source_checked": 1035,
+        "mean_excerpt_bytes": 631.1845410628019,
+        "budget_truncated_queries": 5,
+        "unsettled_queries": 0
+      }
+    },
+    "components": {
+      "before": {
+        "queries": 105,
+        "target_top1": 59,
+        "target_top3": 82,
+        "target_top10": 90,
+        "visible_target_top10": 85,
+        "mean_returned": 5.9523809523809526,
+        "mean_distinct_excerpts": 5.857142857142857,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 625,
+        "hits_with_query_term": 625,
+        "max_response_bytes": 16350,
+        "over_budget_queries": 0,
+        "source_matches": 625,
+        "source_checked": 625,
+        "mean_excerpt_bytes": 1817.1424,
+        "budget_truncated_queries": 105,
+        "unsettled_queries": 0
+      },
+      "after": {
+        "queries": 105,
+        "target_top1": 59,
+        "target_top3": 82,
+        "target_top10": 95,
+        "visible_target_top10": 95,
+        "mean_returned": 9.857142857142858,
+        "mean_distinct_excerpts": 9.60952380952381,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 1035,
+        "hits_with_query_term": 1035,
+        "max_response_bytes": 15492,
+        "over_budget_queries": 0,
+        "source_matches": 1035,
+        "source_checked": 1035,
+        "mean_excerpt_bytes": 631.3884057971014,
+        "budget_truncated_queries": 5,
+        "unsettled_queries": 0
+      }
+    },
+    "heading": {
+      "before": {
+        "queries": 42,
+        "target_top1": 23,
+        "target_top3": 32,
+        "target_top10": 39,
+        "visible_target_top10": 38,
+        "mean_returned": 5.333333333333333,
+        "mean_distinct_excerpts": 5.142857142857143,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 224,
+        "hits_with_query_term": 224,
+        "max_response_bytes": 16358,
+        "over_budget_queries": 0,
+        "source_matches": 224,
+        "source_checked": 224,
+        "mean_excerpt_bytes": 2077.879464285714,
+        "budget_truncated_queries": 42,
+        "unsettled_queries": 0
+      },
+      "after": {
+        "queries": 42,
+        "target_top1": 23,
+        "target_top3": 32,
+        "target_top10": 40,
+        "visible_target_top10": 35,
+        "mean_returned": 9.880952380952381,
+        "mean_distinct_excerpts": 9.452380952380953,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 415,
+        "hits_with_query_term": 415,
+        "max_response_bytes": 16118,
+        "over_budget_queries": 0,
+        "source_matches": 415,
+        "source_checked": 415,
+        "mean_excerpt_bytes": 622.4240963855422,
+        "budget_truncated_queries": 2,
+        "unsettled_queries": 0
+      }
+    },
+    "known_event": {
+      "before": {
+        "queries": 57,
+        "target_top1": 39,
+        "target_top3": 50,
+        "target_top10": 52,
+        "visible_target_top10": 52,
+        "mean_returned": 8.12280701754386,
+        "mean_distinct_excerpts": 5.052631578947368,
+        "same_source_duplicate_hits": 6,
+        "returned_hits": 463,
+        "hits_with_query_term": 463,
+        "max_response_bytes": 16201,
+        "over_budget_queries": 0,
+        "source_matches": 463,
+        "source_checked": 463,
+        "mean_excerpt_bytes": 665.5032397408207,
+        "budget_truncated_queries": 33,
+        "unsettled_queries": 0
+      },
+      "after": {
+        "queries": 57,
+        "target_top1": 41,
+        "target_top3": 44,
+        "target_top10": 52,
+        "visible_target_top10": 52,
+        "mean_returned": 9.929824561403509,
+        "mean_distinct_excerpts": 6.754385964912281,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 566,
+        "hits_with_query_term": 560,
+        "max_response_bytes": 16235,
+        "over_budget_queries": 0,
+        "source_matches": 566,
+        "source_checked": 566,
+        "mean_excerpt_bytes": 377.7332155477032,
+        "budget_truncated_queries": 4,
+        "unsettled_queries": 0
+      }
+    }
+  },
+  "coverage": {
+    "before": [
+      {
+        "type": "coverage",
+        "project": "BM25-Turbo-Rust-Python-WASM-CLI",
+        "kind": "project",
+        "seconds": 0.324356875,
+        "status": "ready",
+        "diagnostics": {
+          "git_metadata_excluded": 84,
+          "unchanged_index_reuse": 88
+        },
+        "peak_rss_bytes": 9584640
+      },
+      {
+        "type": "coverage",
+        "project": "BM25-Turbo-Rust-Python-WASM-CLI",
+        "kind": "sessions",
+        "seconds": 84.576242083,
+        "status": "degraded",
+        "diagnostics": {
+          "ownership_excluded": 163,
+          "unsupported_record": 12877
+        },
+        "peak_rss_bytes": 28442624
+      },
+      {
+        "type": "coverage",
+        "project": "CLIProxyAPIRust",
+        "kind": "project",
+        "seconds": 2.00197775,
+        "status": "ready",
+        "diagnostics": {
+          "git_metadata_excluded": 3464,
+          "unchanged_index_reuse": 617
+        },
+        "peak_rss_bytes": 22298624
+      },
+      {
+        "type": "coverage",
+        "project": "CLIProxyAPIRust",
+        "kind": "sessions",
+        "seconds": 212.53471333299998,
+        "status": "degraded",
+        "diagnostics": {
+          "ownership_excluded": 176,
+          "unsupported_record": 29093
+        },
+        "peak_rss_bytes": 32440320
+      },
+      {
+        "type": "coverage",
+        "project": "agent-templates",
+        "kind": "project",
+        "seconds": 64.125060292,
+        "status": "degraded",
+        "diagnostics": {
+          "content_cache_hit": 66,
+          "content_cache_miss": 1399,
+          "git_metadata_excluded": 67,
+          "symlink_excluded": 1,
+          "unsupported_encoding": 2
+        },
+        "peak_rss_bytes": 24739840
+      },
+      {
+        "type": "coverage",
+        "project": "CLIProxyAPIPlus",
+        "kind": "project",
+        "seconds": 3.898785292,
+        "status": "degraded",
+        "diagnostics": {
+          "content_cache_miss": 19,
+          "git_metadata_excluded": 335,
+          "unchanged_index_reuse": 1568,
+          "unsupported_encoding": 19
+        },
+        "peak_rss_bytes": 23265280
+      },
+      {
+        "type": "coverage",
+        "project": "CLIProxyAPIPlus",
+        "kind": "sessions",
+        "seconds": 64.606847875,
+        "status": "degraded",
+        "diagnostics": {
+          "ownership_excluded": 172,
+          "unsupported_record": 2264
+        },
+        "peak_rss_bytes": 37797888
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/CLIProxyAPIPlus/bumpyclock-automatic-memory",
+        "kind": "project",
+        "seconds": 4.351587124999995,
+        "status": "degraded",
+        "diagnostics": {
+          "content_cache_miss": 19,
+          "git_metadata_excluded": 1,
+          "unchanged_index_reuse": 1562,
+          "unsupported_encoding": 19
+        },
+        "peak_rss_bytes": 38174720
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/CLIProxyAPIPlus/bumpyclock-automatic-memory",
+        "kind": "sessions",
+        "seconds": 70.17288775000002,
+        "status": "ready",
+        "diagnostics": {
+          "ownership_excluded": 172,
+          "unsupported_record": 2264
+        },
+        "peak_rss_bytes": 40534016
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/CLIProxyAPIPlus/bumpyclock-silver-umbrella",
+        "kind": "project",
+        "seconds": 3.742829917000023,
+        "status": "degraded",
+        "diagnostics": {
+          "content_cache_miss": 19,
+          "git_metadata_excluded": 1,
+          "unchanged_index_reuse": 1562,
+          "unsupported_encoding": 19
+        },
+        "peak_rss_bytes": 40599552
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/CLIProxyAPIPlus/bumpyclock-silver-umbrella",
+        "kind": "sessions",
+        "seconds": 170.41355041600002,
+        "status": "ready",
+        "diagnostics": {
+          "ownership_excluded": 172,
+          "unsupported_record": 2264
+        },
+        "peak_rss_bytes": 41025536
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/CLIProxyAPIPlus/copilot-prewarm-refactored-winner",
+        "kind": "project",
+        "seconds": 8.41161170800001,
+        "status": "degraded",
+        "diagnostics": {
+          "content_cache_miss": 19,
+          "git_metadata_excluded": 1,
+          "unchanged_index_reuse": 1562,
+          "unsupported_encoding": 19
+        },
+        "peak_rss_bytes": 41156608
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/CLIProxyAPIPlus/copilot-prewarm-refactored-winner",
+        "kind": "sessions",
+        "seconds": 167.57617483299998,
+        "status": "ready",
+        "diagnostics": {
+          "ownership_excluded": 172,
+          "unsupported_record": 2264
+        },
+        "peak_rss_bytes": 41730048
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/dotfiles/copilot-prewarm-supreme-fiesta",
+        "kind": "project",
+        "seconds": 5.450922208000009,
+        "status": "ready",
+        "diagnostics": {
+          "content_cache_miss": 165,
+          "git_metadata_excluded": 1,
+          "symlink_excluded": 2
+        },
+        "peak_rss_bytes": 18989056
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/dotfiles/copilot-prewarm-supreme-fiesta",
+        "kind": "sessions",
+        "seconds": 309.09821195800004,
+        "status": "ready",
+        "diagnostics": {
+          "ownership_excluded": 177,
+          "unsupported_record": 297
+        },
+        "peak_rss_bytes": 23396352
+      },
+      {
+        "type": "coverage",
+        "project": "dotfiles",
+        "kind": "project",
+        "seconds": 5.848900125,
+        "status": "ready",
+        "diagnostics": {
+          "content_cache_hit": 163,
+          "content_cache_miss": 21,
+          "git_metadata_excluded": 103,
+          "symlink_excluded": 2
+        },
+        "peak_rss_bytes": 23527424
+      },
+      {
+        "type": "coverage",
+        "project": "dotfiles",
+        "kind": "sessions",
+        "seconds": 226.0626718750001,
+        "status": "ready",
+        "diagnostics": {
+          "ownership_excluded": 177,
+          "unsupported_record": 297
+        },
+        "peak_rss_bytes": 23576576
+      },
+      {
+        "type": "coverage",
+        "project": "oss/CLIProxyAPIPlus",
+        "kind": "project",
+        "seconds": 94.09042662499996,
+        "status": "degraded",
+        "diagnostics": {
+          "content_cache_hit": 1,
+          "content_cache_miss": 1584,
+          "git_metadata_excluded": 52,
+          "unsupported_encoding": 19
+        },
+        "peak_rss_bytes": 24821760
+      },
+      {
+        "type": "coverage",
+        "project": "PersonalAssistant",
+        "kind": "project",
+        "seconds": 10.296591000000006,
+        "status": "degraded",
+        "diagnostics": {
+          "binary_excluded": 2,
+          "content_cache_hit": 11,
+          "content_cache_miss": 230,
+          "git_metadata_excluded": 222,
+          "symlink_excluded": 4,
+          "unsupported_encoding": 10
+        },
+        "peak_rss_bytes": 20037632
+      },
+      {
+        "type": "coverage",
+        "project": "PersonalAssistant",
+        "kind": "sessions",
+        "seconds": 116.69491825,
+        "status": "degraded",
+        "diagnostics": {
+          "ownership_excluded": 169,
+          "unsupported_record": 2974
+        },
+        "peak_rss_bytes": 26083328
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/PersonalAssistant/bumpyclock-probable-succotash",
+        "kind": "project",
+        "seconds": 9.565916125000001,
+        "status": "degraded",
+        "diagnostics": {
+          "binary_excluded": 2,
+          "content_cache_hit": 223,
+          "content_cache_miss": 16,
+          "git_metadata_excluded": 1,
+          "symlink_excluded": 4,
+          "unsupported_encoding": 10
+        },
+        "peak_rss_bytes": 26591232
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/PersonalAssistant/bumpyclock-probable-succotash",
+        "kind": "sessions",
+        "seconds": 600.0357947079999,
+        "status": "ready",
+        "diagnostics": {
+          "ownership_excluded": 169,
+          "unsupported_record": 2974
+        },
+        "peak_rss_bytes": 30081024
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/PersonalAssistant/bumpyclock-ubiquitous-spoon",
+        "kind": "project",
+        "seconds": 13.008593458000064,
+        "status": "degraded",
+        "diagnostics": {
+          "binary_excluded": 2,
+          "content_cache_hit": 227,
+          "content_cache_miss": 12,
+          "git_metadata_excluded": 1,
+          "symlink_excluded": 4,
+          "unsupported_encoding": 10
+        },
+        "peak_rss_bytes": 30162944
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/PersonalAssistant/bumpyclock-ubiquitous-spoon",
+        "kind": "sessions",
+        "seconds": 229.32447012500006,
+        "status": "ready",
+        "diagnostics": {
+          "ownership_excluded": 169,
+          "unsupported_record": 2974
+        },
+        "peak_rss_bytes": 31358976
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/PersonalAssistant/copilot-prewarm-bookish-carnival",
+        "kind": "project",
+        "seconds": 14.469789708999997,
+        "status": "degraded",
+        "diagnostics": {
+          "binary_excluded": 2,
+          "content_cache_hit": 227,
+          "content_cache_miss": 12,
+          "git_metadata_excluded": 1,
+          "symlink_excluded": 4,
+          "unsupported_encoding": 10
+        },
+        "peak_rss_bytes": 31358976
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/PersonalAssistant/copilot-prewarm-bookish-carnival",
+        "kind": "sessions",
+        "seconds": 242.56473033299994,
+        "status": "ready",
+        "diagnostics": {
+          "ownership_excluded": 169,
+          "unsupported_record": 2974
+        },
+        "peak_rss_bytes": 31424512
+      },
+      {
+        "type": "coverage",
+        "project": "APayee",
+        "kind": "project",
+        "seconds": 7.989574166999999,
+        "status": "degraded",
+        "diagnostics": {
+          "content_cache_miss": 4,
+          "git_metadata_excluded": 109,
+          "unchanged_index_reuse": 139,
+          "unsupported_encoding": 4
+        },
+        "peak_rss_bytes": 27951104
+      },
+      {
+        "type": "coverage",
+        "project": "APayee",
+        "kind": "sessions",
+        "seconds": 1780.246754166,
+        "status": "ready",
+        "diagnostics": {
+          "ownership_excluded": 134,
+          "unsupported_record": 21583
+        },
+        "peak_rss_bytes": 216252416
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/neutron/bumpyclock-ideal-waddle",
+        "kind": "project",
+        "seconds": 66.14588337499993,
+        "status": "degraded",
+        "diagnostics": {
+          "binary_excluded": 8,
+          "content_cache_hit": 47,
+          "content_cache_miss": 1261,
+          "git_metadata_excluded": 1,
+          "symlink_excluded": 30,
+          "unsupported_encoding": 4
+        },
+        "peak_rss_bytes": 23674880
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/neutron/bumpyclock-ideal-waddle",
+        "kind": "sessions",
+        "seconds": 499.7436221249999,
+        "status": "degraded",
+        "diagnostics": {
+          "ownership_excluded": 86,
+          "unsupported_record": 29721
+        },
+        "peak_rss_bytes": 33079296
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/neutron/bumpyclock-potential-eureka",
+        "kind": "project",
+        "seconds": 95.1966822500001,
+        "status": "degraded",
+        "diagnostics": {
+          "binary_excluded": 8,
+          "content_cache_hit": 56,
+          "content_cache_miss": 1251,
+          "git_metadata_excluded": 1,
+          "symlink_excluded": 30,
+          "unsupported_encoding": 4
+        },
+        "peak_rss_bytes": 35258368
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/neutron/bumpyclock-potential-eureka",
+        "kind": "sessions",
+        "seconds": 174.18508995799993,
+        "status": "ready",
+        "diagnostics": {
+          "ownership_excluded": 86,
+          "unsupported_record": 29721
+        },
+        "peak_rss_bytes": 44072960
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/neutron/bumpyclock-symmetrical-fishstick",
+        "kind": "project",
+        "seconds": 86.82447237499991,
+        "status": "degraded",
+        "diagnostics": {
+          "binary_excluded": 8,
+          "content_cache_hit": 56,
+          "content_cache_miss": 1251,
+          "git_metadata_excluded": 1,
+          "symlink_excluded": 30,
+          "unsupported_encoding": 4
+        },
+        "peak_rss_bytes": 44171264
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/neutron/bumpyclock-symmetrical-fishstick",
+        "kind": "sessions",
+        "seconds": 181.191288708,
+        "status": "ready",
+        "diagnostics": {
+          "ownership_excluded": 86,
+          "unsupported_record": 29721
+        },
+        "peak_rss_bytes": 45367296
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/neutron/copilot-prewarm-super-telegram",
+        "kind": "project",
+        "seconds": 93.6077785,
+        "status": "degraded",
+        "diagnostics": {
+          "binary_excluded": 8,
+          "content_cache_hit": 56,
+          "content_cache_miss": 1251,
+          "git_metadata_excluded": 1,
+          "symlink_excluded": 30,
+          "unsupported_encoding": 4
+        },
+        "peak_rss_bytes": 45449216
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/neutron/copilot-prewarm-super-telegram",
+        "kind": "sessions",
+        "seconds": 146.12415262499985,
+        "status": "ready",
+        "diagnostics": {
+          "ownership_excluded": 86,
+          "unsupported_record": 29721
+        },
+        "peak_rss_bytes": 45662208
+      },
+      {
+        "type": "coverage",
+        "project": "neutron",
+        "kind": "project",
+        "seconds": 83.31644479200008,
+        "status": "degraded",
+        "diagnostics": {
+          "binary_excluded": 8,
+          "content_cache_hit": 28,
+          "content_cache_miss": 1286,
+          "git_metadata_excluded": 197,
+          "symlink_excluded": 30,
+          "unsupported_encoding": 4
+        },
+        "peak_rss_bytes": 45727744
+      },
+      {
+        "type": "coverage",
+        "project": "neutron",
+        "kind": "sessions",
+        "seconds": 94.00657879099981,
+        "status": "ready",
+        "diagnostics": {
+          "ownership_excluded": 86,
+          "unsupported_record": 29721
+        },
+        "peak_rss_bytes": 45760512
+      },
+      {
+        "type": "coverage",
+        "project": "t3code",
+        "kind": "project",
+        "seconds": 1203.940855125,
+        "status": "degraded",
+        "diagnostics": {
+          "binary_excluded": 64,
+          "content_cache_hit": 503,
+          "content_cache_miss": 21304,
+          "git_metadata_excluded": 169,
+          "symlink_excluded": 1,
+          "unsupported_encoding": 210
+        },
+        "peak_rss_bytes": 56131584
+      },
+      {
+        "type": "coverage",
+        "project": "t3code",
+        "kind": "sessions",
+        "seconds": 125.8441907499996,
+        "status": "degraded",
+        "diagnostics": {
+          "ownership_excluded": 176,
+          "unsupported_record": 2010
+        },
+        "peak_rss_bytes": 82657280
+      }
+    ],
+    "after": [
+      {
+        "type": "coverage",
+        "project": "BM25-Turbo-Rust-Python-WASM-CLI",
+        "kind": "project",
+        "seconds": 0.43556300000000003,
+        "status": "ready",
+        "diagnostics": {
+          "git_metadata_excluded": 84,
+          "unchanged_index_reuse": 88
+        },
+        "peak_rss_bytes": 18694144
+      },
+      {
+        "type": "coverage",
+        "project": "BM25-Turbo-Rust-Python-WASM-CLI",
+        "kind": "sessions",
+        "seconds": 510.528033667,
+        "status": "degraded",
+        "diagnostics": {
+          "ownership_excluded": 163,
+          "unsupported_record": 12877
+        },
+        "peak_rss_bytes": 27394048
+      },
+      {
+        "type": "coverage",
+        "project": "CLIProxyAPIPlus",
+        "kind": "project",
+        "seconds": 36.7115485,
+        "status": "degraded",
+        "diagnostics": {
+          "content_cache_hit": 1,
+          "content_cache_miss": 525,
+          "git_metadata_excluded": 335,
+          "unchanged_index_reuse": 1061,
+          "unsupported_encoding": 19
+        },
+        "peak_rss_bytes": 25296896
+      },
+      {
+        "type": "coverage",
+        "project": "CLIProxyAPIPlus",
+        "kind": "sessions",
+        "seconds": 340.859744875,
+        "status": "degraded",
+        "diagnostics": {
+          "ownership_excluded": 172,
+          "unsupported_record": 2264
+        },
+        "peak_rss_bytes": 36929536
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/CLIProxyAPIPlus/bumpyclock-automatic-memory",
+        "kind": "project",
+        "seconds": 112.528068125,
+        "status": "degraded",
+        "diagnostics": {
+          "content_cache_miss": 19,
+          "git_metadata_excluded": 1,
+          "unchanged_index_reuse": 1562,
+          "unsupported_encoding": 19
+        },
+        "peak_rss_bytes": 38240256
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/CLIProxyAPIPlus/bumpyclock-automatic-memory",
+        "kind": "sessions",
+        "seconds": 147.84375433300005,
+        "status": "ready",
+        "diagnostics": {
+          "ownership_excluded": 172,
+          "unsupported_record": 2264
+        },
+        "peak_rss_bytes": 39927808
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/CLIProxyAPIPlus/bumpyclock-silver-umbrella",
+        "kind": "project",
+        "seconds": 103.97469620899994,
+        "status": "degraded",
+        "diagnostics": {
+          "content_cache_hit": 1,
+          "content_cache_miss": 1580,
+          "git_metadata_excluded": 1,
+          "unsupported_encoding": 19
+        },
+        "peak_rss_bytes": 39993344
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/CLIProxyAPIPlus/bumpyclock-silver-umbrella",
+        "kind": "sessions",
+        "seconds": 218.8237644159999,
+        "status": "ready",
+        "diagnostics": {
+          "ownership_excluded": 172,
+          "unsupported_record": 2264
+        },
+        "peak_rss_bytes": 40108032
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/CLIProxyAPIPlus/copilot-prewarm-refactored-winner",
+        "kind": "project",
+        "seconds": 109.69515612500015,
+        "status": "degraded",
+        "diagnostics": {
+          "content_cache_hit": 1,
+          "content_cache_miss": 1580,
+          "git_metadata_excluded": 1,
+          "unsupported_encoding": 19
+        },
+        "peak_rss_bytes": 40206336
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/CLIProxyAPIPlus/copilot-prewarm-refactored-winner",
+        "kind": "sessions",
+        "seconds": 222.61206408399994,
+        "status": "ready",
+        "diagnostics": {
+          "ownership_excluded": 172,
+          "unsupported_record": 2264
+        },
+        "peak_rss_bytes": 40960000
+      },
+      {
+        "type": "coverage",
+        "project": "agent-templates",
+        "kind": "project",
+        "seconds": 86.48763691699992,
+        "status": "degraded",
+        "diagnostics": {
+          "content_cache_hit": 66,
+          "content_cache_miss": 1399,
+          "git_metadata_excluded": 67,
+          "symlink_excluded": 1,
+          "unsupported_encoding": 2
+        },
+        "peak_rss_bytes": 26574848
+      },
+      {
+        "type": "coverage",
+        "project": "CLIProxyAPIRust",
+        "kind": "project",
+        "seconds": 3.9217426250000003,
+        "status": "ready",
+        "diagnostics": {
+          "git_metadata_excluded": 3464,
+          "unchanged_index_reuse": 617
+        },
+        "peak_rss_bytes": 22740992
+      },
+      {
+        "type": "coverage",
+        "project": "CLIProxyAPIRust",
+        "kind": "sessions",
+        "seconds": 1577.1429109590001,
+        "status": "degraded",
+        "diagnostics": {
+          "ownership_excluded": 176,
+          "unsupported_record": 29093
+        },
+        "peak_rss_bytes": 36192256
+      },
+      {
+        "type": "coverage",
+        "project": "oss/CLIProxyAPIPlus",
+        "kind": "project",
+        "seconds": 77.90480529199999,
+        "status": "degraded",
+        "diagnostics": {
+          "content_cache_hit": 1,
+          "content_cache_miss": 1584,
+          "git_metadata_excluded": 52,
+          "unsupported_encoding": 19
+        },
+        "peak_rss_bytes": 24625152
+      },
+      {
+        "type": "coverage",
+        "project": "PersonalAssistant",
+        "kind": "project",
+        "seconds": 10.86551729200005,
+        "status": "degraded",
+        "diagnostics": {
+          "binary_excluded": 2,
+          "content_cache_hit": 11,
+          "content_cache_miss": 230,
+          "git_metadata_excluded": 222,
+          "symlink_excluded": 4,
+          "unsupported_encoding": 10
+        },
+        "peak_rss_bytes": 20103168
+      },
+      {
+        "type": "coverage",
+        "project": "PersonalAssistant",
+        "kind": "sessions",
+        "seconds": 737.8855708329999,
+        "status": "ready",
+        "diagnostics": {
+          "ownership_excluded": 169,
+          "unsupported_record": 2974
+        },
+        "peak_rss_bytes": 28966912
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/PersonalAssistant/bumpyclock-probable-succotash",
+        "kind": "project",
+        "seconds": 12.132983291999835,
+        "status": "degraded",
+        "diagnostics": {
+          "binary_excluded": 2,
+          "content_cache_hit": 223,
+          "content_cache_miss": 16,
+          "git_metadata_excluded": 1,
+          "symlink_excluded": 4,
+          "unsupported_encoding": 10
+        },
+        "peak_rss_bytes": 29409280
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/PersonalAssistant/bumpyclock-probable-succotash",
+        "kind": "sessions",
+        "seconds": 268.37455683400003,
+        "status": "ready",
+        "diagnostics": {
+          "ownership_excluded": 169,
+          "unsupported_record": 2974
+        },
+        "peak_rss_bytes": 30916608
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/PersonalAssistant/bumpyclock-ubiquitous-spoon",
+        "kind": "project",
+        "seconds": 12.990212917000008,
+        "status": "degraded",
+        "diagnostics": {
+          "binary_excluded": 2,
+          "content_cache_hit": 227,
+          "content_cache_miss": 12,
+          "git_metadata_excluded": 1,
+          "symlink_excluded": 4,
+          "unsupported_encoding": 10
+        },
+        "peak_rss_bytes": 31031296
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/PersonalAssistant/bumpyclock-ubiquitous-spoon",
+        "kind": "sessions",
+        "seconds": 177.72276962499996,
+        "status": "ready",
+        "diagnostics": {
+          "ownership_excluded": 169,
+          "unsupported_record": 2974
+        },
+        "peak_rss_bytes": 31195136
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/PersonalAssistant/copilot-prewarm-bookish-carnival",
+        "kind": "project",
+        "seconds": 12.45461158299986,
+        "status": "degraded",
+        "diagnostics": {
+          "binary_excluded": 2,
+          "content_cache_hit": 227,
+          "content_cache_miss": 12,
+          "git_metadata_excluded": 1,
+          "symlink_excluded": 4,
+          "unsupported_encoding": 10
+        },
+        "peak_rss_bytes": 31227904
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/PersonalAssistant/copilot-prewarm-bookish-carnival",
+        "kind": "sessions",
+        "seconds": 151.47608850000006,
+        "status": "ready",
+        "diagnostics": {
+          "ownership_excluded": 169,
+          "unsupported_record": 2974
+        },
+        "peak_rss_bytes": 31260672
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/dotfiles/copilot-prewarm-supreme-fiesta",
+        "kind": "project",
+        "seconds": 7.952018041999963,
+        "status": "ready",
+        "diagnostics": {
+          "content_cache_miss": 165,
+          "git_metadata_excluded": 1,
+          "symlink_excluded": 2
+        },
+        "peak_rss_bytes": 19070976
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/dotfiles/copilot-prewarm-supreme-fiesta",
+        "kind": "sessions",
+        "seconds": 389.795398041,
+        "status": "degraded",
+        "diagnostics": {
+          "ownership_excluded": 177,
+          "unsupported_record": 297
+        },
+        "peak_rss_bytes": 23330816
+      },
+      {
+        "type": "coverage",
+        "project": "dotfiles",
+        "kind": "project",
+        "seconds": 4.556408334000025,
+        "status": "ready",
+        "diagnostics": {
+          "content_cache_hit": 163,
+          "content_cache_miss": 21,
+          "git_metadata_excluded": 103,
+          "symlink_excluded": 2
+        },
+        "peak_rss_bytes": 23478272
+      },
+      {
+        "type": "coverage",
+        "project": "dotfiles",
+        "kind": "sessions",
+        "seconds": 154.64153629200018,
+        "status": "ready",
+        "diagnostics": {
+          "ownership_excluded": 177,
+          "unsupported_record": 297
+        },
+        "peak_rss_bytes": 23920640
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/neutron/bumpyclock-ideal-waddle",
+        "kind": "project",
+        "seconds": 63.80846825000003,
+        "status": "degraded",
+        "diagnostics": {
+          "binary_excluded": 8,
+          "content_cache_hit": 48,
+          "content_cache_miss": 1260,
+          "git_metadata_excluded": 1,
+          "symlink_excluded": 30,
+          "unsupported_encoding": 4
+        },
+        "peak_rss_bytes": 23642112
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/neutron/bumpyclock-ideal-waddle",
+        "kind": "sessions",
+        "seconds": 666.8092360409998,
+        "status": "degraded",
+        "diagnostics": {
+          "ownership_excluded": 86,
+          "unsupported_record": 29721
+        },
+        "peak_rss_bytes": 42450944
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/neutron/bumpyclock-potential-eureka",
+        "kind": "project",
+        "seconds": 58.74306475000003,
+        "status": "degraded",
+        "diagnostics": {
+          "binary_excluded": 8,
+          "content_cache_hit": 56,
+          "content_cache_miss": 1251,
+          "git_metadata_excluded": 1,
+          "symlink_excluded": 30,
+          "unsupported_encoding": 4
+        },
+        "peak_rss_bytes": 44892160
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/neutron/bumpyclock-potential-eureka",
+        "kind": "sessions",
+        "seconds": 62.79529745799982,
+        "status": "ready",
+        "diagnostics": {
+          "ownership_excluded": 86,
+          "unsupported_record": 29721
+        },
+        "peak_rss_bytes": 44924928
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/neutron/bumpyclock-symmetrical-fishstick",
+        "kind": "project",
+        "seconds": 52.63136629199971,
+        "status": "degraded",
+        "diagnostics": {
+          "binary_excluded": 8,
+          "content_cache_hit": 56,
+          "content_cache_miss": 1251,
+          "git_metadata_excluded": 1,
+          "symlink_excluded": 30,
+          "unsupported_encoding": 4
+        },
+        "peak_rss_bytes": 44957696
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/neutron/bumpyclock-symmetrical-fishstick",
+        "kind": "sessions",
+        "seconds": 56.887911333000375,
+        "status": "ready",
+        "diagnostics": {
+          "ownership_excluded": 86,
+          "unsupported_record": 29721
+        },
+        "peak_rss_bytes": 45318144
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/neutron/copilot-prewarm-super-telegram",
+        "kind": "project",
+        "seconds": 60.32478612499972,
+        "status": "degraded",
+        "diagnostics": {
+          "binary_excluded": 8,
+          "content_cache_hit": 56,
+          "content_cache_miss": 1251,
+          "git_metadata_excluded": 1,
+          "symlink_excluded": 30,
+          "unsupported_encoding": 4
+        },
+        "peak_rss_bytes": 45465600
+      },
+      {
+        "type": "coverage",
+        "project": "copilot-worktrees/neutron/copilot-prewarm-super-telegram",
+        "kind": "sessions",
+        "seconds": 53.026931917000184,
+        "status": "ready",
+        "diagnostics": {
+          "ownership_excluded": 86,
+          "unsupported_record": 29721
+        },
+        "peak_rss_bytes": 45498368
+      },
+      {
+        "type": "coverage",
+        "project": "neutron",
+        "kind": "project",
+        "seconds": 48.32743762500013,
+        "status": "degraded",
+        "diagnostics": {
+          "binary_excluded": 8,
+          "content_cache_hit": 28,
+          "content_cache_miss": 1285,
+          "git_metadata_excluded": 197,
+          "symlink_excluded": 30,
+          "unchanged_index_reuse": 1,
+          "unsupported_encoding": 4
+        },
+        "peak_rss_bytes": 45547520
+      },
+      {
+        "type": "coverage",
+        "project": "neutron",
+        "kind": "sessions",
+        "seconds": 34.968117708000136,
+        "status": "ready",
+        "diagnostics": {
+          "ownership_excluded": 86,
+          "unsupported_record": 29721
+        },
+        "peak_rss_bytes": 47005696
+      },
+      {
+        "type": "coverage",
+        "project": "t3code",
+        "kind": "project",
+        "seconds": 774.8134139160002,
+        "status": "degraded",
+        "diagnostics": {
+          "binary_excluded": 64,
+          "content_cache_hit": 503,
+          "content_cache_miss": 21304,
+          "git_metadata_excluded": 169,
+          "symlink_excluded": 1,
+          "unsupported_encoding": 210
+        },
+        "peak_rss_bytes": 38354944
+      },
+      {
+        "type": "coverage",
+        "project": "t3code",
+        "kind": "sessions",
+        "seconds": 107.62545266699999,
+        "status": "degraded",
+        "diagnostics": {
+          "ownership_excluded": 176,
+          "unsupported_record": 2010
+        },
+        "peak_rss_bytes": 78807040
+      },
+      {
+        "type": "coverage",
+        "project": "APayee",
+        "kind": "project",
+        "seconds": 12.960796542,
+        "status": "degraded",
+        "diagnostics": {
+          "content_cache_miss": 4,
+          "git_metadata_excluded": 109,
+          "unchanged_index_reuse": 139,
+          "unsupported_encoding": 4
+        },
+        "peak_rss_bytes": 19841024
+      },
+      {
+        "type": "coverage",
+        "project": "APayee",
+        "kind": "sessions",
+        "seconds": 820.549774,
+        "status": "degraded",
+        "diagnostics": {
+          "ownership_excluded": 134,
+          "unsupported_record": 21583
+        },
+        "peak_rss_bytes": 72744960
+      }
+    ]
+  },
+  "by_project": {
+    "APayee": {
+      "before": {
+        "queries": 15,
+        "target_top1": 10,
+        "target_top3": 12,
+        "target_top10": 13,
+        "visible_target_top10": 13,
+        "mean_returned": 5.866666666666666,
+        "mean_distinct_excerpts": 5.466666666666667,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 88,
+        "hits_with_query_term": 75,
+        "max_response_bytes": 16251,
+        "over_budget_queries": 0,
+        "source_matches": 88,
+        "source_checked": 88,
+        "mean_excerpt_bytes": 1817.0,
+        "budget_truncated_queries": 15,
+        "unsettled_queries": 0
+      },
+      "after": {
+        "queries": 15,
+        "target_top1": 11,
+        "target_top3": 13,
+        "target_top10": 14,
+        "visible_target_top10": 14,
+        "mean_returned": 9.866666666666667,
+        "mean_distinct_excerpts": 9.333333333333334,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 148,
+        "hits_with_query_term": 116,
+        "max_response_bytes": 15765,
+        "over_budget_queries": 0,
+        "source_matches": 148,
+        "source_checked": 148,
+        "mean_excerpt_bytes": 598.2635135135135,
+        "budget_truncated_queries": 2,
+        "unsettled_queries": 0
+      }
+    },
+    "BM25-Turbo-Rust-Python-WASM-CLI": {
+      "before": {
+        "queries": 15,
+        "target_top1": 5,
+        "target_top3": 11,
+        "target_top10": 12,
+        "visible_target_top10": 12,
+        "mean_returned": 6.666666666666667,
+        "mean_distinct_excerpts": 5.2,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 100,
+        "hits_with_query_term": 85,
+        "max_response_bytes": 16201,
+        "over_budget_queries": 0,
+        "source_matches": 100,
+        "source_checked": 100,
+        "mean_excerpt_bytes": 1556.79,
+        "budget_truncated_queries": 13,
+        "unsettled_queries": 0
+      },
+      "after": {
+        "queries": 15,
+        "target_top1": 5,
+        "target_top3": 10,
+        "target_top10": 13,
+        "visible_target_top10": 13,
+        "mean_returned": 10,
+        "mean_distinct_excerpts": 8.333333333333334,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 150,
+        "hits_with_query_term": 119,
+        "max_response_bytes": 14916,
+        "over_budget_queries": 0,
+        "source_matches": 150,
+        "source_checked": 150,
+        "mean_excerpt_bytes": 561.32,
+        "budget_truncated_queries": 0,
+        "unsettled_queries": 0
+      }
+    },
+    "CLIProxyAPIPlus": {
+      "before": {
+        "queries": 15,
+        "target_top1": 7,
+        "target_top3": 11,
+        "target_top10": 13,
+        "visible_target_top10": 13,
+        "mean_returned": 6,
+        "mean_distinct_excerpts": 5.8,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 90,
+        "hits_with_query_term": 85,
+        "max_response_bytes": 16102,
+        "over_budget_queries": 0,
+        "source_matches": 90,
+        "source_checked": 90,
+        "mean_excerpt_bytes": 1473.8555555555556,
+        "budget_truncated_queries": 14,
+        "unsettled_queries": 0
+      },
+      "after": {
+        "queries": 15,
+        "target_top1": 7,
+        "target_top3": 11,
+        "target_top10": 13,
+        "visible_target_top10": 13,
+        "mean_returned": 10,
+        "mean_distinct_excerpts": 9.666666666666666,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 150,
+        "hits_with_query_term": 134,
+        "max_response_bytes": 16005,
+        "over_budget_queries": 0,
+        "source_matches": 150,
+        "source_checked": 150,
+        "mean_excerpt_bytes": 578.7866666666666,
+        "budget_truncated_queries": 0,
+        "unsettled_queries": 0
+      }
+    },
+    "CLIProxyAPIRust": {
+      "before": {
+        "queries": 15,
+        "target_top1": 6,
+        "target_top3": 9,
+        "target_top10": 12,
+        "visible_target_top10": 12,
+        "mean_returned": 5.733333333333333,
+        "mean_distinct_excerpts": 5.333333333333333,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 86,
+        "hits_with_query_term": 76,
+        "max_response_bytes": 16106,
+        "over_budget_queries": 0,
+        "source_matches": 86,
+        "source_checked": 86,
+        "mean_excerpt_bytes": 1847.2674418604652,
+        "budget_truncated_queries": 15,
+        "unsettled_queries": 0
+      },
+      "after": {
+        "queries": 15,
+        "target_top1": 7,
+        "target_top3": 8,
+        "target_top10": 13,
+        "visible_target_top10": 13,
+        "mean_returned": 9.866666666666667,
+        "mean_distinct_excerpts": 9.466666666666667,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 148,
+        "hits_with_query_term": 123,
+        "max_response_bytes": 16235,
+        "over_budget_queries": 0,
+        "source_matches": 148,
+        "source_checked": 148,
+        "mean_excerpt_bytes": 624.6486486486486,
+        "budget_truncated_queries": 2,
+        "unsettled_queries": 0
+      }
+    },
+    "PersonalAssistant": {
+      "before": {
+        "queries": 15,
+        "target_top1": 11,
+        "target_top3": 15,
+        "target_top10": 15,
+        "visible_target_top10": 15,
+        "mean_returned": 6.133333333333334,
+        "mean_distinct_excerpts": 5.733333333333333,
+        "same_source_duplicate_hits": 1,
+        "returned_hits": 92,
+        "hits_with_query_term": 73,
+        "max_response_bytes": 15290,
+        "over_budget_queries": 0,
+        "source_matches": 92,
+        "source_checked": 92,
+        "mean_excerpt_bytes": 1534.9565217391305,
+        "budget_truncated_queries": 15,
+        "unsettled_queries": 0
+      },
+      "after": {
+        "queries": 15,
+        "target_top1": 13,
+        "target_top3": 15,
+        "target_top10": 15,
+        "visible_target_top10": 15,
+        "mean_returned": 10,
+        "mean_distinct_excerpts": 9.333333333333334,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 150,
+        "hits_with_query_term": 111,
+        "max_response_bytes": 12192,
+        "over_budget_queries": 0,
+        "source_matches": 150,
+        "source_checked": 150,
+        "mean_excerpt_bytes": 579.48,
+        "budget_truncated_queries": 0,
+        "unsettled_queries": 0
+      }
+    },
+    "agent-templates": {
+      "before": {
+        "queries": 12,
+        "target_top1": 2,
+        "target_top3": 2,
+        "target_top10": 6,
+        "visible_target_top10": 6,
+        "mean_returned": 5.75,
+        "mean_distinct_excerpts": 4.416666666666667,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 69,
+        "hits_with_query_term": 69,
+        "max_response_bytes": 16170,
+        "over_budget_queries": 0,
+        "source_matches": 69,
+        "source_checked": 69,
+        "mean_excerpt_bytes": 1962.840579710145,
+        "budget_truncated_queries": 12,
+        "unsettled_queries": 0
+      },
+      "after": {
+        "queries": 12,
+        "target_top1": 2,
+        "target_top3": 2,
+        "target_top10": 11,
+        "visible_target_top10": 11,
+        "mean_returned": 10,
+        "mean_distinct_excerpts": 7.416666666666667,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 120,
+        "hits_with_query_term": 120,
+        "max_response_bytes": 12205,
+        "over_budget_queries": 0,
+        "source_matches": 120,
+        "source_checked": 120,
+        "mean_excerpt_bytes": 637.575,
+        "budget_truncated_queries": 0,
+        "unsettled_queries": 0
+      }
+    },
+    "copilot-worktrees/CLIProxyAPIPlus/bumpyclock-automatic-memory": {
+      "before": {
+        "queries": 15,
+        "target_top1": 7,
+        "target_top3": 11,
+        "target_top10": 13,
+        "visible_target_top10": 13,
+        "mean_returned": 6.133333333333334,
+        "mean_distinct_excerpts": 5.933333333333334,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 92,
+        "hits_with_query_term": 87,
+        "max_response_bytes": 16100,
+        "over_budget_queries": 0,
+        "source_matches": 92,
+        "source_checked": 92,
+        "mean_excerpt_bytes": 1532.9565217391305,
+        "budget_truncated_queries": 14,
+        "unsettled_queries": 0
+      },
+      "after": {
+        "queries": 15,
+        "target_top1": 7,
+        "target_top3": 11,
+        "target_top10": 13,
+        "visible_target_top10": 13,
+        "mean_returned": 10,
+        "mean_distinct_excerpts": 9.666666666666666,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 150,
+        "hits_with_query_term": 134,
+        "max_response_bytes": 13447,
+        "over_budget_queries": 0,
+        "source_matches": 150,
+        "source_checked": 150,
+        "mean_excerpt_bytes": 578.7866666666666,
+        "budget_truncated_queries": 0,
+        "unsettled_queries": 0
+      }
+    },
+    "copilot-worktrees/CLIProxyAPIPlus/bumpyclock-silver-umbrella": {
+      "before": {
+        "queries": 15,
+        "target_top1": 7,
+        "target_top3": 11,
+        "target_top10": 13,
+        "visible_target_top10": 13,
+        "mean_returned": 6.133333333333334,
+        "mean_distinct_excerpts": 5.933333333333334,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 92,
+        "hits_with_query_term": 87,
+        "max_response_bytes": 16099,
+        "over_budget_queries": 0,
+        "source_matches": 92,
+        "source_checked": 92,
+        "mean_excerpt_bytes": 1532.9565217391305,
+        "budget_truncated_queries": 14,
+        "unsettled_queries": 0
+      },
+      "after": {
+        "queries": 15,
+        "target_top1": 7,
+        "target_top3": 11,
+        "target_top10": 13,
+        "visible_target_top10": 13,
+        "mean_returned": 10,
+        "mean_distinct_excerpts": 9.666666666666666,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 150,
+        "hits_with_query_term": 134,
+        "max_response_bytes": 13442,
+        "over_budget_queries": 0,
+        "source_matches": 150,
+        "source_checked": 150,
+        "mean_excerpt_bytes": 578.7866666666666,
+        "budget_truncated_queries": 0,
+        "unsettled_queries": 0
+      }
+    },
+    "copilot-worktrees/CLIProxyAPIPlus/copilot-prewarm-refactored-winner": {
+      "before": {
+        "queries": 15,
+        "target_top1": 7,
+        "target_top3": 11,
+        "target_top10": 13,
+        "visible_target_top10": 13,
+        "mean_returned": 6.133333333333334,
+        "mean_distinct_excerpts": 5.933333333333334,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 92,
+        "hits_with_query_term": 87,
+        "max_response_bytes": 16101,
+        "over_budget_queries": 0,
+        "source_matches": 92,
+        "source_checked": 92,
+        "mean_excerpt_bytes": 1532.9565217391305,
+        "budget_truncated_queries": 14,
+        "unsettled_queries": 0
+      },
+      "after": {
+        "queries": 15,
+        "target_top1": 7,
+        "target_top3": 11,
+        "target_top10": 13,
+        "visible_target_top10": 13,
+        "mean_returned": 10,
+        "mean_distinct_excerpts": 9.666666666666666,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 150,
+        "hits_with_query_term": 134,
+        "max_response_bytes": 13440,
+        "over_budget_queries": 0,
+        "source_matches": 150,
+        "source_checked": 150,
+        "mean_excerpt_bytes": 578.7866666666666,
+        "budget_truncated_queries": 0,
+        "unsettled_queries": 0
+      }
+    },
+    "copilot-worktrees/PersonalAssistant/bumpyclock-probable-succotash": {
+      "before": {
+        "queries": 15,
+        "target_top1": 12,
+        "target_top3": 15,
+        "target_top10": 15,
+        "visible_target_top10": 15,
+        "mean_returned": 6.466666666666667,
+        "mean_distinct_excerpts": 5.933333333333334,
+        "same_source_duplicate_hits": 1,
+        "returned_hits": 97,
+        "hits_with_query_term": 78,
+        "max_response_bytes": 16122,
+        "over_budget_queries": 0,
+        "source_matches": 97,
+        "source_checked": 97,
+        "mean_excerpt_bytes": 1538.9175257731958,
+        "budget_truncated_queries": 14,
+        "unsettled_queries": 0
+      },
+      "after": {
+        "queries": 15,
+        "target_top1": 13,
+        "target_top3": 15,
+        "target_top10": 15,
+        "visible_target_top10": 15,
+        "mean_returned": 10,
+        "mean_distinct_excerpts": 9.333333333333334,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 150,
+        "hits_with_query_term": 111,
+        "max_response_bytes": 12190,
+        "over_budget_queries": 0,
+        "source_matches": 150,
+        "source_checked": 150,
+        "mean_excerpt_bytes": 579.48,
+        "budget_truncated_queries": 0,
+        "unsettled_queries": 0
+      }
+    },
+    "copilot-worktrees/PersonalAssistant/bumpyclock-ubiquitous-spoon": {
+      "before": {
+        "queries": 15,
+        "target_top1": 12,
+        "target_top3": 15,
+        "target_top10": 15,
+        "visible_target_top10": 15,
+        "mean_returned": 6.466666666666667,
+        "mean_distinct_excerpts": 5.933333333333334,
+        "same_source_duplicate_hits": 1,
+        "returned_hits": 97,
+        "hits_with_query_term": 78,
+        "max_response_bytes": 16122,
+        "over_budget_queries": 0,
+        "source_matches": 97,
+        "source_checked": 97,
+        "mean_excerpt_bytes": 1538.9175257731958,
+        "budget_truncated_queries": 14,
+        "unsettled_queries": 0
+      },
+      "after": {
+        "queries": 15,
+        "target_top1": 13,
+        "target_top3": 15,
+        "target_top10": 15,
+        "visible_target_top10": 15,
+        "mean_returned": 10,
+        "mean_distinct_excerpts": 9.333333333333334,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 150,
+        "hits_with_query_term": 111,
+        "max_response_bytes": 12189,
+        "over_budget_queries": 0,
+        "source_matches": 150,
+        "source_checked": 150,
+        "mean_excerpt_bytes": 579.48,
+        "budget_truncated_queries": 0,
+        "unsettled_queries": 0
+      }
+    },
+    "copilot-worktrees/PersonalAssistant/copilot-prewarm-bookish-carnival": {
+      "before": {
+        "queries": 15,
+        "target_top1": 12,
+        "target_top3": 15,
+        "target_top10": 15,
+        "visible_target_top10": 15,
+        "mean_returned": 6.466666666666667,
+        "mean_distinct_excerpts": 5.933333333333334,
+        "same_source_duplicate_hits": 1,
+        "returned_hits": 97,
+        "hits_with_query_term": 78,
+        "max_response_bytes": 16122,
+        "over_budget_queries": 0,
+        "source_matches": 97,
+        "source_checked": 97,
+        "mean_excerpt_bytes": 1538.9175257731958,
+        "budget_truncated_queries": 14,
+        "unsettled_queries": 0
+      },
+      "after": {
+        "queries": 15,
+        "target_top1": 13,
+        "target_top3": 15,
+        "target_top10": 15,
+        "visible_target_top10": 15,
+        "mean_returned": 10,
+        "mean_distinct_excerpts": 9.333333333333334,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 150,
+        "hits_with_query_term": 111,
+        "max_response_bytes": 12189,
+        "over_budget_queries": 0,
+        "source_matches": 150,
+        "source_checked": 150,
+        "mean_excerpt_bytes": 579.48,
+        "budget_truncated_queries": 0,
+        "unsettled_queries": 0
+      }
+    },
+    "copilot-worktrees/dotfiles/copilot-prewarm-supreme-fiesta": {
+      "before": {
+        "queries": 15,
+        "target_top1": 10,
+        "target_top3": 13,
+        "target_top10": 13,
+        "visible_target_top10": 13,
+        "mean_returned": 7.133333333333334,
+        "mean_distinct_excerpts": 7,
+        "same_source_duplicate_hits": 1,
+        "returned_hits": 107,
+        "hits_with_query_term": 89,
+        "max_response_bytes": 16330,
+        "over_budget_queries": 0,
+        "source_matches": 107,
+        "source_checked": 107,
+        "mean_excerpt_bytes": 1493.3084112149534,
+        "budget_truncated_queries": 13,
+        "unsettled_queries": 0
+      },
+      "after": {
+        "queries": 15,
+        "target_top1": 10,
+        "target_top3": 13,
+        "target_top10": 14,
+        "visible_target_top10": 14,
+        "mean_returned": 10,
+        "mean_distinct_excerpts": 9.866666666666667,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 150,
+        "hits_with_query_term": 116,
+        "max_response_bytes": 14410,
+        "over_budget_queries": 0,
+        "source_matches": 150,
+        "source_checked": 150,
+        "mean_excerpt_bytes": 560.6466666666666,
+        "budget_truncated_queries": 0,
+        "unsettled_queries": 0
+      }
+    },
+    "copilot-worktrees/neutron/bumpyclock-ideal-waddle": {
+      "before": {
+        "queries": 15,
+        "target_top1": 11,
+        "target_top3": 13,
+        "target_top10": 14,
+        "visible_target_top10": 13,
+        "mean_returned": 6.666666666666667,
+        "mean_distinct_excerpts": 5.2,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 100,
+        "hits_with_query_term": 78,
+        "max_response_bytes": 16286,
+        "over_budget_queries": 0,
+        "source_matches": 100,
+        "source_checked": 100,
+        "mean_excerpt_bytes": 1534.76,
+        "budget_truncated_queries": 13,
+        "unsettled_queries": 0
+      },
+      "after": {
+        "queries": 15,
+        "target_top1": 10,
+        "target_top3": 12,
+        "target_top10": 14,
+        "visible_target_top10": 13,
+        "mean_returned": 10,
+        "mean_distinct_excerpts": 8.4,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 150,
+        "hits_with_query_term": 109,
+        "max_response_bytes": 15014,
+        "over_budget_queries": 0,
+        "source_matches": 150,
+        "source_checked": 150,
+        "mean_excerpt_bytes": 580.0,
+        "budget_truncated_queries": 0,
+        "unsettled_queries": 0
+      }
+    },
+    "copilot-worktrees/neutron/bumpyclock-potential-eureka": {
+      "before": {
+        "queries": 15,
+        "target_top1": 11,
+        "target_top3": 13,
+        "target_top10": 14,
+        "visible_target_top10": 13,
+        "mean_returned": 6.666666666666667,
+        "mean_distinct_excerpts": 5.2,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 100,
+        "hits_with_query_term": 78,
+        "max_response_bytes": 16286,
+        "over_budget_queries": 0,
+        "source_matches": 100,
+        "source_checked": 100,
+        "mean_excerpt_bytes": 1534.76,
+        "budget_truncated_queries": 13,
+        "unsettled_queries": 0
+      },
+      "after": {
+        "queries": 15,
+        "target_top1": 10,
+        "target_top3": 12,
+        "target_top10": 14,
+        "visible_target_top10": 13,
+        "mean_returned": 10,
+        "mean_distinct_excerpts": 8.4,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 150,
+        "hits_with_query_term": 109,
+        "max_response_bytes": 15097,
+        "over_budget_queries": 0,
+        "source_matches": 150,
+        "source_checked": 150,
+        "mean_excerpt_bytes": 580.0,
+        "budget_truncated_queries": 0,
+        "unsettled_queries": 0
+      }
+    },
+    "copilot-worktrees/neutron/bumpyclock-symmetrical-fishstick": {
+      "before": {
+        "queries": 15,
+        "target_top1": 11,
+        "target_top3": 13,
+        "target_top10": 14,
+        "visible_target_top10": 13,
+        "mean_returned": 6.666666666666667,
+        "mean_distinct_excerpts": 5.2,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 100,
+        "hits_with_query_term": 78,
+        "max_response_bytes": 16286,
+        "over_budget_queries": 0,
+        "source_matches": 100,
+        "source_checked": 100,
+        "mean_excerpt_bytes": 1534.76,
+        "budget_truncated_queries": 13,
+        "unsettled_queries": 0
+      },
+      "after": {
+        "queries": 15,
+        "target_top1": 10,
+        "target_top3": 12,
+        "target_top10": 14,
+        "visible_target_top10": 13,
+        "mean_returned": 10,
+        "mean_distinct_excerpts": 8.4,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 150,
+        "hits_with_query_term": 109,
+        "max_response_bytes": 15097,
+        "over_budget_queries": 0,
+        "source_matches": 150,
+        "source_checked": 150,
+        "mean_excerpt_bytes": 580.0,
+        "budget_truncated_queries": 0,
+        "unsettled_queries": 0
+      }
+    },
+    "copilot-worktrees/neutron/copilot-prewarm-super-telegram": {
+      "before": {
+        "queries": 15,
+        "target_top1": 11,
+        "target_top3": 13,
+        "target_top10": 14,
+        "visible_target_top10": 13,
+        "mean_returned": 6.666666666666667,
+        "mean_distinct_excerpts": 5.2,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 100,
+        "hits_with_query_term": 78,
+        "max_response_bytes": 16286,
+        "over_budget_queries": 0,
+        "source_matches": 100,
+        "source_checked": 100,
+        "mean_excerpt_bytes": 1534.76,
+        "budget_truncated_queries": 13,
+        "unsettled_queries": 0
+      },
+      "after": {
+        "queries": 15,
+        "target_top1": 10,
+        "target_top3": 12,
+        "target_top10": 14,
+        "visible_target_top10": 13,
+        "mean_returned": 10,
+        "mean_distinct_excerpts": 8.4,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 150,
+        "hits_with_query_term": 109,
+        "max_response_bytes": 15097,
+        "over_budget_queries": 0,
+        "source_matches": 150,
+        "source_checked": 150,
+        "mean_excerpt_bytes": 580.0,
+        "budget_truncated_queries": 0,
+        "unsettled_queries": 0
+      }
+    },
+    "dotfiles": {
+      "before": {
+        "queries": 15,
+        "target_top1": 10,
+        "target_top3": 13,
+        "target_top10": 13,
+        "visible_target_top10": 13,
+        "mean_returned": 7.133333333333334,
+        "mean_distinct_excerpts": 7,
+        "same_source_duplicate_hits": 1,
+        "returned_hits": 107,
+        "hits_with_query_term": 89,
+        "max_response_bytes": 16358,
+        "over_budget_queries": 0,
+        "source_matches": 107,
+        "source_checked": 107,
+        "mean_excerpt_bytes": 1493.3084112149534,
+        "budget_truncated_queries": 13,
+        "unsettled_queries": 0
+      },
+      "after": {
+        "queries": 15,
+        "target_top1": 10,
+        "target_top3": 13,
+        "target_top10": 14,
+        "visible_target_top10": 14,
+        "mean_returned": 10,
+        "mean_distinct_excerpts": 9.866666666666667,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 150,
+        "hits_with_query_term": 116,
+        "max_response_bytes": 11881,
+        "over_budget_queries": 0,
+        "source_matches": 150,
+        "source_checked": 150,
+        "mean_excerpt_bytes": 560.6466666666666,
+        "budget_truncated_queries": 0,
+        "unsettled_queries": 0
+      }
+    },
+    "neutron": {
+      "before": {
+        "queries": 15,
+        "target_top1": 11,
+        "target_top3": 13,
+        "target_top10": 14,
+        "visible_target_top10": 13,
+        "mean_returned": 6.333333333333333,
+        "mean_distinct_excerpts": 4.933333333333334,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 95,
+        "hits_with_query_term": 75,
+        "max_response_bytes": 16280,
+        "over_budget_queries": 0,
+        "source_matches": 95,
+        "source_checked": 95,
+        "mean_excerpt_bytes": 1611.5894736842106,
+        "budget_truncated_queries": 13,
+        "unsettled_queries": 0
+      },
+      "after": {
+        "queries": 15,
+        "target_top1": 10,
+        "target_top3": 12,
+        "target_top10": 14,
+        "visible_target_top10": 13,
+        "mean_returned": 10,
+        "mean_distinct_excerpts": 8.6,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 150,
+        "hits_with_query_term": 109,
+        "max_response_bytes": 15097,
+        "over_budget_queries": 0,
+        "source_matches": 150,
+        "source_checked": 150,
+        "mean_excerpt_bytes": 580.0,
+        "budget_truncated_queries": 0,
+        "unsettled_queries": 0
+      }
+    },
+    "oss/CLIProxyAPIPlus": {
+      "before": {
+        "queries": 12,
+        "target_top1": 4,
+        "target_top3": 8,
+        "target_top10": 10,
+        "visible_target_top10": 10,
+        "mean_returned": 5.666666666666667,
+        "mean_distinct_excerpts": 5.666666666666667,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 68,
+        "hits_with_query_term": 63,
+        "max_response_bytes": 16094,
+        "over_budget_queries": 0,
+        "source_matches": 68,
+        "source_checked": 68,
+        "mean_excerpt_bytes": 1763.0882352941176,
+        "budget_truncated_queries": 12,
+        "unsettled_queries": 0
+      },
+      "after": {
+        "queries": 12,
+        "target_top1": 4,
+        "target_top3": 8,
+        "target_top10": 10,
+        "visible_target_top10": 10,
+        "mean_returned": 10,
+        "mean_distinct_excerpts": 10,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 120,
+        "hits_with_query_term": 104,
+        "max_response_bytes": 13443,
+        "over_budget_queries": 0,
+        "source_matches": 120,
+        "source_checked": 120,
+        "mean_excerpt_bytes": 626.8666666666667,
+        "budget_truncated_queries": 0,
+        "unsettled_queries": 0
+      }
+    },
+    "t3code": {
+      "before": {
+        "queries": 15,
+        "target_top1": 9,
+        "target_top3": 10,
+        "target_top10": 11,
+        "visible_target_top10": 10,
+        "mean_returned": 4.2,
+        "mean_distinct_excerpts": 4.2,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 63,
+        "hits_with_query_term": 63,
+        "max_response_bytes": 16350,
+        "over_budget_queries": 0,
+        "source_matches": 63,
+        "source_checked": 63,
+        "mean_excerpt_bytes": 1354.5873015873017,
+        "budget_truncated_queries": 14,
+        "unsettled_queries": 0
+      },
+      "after": {
+        "queries": 15,
+        "target_top1": 9,
+        "target_top3": 10,
+        "target_top10": 13,
+        "visible_target_top10": 13,
+        "mean_returned": 7.666666666666667,
+        "mean_distinct_excerpts": 7.666666666666667,
+        "same_source_duplicate_hits": 0,
+        "returned_hits": 115,
+        "hits_with_query_term": 112,
+        "max_response_bytes": 16118,
+        "over_budget_queries": 0,
+        "source_matches": 115,
+        "source_checked": 115,
+        "mean_excerpt_bytes": 554.695652173913,
+        "budget_truncated_queries": 12,
+        "unsettled_queries": 0
+      }
+    }
+  },
+  "family_representatives": {
+    "projects": [
+      "APayee",
+      "BM25-Turbo-Rust-Python-WASM-CLI",
+      "CLIProxyAPIPlus",
+      "CLIProxyAPIRust",
+      "PersonalAssistant",
+      "agent-templates",
+      "dotfiles",
+      "neutron",
+      "oss/CLIProxyAPIPlus",
+      "t3code"
+    ],
+    "metrics": {
+      "project": {
+        "before": {
+          "queries": 120,
+          "target_top1": 62,
+          "target_top3": 83,
+          "target_top10": 96,
+          "visible_target_top10": 94,
+          "mean_returned": 5.641666666666667,
+          "mean_distinct_excerpts": 5.475,
+          "same_source_duplicate_hits": 0,
+          "returned_hits": 677,
+          "hits_with_query_term": 572,
+          "max_response_bytes": 16358,
+          "over_budget_queries": 0,
+          "source_matches": 677,
+          "source_checked": 677,
+          "mean_excerpt_bytes": 1896.765140324963,
+          "budget_truncated_queries": 120,
+          "unsettled_queries": 0
+        },
+        "after": {
+          "queries": 120,
+          "target_top1": 62,
+          "target_top3": 83,
+          "target_top10": 107,
+          "visible_target_top10": 106,
+          "mean_returned": 9.708333333333334,
+          "mean_distinct_excerpts": 9.375,
+          "same_source_duplicate_hits": 0,
+          "returned_hits": 1165,
+          "hits_with_query_term": 934,
+          "max_response_bytes": 16118,
+          "over_budget_queries": 0,
+          "source_matches": 1165,
+          "source_checked": 1165,
+          "mean_excerpt_bytes": 627.349356223176,
+          "budget_truncated_queries": 12,
+          "unsettled_queries": 0
+        }
+      },
+      "sessions": {
+        "before": {
+          "queries": 24,
+          "target_top1": 13,
+          "target_top3": 21,
+          "target_top10": 23,
+          "visible_target_top10": 23,
+          "mean_returned": 7.541666666666667,
+          "mean_distinct_excerpts": 4.958333333333333,
+          "same_source_duplicate_hits": 2,
+          "returned_hits": 181,
+          "hits_with_query_term": 181,
+          "max_response_bytes": 16201,
+          "over_budget_queries": 0,
+          "source_matches": 181,
+          "source_checked": 181,
+          "mean_excerpt_bytes": 650.5138121546961,
+          "budget_truncated_queries": 16,
+          "unsettled_queries": 0
+        },
+        "after": {
+          "queries": 24,
+          "target_top1": 16,
+          "target_top3": 19,
+          "target_top10": 23,
+          "visible_target_top10": 23,
+          "mean_returned": 9.833333333333334,
+          "mean_distinct_excerpts": 7,
+          "same_source_duplicate_hits": 0,
+          "returned_hits": 236,
+          "hits_with_query_term": 230,
+          "max_response_bytes": 16235,
+          "over_budget_queries": 0,
+          "source_matches": 236,
+          "source_checked": 236,
+          "mean_excerpt_bytes": 401.21610169491527,
+          "budget_truncated_queries": 4,
+          "unsettled_queries": 0
+        }
+      }
+    }
+  },
+  "first_attempt_failures": [
+    {
+      "type": "failure",
+      "project": "APayee",
+      "error": "RuntimeError: Reconciliation timeout: search_sessions"
+    }
+  ],
+  "retry_evidence": "siblings-after-retry.jsonl"
+}

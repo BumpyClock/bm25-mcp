@@ -1,0 +1,215 @@
+{
+  "timestamp": "2026-09-21T03:20:44.797213+00:00",
+  "codex_version": "0.155.1",
+  "project": "neutron",
+  "binary_sha256": "56badbba8c8f3fb12e1f656a2a7af529d2ffaa61b5aee4adcc2e2ccdb8c2ebbd",
+  "config_path": "/Users/adityasharma/Projects/neutron/.codex/config.toml",
+  "command": "codex exec --sandbox read-only --ephemeral --json --color never -",
+  "exit_code": 0,
+  "checks": {
+    "project_search": true,
+    "copilot_history": true,
+    "session_context": true,
+    "no_tool_call_errors": true
+  },
+  "calls": [
+    {
+      "server": "bm25-mcp",
+      "tool": "search_project",
+      "arguments": {
+        "query": "h264_parameter_set_count"
+      },
+      "call_status": "completed",
+      "call_error": null,
+      "index_status": "degraded",
+      "result_count": 6,
+      "context_count": 0,
+      "expected_project_path_found": true,
+      "diagnostics": {
+        "binary_excluded": 8,
+        "content_cache_miss": 12,
+        "git_metadata_excluded": 197,
+        "symlink_excluded": 30,
+        "unchanged_index_reuse": 1302,
+        "unsupported_encoding": 4
+      },
+      "pending_changes": 0,
+      "truncated": true
+    },
+    {
+      "server": "bm25-mcp",
+      "tool": "search_sessions",
+      "arguments": {
+        "mode": "search",
+        "query": "error",
+        "agent": "copilot"
+      },
+      "call_status": "completed",
+      "call_error": null,
+      "index_status": "building",
+      "result_count": 0,
+      "context_count": 0,
+      "expected_project_path_found": false,
+      "diagnostics": {},
+      "pending_changes": null,
+      "truncated": false
+    },
+    {
+      "server": "bm25-mcp",
+      "tool": "search_sessions",
+      "arguments": {
+        "mode": "search",
+        "query": "error",
+        "agent": "copilot"
+      },
+      "call_status": "completed",
+      "call_error": null,
+      "index_status": "building",
+      "result_count": 0,
+      "context_count": 0,
+      "expected_project_path_found": false,
+      "diagnostics": {},
+      "pending_changes": null,
+      "truncated": false
+    },
+    {
+      "server": "bm25-mcp",
+      "tool": "search_sessions",
+      "arguments": {
+        "mode": "search",
+        "query": "error",
+        "agent": "copilot"
+      },
+      "call_status": "completed",
+      "call_error": null,
+      "index_status": "building",
+      "result_count": 0,
+      "context_count": 0,
+      "expected_project_path_found": false,
+      "diagnostics": {},
+      "pending_changes": null,
+      "truncated": false
+    },
+    {
+      "server": "bm25-mcp",
+      "tool": "search_sessions",
+      "arguments": {
+        "mode": "search",
+        "query": "error",
+        "agent": "copilot"
+      },
+      "call_status": "completed",
+      "call_error": null,
+      "index_status": "building",
+      "result_count": 0,
+      "context_count": 0,
+      "expected_project_path_found": false,
+      "diagnostics": {},
+      "pending_changes": null,
+      "truncated": false
+    },
+    {
+      "server": "bm25-mcp",
+      "tool": "search_sessions",
+      "arguments": {
+        "mode": "search",
+        "query": "error",
+        "agent": "copilot"
+      },
+      "call_status": "completed",
+      "call_error": null,
+      "index_status": "building",
+      "result_count": 0,
+      "context_count": 0,
+      "expected_project_path_found": false,
+      "diagnostics": {},
+      "pending_changes": null,
+      "truncated": false
+    },
+    {
+      "server": "bm25-mcp",
+      "tool": "search_sessions",
+      "arguments": {
+        "mode": "search",
+        "query": "error",
+        "agent": "copilot"
+      },
+      "call_status": "completed",
+      "call_error": null,
+      "index_status": "building",
+      "result_count": 0,
+      "context_count": 0,
+      "expected_project_path_found": false,
+      "diagnostics": {},
+      "pending_changes": null,
+      "truncated": false
+    },
+    {
+      "server": "bm25-mcp",
+      "tool": "search_sessions",
+      "arguments": {
+        "mode": "search",
+        "query": "error",
+        "agent": "copilot"
+      },
+      "call_status": "completed",
+      "call_error": null,
+      "index_status": "refreshing",
+      "result_count": 0,
+      "context_count": 0,
+      "expected_project_path_found": false,
+      "diagnostics": {
+        "ownership_excluded": 84,
+        "unsupported_record": 29721
+      },
+      "pending_changes": null,
+      "truncated": false
+    },
+    {
+      "server": "bm25-mcp",
+      "tool": "search_sessions",
+      "arguments": {
+        "mode": "search",
+        "query": "error",
+        "agent": "copilot"
+      },
+      "call_status": "completed",
+      "call_error": null,
+      "index_status": "refreshing",
+      "result_count": 5,
+      "context_count": 0,
+      "expected_project_path_found": false,
+      "diagnostics": {
+        "ownership_excluded": 84,
+        "unsupported_record": 29721
+      },
+      "pending_changes": null,
+      "truncated": true
+    },
+    {
+      "server": "bm25-mcp",
+      "tool": "search_sessions",
+      "arguments": {
+        "mode": "context",
+        "match_id": "[actual returned match ID]"
+      },
+      "call_status": "completed",
+      "call_error": null,
+      "index_status": "refreshing",
+      "result_count": 0,
+      "context_count": 6,
+      "expected_project_path_found": false,
+      "diagnostics": {
+        "ownership_excluded": 84,
+        "unsupported_record": 29721
+      },
+      "pending_changes": null,
+      "truncated": true
+    }
+  ],
+  "limitations": [
+    "Session index was refreshing; this validates verified partial results, not complete coverage.",
+    "Unsupported session records and project encodings remain separate coverage diagnostics.",
+    "Default response budgets truncated excerpts/context."
+  ]
+}

@@ -1,0 +1,1 @@
+{"chunks":73101,"note":"Single raw-postings index built by streaming chunks. No full input token corpus, precomputed index or validation copies. Excludes source text cache, session history and concurrent publication.","phase":"memory_only","repo":"t3code","streaming_load_tokenize_build_ms":3829.0789160000004,"tokens":13186191,"vocabulary":235350}

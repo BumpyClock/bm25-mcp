@@ -1,0 +1,153 @@
+{
+  "codex_version": "0.155.1",
+  "project": "neutron",
+  "outcome": "failed_live_session_search",
+  "calls": [
+    {
+      "server": "bm25-mcp",
+      "tool": "search_project",
+      "arguments": {
+        "query": "h264_parameter_set_count"
+      },
+      "status": "building",
+      "result_count": 8,
+      "expected_project_path_found": false,
+      "diagnostics": {},
+      "pending_changes": null
+    },
+    {
+      "server": "bm25-mcp",
+      "tool": "search_sessions",
+      "arguments": {
+        "mode": "search",
+        "query": "error",
+        "agent": "copilot"
+      },
+      "status": "building",
+      "result_count": 0,
+      "expected_project_path_found": false,
+      "diagnostics": {},
+      "pending_changes": null
+    },
+    {
+      "server": "bm25-mcp",
+      "tool": "search_project",
+      "arguments": {
+        "query": "h264_parameter_set_count"
+      },
+      "status": "degraded",
+      "result_count": 6,
+      "expected_project_path_found": true,
+      "diagnostics": {
+        "binary_excluded": 8,
+        "content_cache_hit": 19,
+        "content_cache_miss": 1295,
+        "git_metadata_excluded": 197,
+        "symlink_excluded": 30,
+        "unsupported_encoding": 4
+      },
+      "pending_changes": 0
+    },
+    {
+      "server": "bm25-mcp",
+      "tool": "search_sessions",
+      "arguments": {
+        "mode": "search",
+        "query": "error",
+        "agent": "copilot"
+      },
+      "status": "building",
+      "result_count": 0,
+      "expected_project_path_found": false,
+      "diagnostics": {},
+      "pending_changes": null
+    },
+    {
+      "server": "bm25-mcp",
+      "tool": "search_sessions",
+      "arguments": {
+        "mode": "search",
+        "query": "error",
+        "agent": "copilot"
+      },
+      "status": "building",
+      "result_count": 0,
+      "expected_project_path_found": false,
+      "diagnostics": {},
+      "pending_changes": null
+    },
+    {
+      "server": "bm25-mcp",
+      "tool": "search_sessions",
+      "arguments": {
+        "mode": "search",
+        "query": "error",
+        "agent": "copilot"
+      },
+      "status": "building",
+      "result_count": 0,
+      "expected_project_path_found": false,
+      "diagnostics": {},
+      "pending_changes": null
+    },
+    {
+      "server": "bm25-mcp",
+      "tool": "search_sessions",
+      "arguments": {
+        "mode": "search",
+        "query": "error",
+        "agent": "copilot"
+      },
+      "status": "building",
+      "result_count": 0,
+      "expected_project_path_found": false,
+      "diagnostics": {},
+      "pending_changes": null
+    },
+    {
+      "server": "bm25-mcp",
+      "tool": "search_sessions",
+      "arguments": {
+        "mode": "search",
+        "query": "error",
+        "agent": "copilot"
+      },
+      "status": "building",
+      "result_count": 0,
+      "expected_project_path_found": false,
+      "diagnostics": {},
+      "pending_changes": null
+    },
+    {
+      "server": "bm25-mcp",
+      "tool": "search_sessions",
+      "arguments": {
+        "mode": "search",
+        "query": "error",
+        "agent": "copilot"
+      },
+      "status": "building",
+      "result_count": 0,
+      "expected_project_path_found": false,
+      "diagnostics": {},
+      "pending_changes": null
+    },
+    {
+      "server": "bm25-mcp",
+      "tool": "search_sessions",
+      "arguments": {
+        "mode": "search",
+        "query": "error",
+        "agent": "copilot"
+      },
+      "status": "degraded",
+      "result_count": 0,
+      "expected_project_path_found": false,
+      "diagnostics": {
+        "ownership_excluded": 83,
+        "unsupported_record": 29721
+      },
+      "pending_changes": null
+    }
+  ]
+}

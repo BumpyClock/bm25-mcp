@@ -1,0 +1,11 @@
+   Compiling bm25-mcp v0.1.0 (/Users/adityasharma/Projects/bm25-mcp)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.49s
+     Running tests/mcp.rs (target/debug/deps/mcp-8fcc73ffd46bb24d)
+
+running 3 tests
+test codex_history_is_scoped_and_context_uses_the_same_tool ... ok
+test claude_and_copilot_discovery_filters_and_context_reach_mcp ... ok
+test mcp_search_refresh_and_multiple_clients ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.49s
+

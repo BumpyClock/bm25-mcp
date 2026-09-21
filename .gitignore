@@ -1,0 +1,12 @@
+target/
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+
+/windows-validation.txt
+
+__pycache__/
+*.pyc
+/validation/private-cache/
+
+/validation/bin/

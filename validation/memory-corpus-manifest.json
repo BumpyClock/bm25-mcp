@@ -1,0 +1,40 @@
+{
+  "created_utc": "2026-09-20T23:27:16.367380+00:00",
+  "limits": {
+    "max_file_bytes": 2097152,
+    "max_chunk_bytes": 65536,
+    "chunk_lines": 60
+  },
+  "selection": "All git-listed tracked and nonignored untracked files; tracked ignore matches also excluded; regular nonsymlink UTF-8 text only.",
+  "binary_detection": "Reject any NUL, DEL, or C0 control byte other than tab, LF, form feed, and CR.",
+  "notes": "Ignored untracked files never enter candidate counts. File and chunk size caps are benchmark bounds, not proposed product limits. Source trees are read-only; corpora contain private text and remain temporary.",
+  "corpora": [
+    {
+      "repo": "t3code",
+      "commit": "c1b2210411da79350a3f9f5a65a4a64971e4acad",
+      "temporary_corpus": "/tmp/bm25-t3code-49sdtu3r.jsonl",
+      "candidate_files": 21840,
+      "excluded_files": {
+        "ignored": 34,
+        "git_metadata": 0,
+        "symlink_or_nonregular": 3,
+        "oversize_file": 11,
+        "read_error": 0,
+        "changed_during_read": 0,
+        "binary_control": 266,
+        "invalid_utf8": 0
+      },
+      "included_files": 21526,
+      "included_file_bytes": 135987169,
+      "chunks": 73487,
+      "chunk_text_bytes": 133515816,
+      "whitespace_chunks_skipped": 0,
+      "oversize_chunks_skipped": 2,
+      "oversize_chunk_bytes_skipped": 2471353,
+      "corpus_jsonl_bytes": 141419721,
+      "enumeration_seconds": 0.214127,
+      "preparation_seconds": 4.812666,
+      "temporary_corpus_removed_after_run": true
+    }
+  ]
+}

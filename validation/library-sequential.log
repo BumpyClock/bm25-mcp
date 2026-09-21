@@ -1,0 +1,28 @@
+   Compiling bm25-mcp v0.1.0 (/Users/adityasharma/Projects/bm25-mcp)
+error[E0308]: mismatched types
+   --> src/session_stream.rs:966:9
+    |
+951 |       fn value(&self, kind: &str, key: &str) -> Result<Option<String>> {
+    |                                                 ---------------------- expected `std::result::Result<std::option::Option<std::string::String>, anyhow::Error>` because of return type
+...
+966 | /         self
+967 | |             .reader
+968 | |             .as_ref()
+969 | |             .map(|reader| reader.get(&self.source_key, kind, key))
+970 | |             .transpose()?
+971 | |             .flatten()
+    | |______________________^ expected `Result<Option<String>, Error>`, found `Option<String>`
+    |
+    = note: expected enum `std::result::Result<std::option::Option<_>, anyhow::Error>`
+               found enum `std::option::Option<_>`
+help: try wrapping the expression in `Ok`
+    |
+966 ~         Ok(self
+967 |             .reader
+...
+970 |             .transpose()?
+971 ~             .flatten())
+    |
+
+For more information about this error, try `rustc --explain E0308`.
+error: could not compile `bm25-mcp` (lib test) due to 1 previous error

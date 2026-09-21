@@ -1,0 +1,1 @@
+{"indexes_code_then_sessions":[{"chunks":73101,"tokens":13186191,"vocabulary":235350},{"chunks":1359,"tokens":128465,"vocabulary":9693}],"note":"Separate append-built code and session indexes retained together. Excludes differential generations, source text cache, SQLite cache, MCP and file watchers.","phase":"memory_pair","repo":"t3code"}

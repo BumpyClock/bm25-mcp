@@ -1,0 +1,27 @@
+{
+  "record_type": "implementation_validation",
+  "id": "implementation-validation-1",
+  "status": "passed_for_working_baseline",
+  "checks": {
+    "tests": 26,
+    "cargo_test_all_targets_locked": "passed",
+    "clippy_warnings_denied": "passed",
+    "root_package_format_check": "passed",
+    "release_build_locked": "passed",
+    "path_dependencies_inside_new_directory": "passed",
+    "vendored_source_byte_identity": "passed"
+  },
+  "benchmark": {
+    "corpus": "BM25 Turbo repository with actual discovered project session histories",
+    "single_client_reconciled_requests": 1000,
+    "p95_ms": 5.136209,
+    "median_ms": 2.954188,
+    "partial_responses_excluded": 0,
+    "sampled_peak_owner_rss_bytes": 42647552,
+    "project_initial_seconds": 0.848089,
+    "sessions_initial_seconds": 7.340267,
+    "limitations": "One small real workload, single client, sampled RSS. Not the full v1 corpus/platform/pressure acceptance suite."
+  },
+  "remaining_ref": "implementation-working-baseline-1",
+  "implementation_complete": false
+}

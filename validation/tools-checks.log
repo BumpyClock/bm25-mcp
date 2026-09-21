@@ -1,0 +1,310 @@
+warning: value assigned to `record_len` is never read
+    --> src/session_stream.rs:1333:13
+     |
+1333 |             record_len = record_len.saturating_add((index + 1 - segment) as u64);
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ this value is reassigned later and never used
+...
+1346 |             record_len = 0;
+     |             -------------- `record_len` is overwritten here before the previous value is read
+     |
+     = note: `#[warn(unused_assignments)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `MAX_CHUNK_BYTES` is never used
+  --> src/sessions.rs:29:7
+   |
+29 | const MAX_CHUNK_BYTES: usize = 16 * 1024;
+   |       ^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `MAX_ERRORS` is never used
+  --> src/sessions.rs:30:7
+   |
+30 | const MAX_ERRORS: usize = 64;
+   |       ^^^^^^^^^^
+
+warning: constant `MAX_ERROR_BYTES` is never used
+  --> src/sessions.rs:31:7
+   |
+31 | const MAX_ERROR_BYTES: usize = 512;
+   |       ^^^^^^^^^^^^^^^
+
+warning: struct `ScanCancelled` is never constructed
+   --> src/sessions.rs:144:8
+    |
+144 | struct ScanCancelled;
+    |        ^^^^^^^^^^^^^
+
+warning: enum `Provider` is never used
+   --> src/sessions.rs:155:6
+    |
+155 | enum Provider {
+    |      ^^^^^^^^
+
+warning: method `name` is never used
+   --> src/sessions.rs:162:8
+    |
+161 | impl Provider {
+    | ------------- method in this implementation
+162 |     fn name(self) -> &'static str {
+    |        ^^^^
+
+warning: struct `SessionFile` is never constructed
+   --> src/sessions.rs:172:8
+    |
+172 | struct SessionFile {
+    |        ^^^^^^^^^^^
+
+warning: function `discover_files` is never used
+   --> src/sessions.rs:177:4
+    |
+177 | fn discover_files(
+    |    ^^^^^^^^^^^^^^
+
+warning: function `source_path` is never used
+   --> src/sessions.rs:225:4
+    |
+225 | fn source_path(provider: &Provider, path: &Path, config: &SessionConfig) -> String {
+    |    ^^^^^^^^^^^
+
+warning: function `source_key` is never used
+   --> src/sessions.rs:238:4
+    |
+238 | fn source_key(owner_key: &str, path: &str) -> String {
+    |    ^^^^^^^^^^
+
+warning: struct `ParsedSession` is never constructed
+   --> src/sessions.rs:247:8
+    |
+247 | struct ParsedSession {
+    |        ^^^^^^^^^^^^^
+
+warning: struct `Record` is never constructed
+   --> src/sessions.rs:254:8
+    |
+254 | struct Record {
+    |        ^^^^^^
+
+warning: struct `RecordMetadata` is never constructed
+   --> src/sessions.rs:267:8
+    |
+267 | struct RecordMetadata {
+    |        ^^^^^^^^^^^^^^
+
+warning: struct `PayloadMetadata` is never constructed
+   --> src/sessions.rs:290:8
+    |
+290 | struct PayloadMetadata {
+    |        ^^^^^^^^^^^^^^^
+
+warning: struct `DataMetadata` is never constructed
+   --> src/sessions.rs:300:8
+    |
+300 | struct DataMetadata {
+    |        ^^^^^^^^^^^^
+
+warning: struct `ContextMetadata` is never constructed
+   --> src/sessions.rs:312:8
+    |
+312 | struct ContextMetadata {
+    |        ^^^^^^^^^^^^^^^
+
+warning: function `read_session_file` is never used
+   --> src/sessions.rs:319:4
+    |
+319 | fn read_session_file(
+    |    ^^^^^^^^^^^^^^^^^
+
+warning: function `inspect_session_file` is never used
+   --> src/sessions.rs:430:4
+    |
+430 | fn inspect_session_file(
+    |    ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `metadata_cwd` is never used
+   --> src/sessions.rs:482:4
+    |
+482 | fn metadata_cwd(provider: Provider, metadata: &RecordMetadata) -> Option<String> {
+    |    ^^^^^^^^^^^^
+
+warning: function `metadata_session_id` is never used
+   --> src/sessions.rs:505:4
+    |
+505 | fn metadata_session_id(metadata: &RecordMetadata) -> Option<String> {
+    |    ^^^^^^^^^^^^^^^^^^^
+
+warning: function `provider_session_id_metadata` is never used
+   --> src/sessions.rs:517:4
+    |
+517 | fn provider_session_id_metadata(provider: Provider, metadata: &RecordMetadata) -> Option<String> {
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `metadata_timestamp` is never used
+   --> src/sessions.rs:539:4
+    |
+539 | fn metadata_timestamp(metadata: &RecordMetadata) -> Option<String> {
+    |    ^^^^^^^^^^^^^^^^^^
+
+warning: function `associate_cwd` is never used
+   --> src/sessions.rs:549:4
+    |
+549 | fn associate_cwd(
+    |    ^^^^^^^^^^^^^
+
+warning: function `event_identity` is never used
+   --> src/sessions.rs:595:4
+    |
+595 | fn event_identity(provider: Provider, value: &Value) -> Option<String> {
+    |    ^^^^^^^^^^^^^^
+
+warning: function `session_id` is never used
+   --> src/sessions.rs:616:4
+    |
+616 | fn session_id(value: &Value) -> Option<String> {
+    |    ^^^^^^^^^^
+
+warning: function `timestamp` is never used
+   --> src/sessions.rs:639:4
+    |
+639 | fn timestamp(value: &Value) -> Option<String> {
+    |    ^^^^^^^^^
+
+warning: function `raw_timestamp` is never used
+   --> src/sessions.rs:643:4
+    |
+643 | fn raw_timestamp(value: &Value) -> Option<String> {
+    |    ^^^^^^^^^^^^^
+
+warning: function `normalize_timestamp` is never used
+   --> src/sessions.rs:655:4
+    |
+655 | fn normalize_timestamp(value: &str) -> Option<String> {
+    |    ^^^^^^^^^^^^^^^^^^^
+
+warning: struct `Normalized` is never constructed
+   --> src/sessions.rs:666:8
+    |
+666 | struct Normalized {
+    |        ^^^^^^^^^^
+
+warning: function `normalize_record` is never used
+   --> src/sessions.rs:676:4
+    |
+676 | fn normalize_record(
+    |    ^^^^^^^^^^^^^^^^
+
+warning: function `normalize_codex` is never used
+   --> src/sessions.rs:718:4
+    |
+718 | fn normalize_codex(
+    |    ^^^^^^^^^^^^^^^
+
+warning: function `normalize_claude` is never used
+   --> src/sessions.rs:804:4
+    |
+804 | fn normalize_claude(
+    |    ^^^^^^^^^^^^^^^^
+
+warning: function `normalize_copilot` is never used
+   --> src/sessions.rs:902:4
+    |
+902 | fn normalize_copilot(
+    |    ^^^^^^^^^^^^^^^^^
+
+warning: function `push_normalized` is never used
+   --> src/sessions.rs:986:4
+    |
+986 | fn push_normalized(
+    |    ^^^^^^^^^^^^^^^
+
+warning: function `append_chunks` is never used
+    --> src/sessions.rs:1010:4
+     |
+1010 | fn append_chunks(
+     |    ^^^^^^^^^^^^^
+
+warning: struct `SessionChunkSpool` is never constructed
+    --> src/sessions.rs:1039:8
+     |
+1039 | struct SessionChunkSpool {
+     |        ^^^^^^^^^^^^^^^^^
+
+warning: associated items `new`, `push`, and `finish` are never used
+    --> src/sessions.rs:1045:8
+     |
+1044 | impl SessionChunkSpool {
+     | ---------------------- associated items in this implementation
+1045 |     fn new() -> Result<Self> {
+     |        ^^^
+...
+1077 |     fn push(&mut self, chunk: &Chunk) -> Result<()> {
+     |        ^^^^
+...
+1087 |     fn finish(mut self) -> Result<SessionChunkIter> {
+     |        ^^^^^^
+
+warning: struct `SessionChunkIter` is never constructed
+    --> src/sessions.rs:1120:8
+     |
+1120 | struct SessionChunkIter {
+     |        ^^^^^^^^^^^^^^^^
+
+warning: function `make_chunk` is never used
+    --> src/sessions.rs:1147:4
+     |
+1147 | fn make_chunk(
+     |    ^^^^^^^^^^
+
+warning: function `text_values` is never used
+    --> src/sessions.rs:1169:4
+     |
+1169 | fn text_values(value: Option<&Value>) -> Vec<String> {
+     |    ^^^^^^^^^^^
+
+warning: function `argument` is never used
+    --> src/sessions.rs:1196:4
+     |
+1196 | fn argument(value: Option<&Value>) -> String {
+     |    ^^^^^^^^
+
+warning: function `is_own_tool` is never used
+    --> src/sessions.rs:1204:4
+     |
+1204 | fn is_own_tool(name: &str, configured: &[String]) -> bool {
+     |    ^^^^^^^^^^^
+
+warning: function `record_error` is never used
+    --> src/sessions.rs:1208:4
+     |
+1208 | fn record_error(report: &mut ScanReport, message: String) {
+     |    ^^^^^^^^^^^^
+
+warning: function `truncate` is never used
+    --> src/sessions.rs:1215:4
+     |
+1215 | fn truncate(mut value: String) -> String {
+     |    ^^^^^^^^
+
+warning: function `hex_digest` is never used
+    --> src/sessions.rs:1228:4
+     |
+1228 | fn hex_digest(bytes: impl AsRef<[u8]>) -> String {
+     |    ^^^^^^^^^^
+
+warning: struct `FileFingerprint` is never constructed
+    --> src/sessions.rs:1237:8
+     |
+1237 | struct FileFingerprint {
+     |        ^^^^^^^^^^^^^^^
+
+warning: function `file_fingerprint` is never used
+    --> src/sessions.rs:1247:4
+     |
+1247 | fn file_fingerprint(path: &Path) -> Result<FileFingerprint> {
+     |    ^^^^^^^^^^^^^^^^
+
+
+running 4 tests
+....
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+

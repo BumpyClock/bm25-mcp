@@ -1,0 +1,377 @@
+{
+  "platform": "Darwin arm64",
+  "profile": "release",
+  "methodology": "BENCHMARK.md",
+  "corpora": [
+    {
+      "repo": "BM25-Turbo-Rust-Python-WASM-CLI",
+      "results": [
+        {
+          "chunks": 406,
+          "files": 88,
+          "load_and_tokenize_ms": 25.702709000000002,
+          "phase": "initial",
+          "precomputed_build_ms": 20.897125,
+          "queries": {
+            "precomputed": {
+              "median_ms": 0.001042,
+              "p95_ms": 0.003542,
+              "samples": 60
+            },
+            "raw_postings": {
+              "median_ms": 0.001667,
+              "p95_ms": 0.0043749999999999995,
+              "samples": 60
+            },
+            "top_k_equivalent": true
+          },
+          "raw_postings_build_ms": 11.999792000000001,
+          "repo": "BM25-Turbo-Rust-Python-WASM-CLI",
+          "tokens": 85006,
+          "vocabulary": 6920
+        },
+        {
+          "affected_chunks": 2,
+          "changed_files": 1,
+          "note": "Cached-token replacement/deletion simulation over actual text; excludes parsing, watcher delay, persistence, snapshot publication and actual checkout.",
+          "phase": "synthetic_edit_batch",
+          "queries": {
+            "precomputed": {
+              "median_ms": 0.000792,
+              "p95_ms": 0.0035,
+              "samples": 60
+            },
+            "raw_postings": {
+              "median_ms": 0.001375,
+              "p95_ms": 0.0035,
+              "samples": 60
+            },
+            "top_k_equivalent": true
+          },
+          "rebuild_precomputed": {
+            "median_ms": 14.477791,
+            "p95_ms": 14.858708,
+            "samples": 3
+          },
+          "repo": "BM25-Turbo-Rust-Python-WASM-CLI",
+          "update_raw_postings": {
+            "median_ms": 0.0315,
+            "p95_ms": 0.033541999999999995,
+            "samples": 3
+          }
+        },
+        {
+          "affected_chunks": 28,
+          "changed_files": 10,
+          "note": "Cached-token replacement/deletion simulation over actual text; excludes parsing, watcher delay, persistence, snapshot publication and actual checkout.",
+          "phase": "synthetic_edit_batch",
+          "queries": {
+            "precomputed": {
+              "median_ms": 0.000875,
+              "p95_ms": 0.002375,
+              "samples": 60
+            },
+            "raw_postings": {
+              "median_ms": 0.001333,
+              "p95_ms": 0.003292,
+              "samples": 60
+            },
+            "top_k_equivalent": true
+          },
+          "rebuild_precomputed": {
+            "median_ms": 14.039792,
+            "p95_ms": 14.103124999999999,
+            "samples": 3
+          },
+          "repo": "BM25-Turbo-Rust-Python-WASM-CLI",
+          "update_raw_postings": {
+            "median_ms": 0.6495,
+            "p95_ms": 0.650167,
+            "samples": 3
+          }
+        },
+        {
+          "affected_chunks": 25,
+          "changed_files": 8,
+          "note": "Cached-token replacement/deletion simulation over actual text; excludes parsing, watcher delay, persistence, snapshot publication and actual checkout.",
+          "phase": "synthetic_edit_batch",
+          "queries": {
+            "precomputed": {
+              "median_ms": 0.000833,
+              "p95_ms": 0.003333,
+              "samples": 60
+            },
+            "raw_postings": {
+              "median_ms": 0.0012920000000000002,
+              "p95_ms": 0.003375,
+              "samples": 60
+            },
+            "top_k_equivalent": true
+          },
+          "rebuild_precomputed": {
+            "median_ms": 14.049958,
+            "p95_ms": 14.111709,
+            "samples": 3
+          },
+          "repo": "BM25-Turbo-Rust-Python-WASM-CLI",
+          "update_raw_postings": {
+            "median_ms": 0.543083,
+            "p95_ms": 0.553542,
+            "samples": 3
+          }
+        }
+      ],
+      "combined_process_peak_rss_bytes": 30752768
+    },
+    {
+      "repo": "neutron",
+      "results": [
+        {
+          "chunks": 7386,
+          "files": 1298,
+          "load_and_tokenize_ms": 186.96979199999998,
+          "phase": "initial",
+          "precomputed_build_ms": 218.333084,
+          "queries": {
+            "precomputed": {
+              "median_ms": 0.007,
+              "p95_ms": 0.023083,
+              "samples": 60
+            },
+            "raw_postings": {
+              "median_ms": 0.009833999999999999,
+              "p95_ms": 0.038,
+              "samples": 60
+            },
+            "top_k_equivalent": true
+          },
+          "raw_postings_build_ms": 156.249459,
+          "repo": "neutron",
+          "tokens": 1275186,
+          "vocabulary": 44811
+        },
+        {
+          "affected_chunks": 1,
+          "changed_files": 1,
+          "note": "Cached-token replacement/deletion simulation over actual text; excludes parsing, watcher delay, persistence, snapshot publication and actual checkout.",
+          "phase": "synthetic_edit_batch",
+          "queries": {
+            "precomputed": {
+              "median_ms": 0.007417,
+              "p95_ms": 0.02225,
+              "samples": 60
+            },
+            "raw_postings": {
+              "median_ms": 0.009959,
+              "p95_ms": 0.038041,
+              "samples": 60
+            },
+            "top_k_equivalent": true
+          },
+          "rebuild_precomputed": {
+            "median_ms": 209.809875,
+            "p95_ms": 214.862375,
+            "samples": 3
+          },
+          "repo": "neutron",
+          "update_raw_postings": {
+            "median_ms": 0.031292,
+            "p95_ms": 0.033207999999999994,
+            "samples": 3
+          }
+        },
+        {
+          "affected_chunks": 64,
+          "changed_files": 10,
+          "note": "Cached-token replacement/deletion simulation over actual text; excludes parsing, watcher delay, persistence, snapshot publication and actual checkout.",
+          "phase": "synthetic_edit_batch",
+          "queries": {
+            "precomputed": {
+              "median_ms": 0.007292,
+              "p95_ms": 0.022458000000000002,
+              "samples": 60
+            },
+            "raw_postings": {
+              "median_ms": 0.010083,
+              "p95_ms": 0.038,
+              "samples": 60
+            },
+            "top_k_equivalent": true
+          },
+          "rebuild_precomputed": {
+            "median_ms": 209.893958,
+            "p95_ms": 210.698334,
+            "samples": 3
+          },
+          "repo": "neutron",
+          "update_raw_postings": {
+            "median_ms": 1.538292,
+            "p95_ms": 1.572333,
+            "samples": 3
+          }
+        },
+        {
+          "affected_chunks": 662,
+          "changed_files": 129,
+          "note": "Cached-token replacement/deletion simulation over actual text; excludes parsing, watcher delay, persistence, snapshot publication and actual checkout.",
+          "phase": "synthetic_edit_batch",
+          "queries": {
+            "precomputed": {
+              "median_ms": 0.008542000000000001,
+              "p95_ms": 0.023167,
+              "samples": 60
+            },
+            "raw_postings": {
+              "median_ms": 0.015041,
+              "p95_ms": 0.039709,
+              "samples": 60
+            },
+            "top_k_equivalent": true
+          },
+          "rebuild_precomputed": {
+            "median_ms": 203.454667,
+            "p95_ms": 204.56508300000002,
+            "samples": 3
+          },
+          "repo": "neutron",
+          "update_raw_postings": {
+            "median_ms": 14.056959,
+            "p95_ms": 15.1375,
+            "samples": 3
+          }
+        }
+      ],
+      "combined_process_peak_rss_bytes": 349716480
+    },
+    {
+      "repo": "t3code",
+      "results": [
+        {
+          "chunks": 73101,
+          "files": 21516,
+          "load_and_tokenize_ms": 1890.2249169999998,
+          "phase": "initial",
+          "precomputed_build_ms": 2451.457833,
+          "queries": {
+            "precomputed": {
+              "median_ms": 0.157709,
+              "p95_ms": 0.48654200000000003,
+              "samples": 60
+            },
+            "raw_postings": {
+              "median_ms": 0.301083,
+              "p95_ms": 0.9796659999999999,
+              "samples": 60
+            },
+            "top_k_equivalent": true
+          },
+          "raw_postings_build_ms": 1841.435916,
+          "repo": "t3code",
+          "tokens": 13186191,
+          "vocabulary": 235350
+        },
+        {
+          "affected_chunks": 1,
+          "changed_files": 1,
+          "note": "Cached-token replacement/deletion simulation over actual text; excludes parsing, watcher delay, persistence, snapshot publication and actual checkout.",
+          "phase": "synthetic_edit_batch",
+          "queries": {
+            "precomputed": {
+              "median_ms": 0.156833,
+              "p95_ms": 0.485417,
+              "samples": 60
+            },
+            "raw_postings": {
+              "median_ms": 0.302917,
+              "p95_ms": 0.964625,
+              "samples": 60
+            },
+            "top_k_equivalent": true
+          },
+          "rebuild_precomputed": {
+            "median_ms": 2248.220416,
+            "p95_ms": 2411.192875,
+            "samples": 3
+          },
+          "repo": "t3code",
+          "update_raw_postings": {
+            "median_ms": 0.039625,
+            "p95_ms": 0.044833000000000005,
+            "samples": 3
+          }
+        },
+        {
+          "affected_chunks": 23,
+          "changed_files": 10,
+          "note": "Cached-token replacement/deletion simulation over actual text; excludes parsing, watcher delay, persistence, snapshot publication and actual checkout.",
+          "phase": "synthetic_edit_batch",
+          "queries": {
+            "precomputed": {
+              "median_ms": 0.171,
+              "p95_ms": 0.470292,
+              "samples": 60
+            },
+            "raw_postings": {
+              "median_ms": 0.316834,
+              "p95_ms": 0.954959,
+              "samples": 60
+            },
+            "top_k_equivalent": true
+          },
+          "rebuild_precomputed": {
+            "median_ms": 2255.093917,
+            "p95_ms": 2286.360167,
+            "samples": 3
+          },
+          "repo": "t3code",
+          "update_raw_postings": {
+            "median_ms": 0.618958,
+            "p95_ms": 0.665042,
+            "samples": 3
+          }
+        },
+        {
+          "affected_chunks": 7219,
+          "changed_files": 2151,
+          "note": "Cached-token replacement/deletion simulation over actual text; excludes parsing, watcher delay, persistence, snapshot publication and actual checkout.",
+          "phase": "synthetic_edit_batch",
+          "queries": {
+            "precomputed": {
+              "median_ms": 0.176167,
+              "p95_ms": 0.476583,
+              "samples": 60
+            },
+            "raw_postings": {
+              "median_ms": 0.321667,
+              "p95_ms": 1.0662079999999998,
+              "samples": 60
+            },
+            "top_k_equivalent": true
+          },
+          "rebuild_precomputed": {
+            "median_ms": 2205.2996669999998,
+            "p95_ms": 2229.954708,
+            "samples": 3
+          },
+          "repo": "t3code",
+          "update_raw_postings": {
+            "median_ms": 188.516667,
+            "p95_ms": 199.316791,
+            "samples": 3
+          }
+        }
+      ],
+      "combined_process_peak_rss_bytes": 3497984000
+    }
+  ],
+  "recommendation": "Advance raw term postings with shared current BM25 statistics as the differential-update candidate. Benchmark durable coherent publication before selecting a production layout.",
+  "limits": [
+    "Synthetic cached-token edit batches, not real branch switches",
+    "No persistence, watcher, parsing or snapshot-publication cost in update timing",
+    "Default tokenizer and fixed 60-line chunks",
+    "Windows and session indexing not benchmarked",
+    "Only three update timing samples; initial build is one sample",
+    "Query workload is fixed and does not measure relevance",
+    "File and chunk size exclusions in corpus-manifest.json"
+  ]
+}

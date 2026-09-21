@@ -1,0 +1,40 @@
+{
+  "created_utc": "2026-09-20T23:51:19.744807+00:00",
+  "limits": {
+    "max_file_bytes": 2097152,
+    "max_chunk_bytes": 65536,
+    "chunk_lines": 60
+  },
+  "selection": "All git-listed tracked and nonignored untracked files; tracked ignore matches also excluded; regular nonsymlink UTF-8 text only.",
+  "binary_detection": "Reject any NUL, DEL, or C0 control byte other than tab, LF, form feed, and CR.",
+  "notes": "Ignored untracked files never enter candidate counts. File and chunk size caps are benchmark bounds, not proposed product limits. Source trees are read-only; corpora contain private text and remain temporary.",
+  "corpora": [
+    {
+      "repo": "neutron",
+      "commit": "b924155589ef137708efdf2a8bc8167d53ddbd36",
+      "temporary_corpus": "/tmp/bm25-neutron-he8z0ys_.jsonl",
+      "candidate_files": 1343,
+      "excluded_files": {
+        "ignored": 0,
+        "git_metadata": 0,
+        "symlink_or_nonregular": 30,
+        "oversize_file": 1,
+        "read_error": 0,
+        "changed_during_read": 0,
+        "binary_control": 11,
+        "invalid_utf8": 0
+      },
+      "included_files": 1301,
+      "included_file_bytes": 13681399,
+      "chunks": 7415,
+      "chunk_text_bytes": 13681399,
+      "whitespace_chunks_skipped": 0,
+      "oversize_chunks_skipped": 0,
+      "oversize_chunk_bytes_skipped": 0,
+      "corpus_jsonl_bytes": 14450646,
+      "enumeration_seconds": 0.100933,
+      "preparation_seconds": 0.486389,
+      "temporary_corpus_removed_after_run": true
+    }
+  ]
+}

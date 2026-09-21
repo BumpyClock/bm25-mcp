@@ -1,0 +1,9 @@
+   Compiling bm25-mcp v0.1.0 (/Users/adityasharma/Projects/bm25-mcp)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.90s
+     Running tests/mcp.rs (target/debug/deps/mcp-8fcc73ffd46bb24d)
+
+running 1 test
+test copied_messages_and_copy_context_are_available_over_mcp ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 1.12s
+

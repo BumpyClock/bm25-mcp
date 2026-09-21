@@ -1,0 +1,20 @@
+   Compiling bm25-mcp v0.1.0 (/Users/adityasharma/Projects/bm25-mcp)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.47s
+     Running tests/tools.rs (target/debug/deps/tools-1317fedbf0212663)
+
+running 12 tests
+test compact_excerpt_maps_casefold_expansion_to_contiguous_source_bytes ... ok
+test responses_obey_utf8_budgets_and_reject_invalid_modes ... ok
+test filters_are_applied_before_top_k_and_collections_are_isolated ... ok
+test compact_excerpt_prefers_late_whole_identifier_over_early_component ... ok
+test budgeted_excerpt_keeps_a_late_matching_term_and_decoded_offset ... ok
+test default_search_keeps_ten_long_hits_with_compact_excerpts ... ok
+test message_copy_grouping_keeps_tool_and_legacy_chunks_once_per_occurrence ... ok
+test copies_pagination_rejects_stale_or_mismatched_cursors ... ok
+test session_dedup_preserves_missing_ids_conflicting_content_and_repeated_chunks ... ok
+test session_copy_groups_respect_provider_session_time_and_owner_filters ... ok
+test copied_session_events_refill_results_and_preserve_each_source_context ... ok
+test session_context_paginates_utf8_without_losing_text ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s
+

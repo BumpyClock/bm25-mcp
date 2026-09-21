@@ -1,0 +1,40 @@
+{
+  "created_utc": "2026-09-20T23:50:53.934208+00:00",
+  "limits": {
+    "max_file_bytes": 2097152,
+    "max_chunk_bytes": 65536,
+    "chunk_lines": 60
+  },
+  "selection": "All git-listed tracked and nonignored untracked files; tracked ignore matches also excluded; regular nonsymlink UTF-8 text only.",
+  "binary_detection": "Reject any NUL, DEL, or C0 control byte other than tab, LF, form feed, and CR.",
+  "notes": "Ignored untracked files never enter candidate counts. File and chunk size caps are benchmark bounds, not proposed product limits. Source trees are read-only; corpora contain private text and remain temporary.",
+  "corpora": [
+    {
+      "repo": "BM25-Turbo-Rust-Python-WASM-CLI",
+      "commit": "ecd28e3babb57cce63636f099a72ba26dc4cf643",
+      "temporary_corpus": "/tmp/bm25-BM25-Turbo-Rust-Python-WASM-CLI-hxl8ffvx.jsonl",
+      "candidate_files": 88,
+      "excluded_files": {
+        "ignored": 0,
+        "git_metadata": 0,
+        "symlink_or_nonregular": 0,
+        "oversize_file": 0,
+        "read_error": 0,
+        "changed_during_read": 0,
+        "binary_control": 0,
+        "invalid_utf8": 0
+      },
+      "included_files": 88,
+      "included_file_bytes": 777312,
+      "chunks": 408,
+      "chunk_text_bytes": 777312,
+      "whitespace_chunks_skipped": 0,
+      "oversize_chunks_skipped": 0,
+      "oversize_chunk_bytes_skipped": 0,
+      "corpus_jsonl_bytes": 831247,
+      "enumeration_seconds": 0.014668,
+      "preparation_seconds": 0.037004,
+      "temporary_corpus_removed_after_run": true
+    }
+  ]
+}
