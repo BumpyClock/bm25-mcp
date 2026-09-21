@@ -5,7 +5,7 @@
 //! temporary disk-backed accumulator on the same read snapshot; it never
 //! materializes a complete in-memory index.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 
@@ -16,6 +16,7 @@ use sha2::{Digest, Sha256};
 
 use crate::model::{Chunk, Hit, SearchFilter, Source};
 use crate::text::{normalization_version, tokenize_checked};
+use crate::{query, ranking};
 
 #[path = "hot.rs"]
 mod hot;
@@ -505,34 +506,7 @@ impl Store {
         let path_glob = compile_path_glob(filter.path_glob.as_deref())?;
         let limit = i64::try_from(limit).context("search limit does not fit SQLite")?;
         let mut conn = self.read_connection()?;
-        let flags = rusqlite::functions::FunctionFlags::SQLITE_UTF8
-            | rusqlite::functions::FunctionFlags::SQLITE_DETERMINISTIC;
-        conn.create_scalar_function("bm25_score", 6, flags, |ctx| {
-            let tf = ctx.get::<u32>(0)?;
-            let length = ctx.get::<i64>(1)? as u64;
-            let documents = ctx.get::<i64>(2)? as u64;
-            let frequency = ctx.get::<i64>(3)? as u64;
-            let total = ctx.get::<i64>(4)? as u64;
-            let weight = ctx.get::<u32>(5)?;
-            Ok(if documents == 0 || frequency == 0 {
-                0.0
-            } else {
-                f64::from(
-                    upstream::scoring::lucene_score(
-                        tf,
-                        length,
-                        total as f64 / documents as f64,
-                        documents,
-                        frequency,
-                    ) * weight as f32,
-                )
-            })
-        })?;
-        let query_glob = path_glob.clone();
-        conn.create_scalar_function("bm25_path_matches", 1, flags, move |ctx| {
-            let path = ctx.get::<String>(0)?;
-            Ok(path_glob.as_ref().is_none_or(|glob| glob.is_match(path)))
-        })?;
+        register_search_functions(&conn, path_glob.clone())?;
         let tx = conn.transaction_with_behavior(TransactionBehavior::Deferred)?;
         let generation = current_generation(&tx)?;
 
@@ -547,58 +521,227 @@ impl Store {
             return Ok((generation, Vec::new()));
         }
 
-        if let Some(hits) = hot::search(
+        let hits = retrieve_terms(
             &self.hot,
             &tx,
             generation,
             &terms,
             filter,
-            query_glob.as_ref(),
+            path_glob.as_ref(),
             limit as usize,
-        )? {
-            tx.commit()?;
-            return Ok((generation, hits));
-        }
-        create_query_tables(&tx)?;
-        tx.execute("DELETE FROM bm25_query_terms", [])?;
-        tx.execute("DELETE FROM bm25_query_accum", [])?;
-        {
-            let mut term_stmt = tx.prepare_cached(
-                "INSERT INTO bm25_query_terms(term_id, weight)
-                 SELECT id, 1 FROM terms WHERE term=?1
-                 ON CONFLICT(term_id) DO UPDATE SET weight=weight+1",
-            )?;
-            for term in &terms {
-                term_stmt.execute(params![term])?;
-            }
-        }
-
-        tx.execute(
-            "INSERT INTO bm25_query_accum(chunk_id, score)
-             SELECT p.chunk_id, SUM(bm25_score(p.tf,c.token_len,st.doc_count,ts.doc_freq,st.total_tokens,qt.weight))
-             FROM bm25_query_terms qt
-             JOIN postings p ON p.term_id=qt.term_id
-             JOIN chunks c ON c.id=p.chunk_id
-             JOIN sources s ON s.key=c.source_key AND s.eligible=1
-             JOIN stats st ON st.collection=s.collection AND st.kind=s.kind
-             JOIN term_stats ts ON ts.collection=s.collection AND ts.kind=s.kind AND ts.term_id=p.term_id
-             WHERE s.collection=?1 AND s.kind=?2
-               AND (?3 IS NULL OR c.agent=?3)
-               AND (?4 IS NULL OR c.session_id=?4)
-               AND (?5 IS NULL OR c.timestamp>=?5)
-               AND (?6 IS NULL OR c.timestamp<?6)
-               AND bm25_path_matches(s.path)
-             GROUP BY p.chunk_id",
-            params![filter.collection,filter.kind,filter.agent,filter.session_id,filter.after,filter.before],
         )?;
-
-        let hits = if filter.kind == "session" {
-            load_top_session_hits(&tx, limit)?
-        } else {
-            load_top_hits(&tx, limit)?
-        };
         tx.commit()?;
         Ok((generation, hits))
+    }
+
+    /// Search using the bounded field aware ranker. The raw `search` method is
+    /// deliberately retained as the scoring oracle used by callers and tests.
+    pub fn search_ranked(
+        &self,
+        query_text: &str,
+        filter: &SearchFilter,
+        limit: usize,
+    ) -> Result<(u64, Vec<Hit>)> {
+        let result = self.search_ranked_with(
+            query_text,
+            filter,
+            limit,
+            ranking::RankingOptions::default(),
+        )?;
+        Ok((result.generation, result.hits))
+    }
+
+    pub fn search_ranked_with(
+        &self,
+        query_text: &str,
+        filter: &SearchFilter,
+        limit: usize,
+        options: ranking::RankingOptions,
+    ) -> Result<ranking::RankedSearch> {
+        let _permit = self.queries.enter()?;
+        let path_glob = compile_path_glob(filter.path_glob.as_deref())?;
+        let mut plan = query::QueryPlan::new(query_text, options.classification)?;
+        let mut conn = self.read_connection()?;
+        register_search_functions(&conn, path_glob.clone())?;
+        let tx = conn.transaction_with_behavior(TransactionBehavior::Deferred)?;
+        let generation = current_generation(&tx)?;
+        if limit == 0 || plan.original.is_empty() {
+            tx.commit()?;
+            return Ok(ranking::RankedSearch {
+                generation,
+                hits: Vec::new(),
+                traces: Vec::new(),
+                probes: plan.probes,
+                candidate_count: 0,
+            });
+        }
+        let mut candidates = std::collections::BTreeMap::<String, Hit>::new();
+        let mut original_ids = HashSet::new();
+        let mut expanded_scores = HashMap::<String, f32>::new();
+        // Keep the raw tokenizer's multiplicity and stopword behavior for the
+        // first retrieval. QueryPlan terms are the reranker surface, not the
+        // baseline oracle query.
+        let terms = tokenize_checked(query_text)?;
+        let initial = retrieve_terms(
+            &self.hot,
+            &tx,
+            generation,
+            &terms,
+            filter,
+            path_glob.as_ref(),
+            ranking::CANDIDATE_LIMIT,
+        )?;
+        for hit in initial {
+            original_ids.insert(hit.match_id.clone());
+            candidates.entry(hit.match_id.clone()).or_insert(hit);
+        }
+        // Fallback probes are issued only when the literal pool
+        // is thin; this preserves literal evidence and bounds query work.
+        let mut active_probes = Vec::new();
+        let strongest = candidates
+            .values()
+            .map(|hit| hit.score)
+            .fold(0.0_f32, f32::max);
+        let weak_pool = options.expansion
+            && (candidates.len() < ranking::THIN_POOL || strongest < ranking::WEAK_BM25_THRESHOLD);
+        if weak_pool {
+            for probe in plan.probes.iter().cloned() {
+                let probe_terms = tokenize_checked(&probe.query)?;
+                for mut hit in retrieve_terms(
+                    &self.hot,
+                    &tx,
+                    generation,
+                    &probe_terms,
+                    filter,
+                    path_glob.as_ref(),
+                    ranking::CANDIDATE_LIMIT,
+                )? {
+                    if !original_ids.contains(&hit.match_id) {
+                        // Expanded-only rows are useful candidates, but they
+                        // have no baseline score from the user's query.
+                        expanded_scores
+                            .entry(hit.match_id.clone())
+                            .and_modify(|score| *score = score.max(hit.score))
+                            .or_insert(hit.score);
+                        hit.score = 0.;
+                        candidates.entry(hit.match_id.clone()).or_insert(hit);
+                    }
+                }
+                active_probes.push(probe);
+            }
+        }
+        plan.probes = active_probes;
+        if filter.kind == "project" && matches!(plan.class, query::QueryClass::Path) {
+            let literal = crate::text::fold(&plan.literal.replace('\\', "/"));
+            let path_sql = format!(
+                "SELECT c.match_id,0.0,c.source_key,c.source_version,c.ordinal,c.text,c.start_line,c.end_line,c.start_byte,c.end_byte,c.agent,c.session_id,c.event_id,c.timestamp,c.role,c.tool,s.collection,s.path,s.version,s.kind,s.verified_at,c.field_kind FROM chunks c JOIN sources s ON s.key=c.source_key AND s.eligible=1 WHERE s.collection=?1 AND s.kind='project' AND (bm25_path_normalized(s.path)=?2 OR (length(bm25_path_normalized(s.path))>length(?2) AND substr(bm25_path_normalized(s.path),-length(?2))=?2 AND substr(bm25_path_normalized(s.path),-length(?2)-1,1)='/')) AND bm25_path_matches(s.path) AND (?3 IS NULL OR c.agent=?3) AND (?4 IS NULL OR c.session_id=?4) AND (?5 IS NULL OR c.timestamp>=?5) AND (?6 IS NULL OR c.timestamp<?6) ORDER BY CASE WHEN bm25_path_normalized(s.path)=?2 THEN 0 ELSE 1 END,s.path,c.match_id LIMIT {}",
+                ranking::CANDIDATE_LIMIT
+            );
+            let mut stmt = tx.prepare(&path_sql)?;
+            let rows = stmt.query_map(
+                params![
+                    filter.collection,
+                    literal,
+                    filter.agent,
+                    filter.session_id,
+                    filter.after,
+                    filter.before
+                ],
+                hit_from_row,
+            )?;
+            for hit in rows {
+                let hit = hit?;
+                candidates.entry(hit.match_id.clone()).or_insert(hit);
+            }
+        }
+        let mut hits: Vec<_> = candidates.into_values().collect();
+        let literal = crate::text::fold(&plan.literal.replace('\\', "/"));
+        hits.sort_by(|a, b| {
+            let exact_path = |hit: &Hit| {
+                let path = crate::text::fold(&hit.source.path.replace('\\', "/"));
+                (path == literal || path.ends_with(&format!("/{literal}"))) as u8
+            };
+            let exact_order = if matches!(plan.class, query::QueryClass::Path) {
+                exact_path(b).cmp(&exact_path(a))
+            } else {
+                std::cmp::Ordering::Equal
+            };
+            exact_order
+                .then_with(|| {
+                    original_ids
+                        .contains(&b.match_id)
+                        .cmp(&original_ids.contains(&a.match_id))
+                })
+                .then_with(|| b.score.total_cmp(&a.score))
+                .then_with(|| a.match_id.cmp(&b.match_id))
+        });
+        if weak_pool && !expanded_scores.is_empty() {
+            let reserve = ranking::EXPANSION_RESERVE.min(ranking::CANDIDATE_LIMIT);
+            let original_limit = ranking::CANDIDATE_LIMIT - reserve;
+            let mut originals = Vec::with_capacity(hits.len());
+            let mut expanded = Vec::with_capacity(hits.len());
+            for hit in hits {
+                if original_ids.contains(&hit.match_id) {
+                    originals.push(hit);
+                } else {
+                    expanded.push(hit);
+                }
+            }
+            originals.truncate(original_limit);
+            expanded.sort_by(|a, b| {
+                let exact_path = |hit: &Hit| {
+                    let path = crate::text::fold(&hit.source.path.replace('\\', "/"));
+                    (matches!(plan.class, query::QueryClass::Path)
+                        && (path == literal || path.ends_with(&format!("/{literal}"))))
+                        as u8
+                };
+                exact_path(b)
+                    .cmp(&exact_path(a))
+                    .then_with(|| {
+                        expanded_scores
+                            .get(&b.match_id)
+                            .unwrap_or(&0.)
+                            .total_cmp(expanded_scores.get(&a.match_id).unwrap_or(&0.))
+                    })
+                    .then(a.match_id.cmp(&b.match_id))
+            });
+            expanded.truncate(reserve);
+            originals.extend(expanded);
+            originals.sort_by(|a, b| {
+                let exact_path = |hit: &Hit| {
+                    let path = crate::text::fold(&hit.source.path.replace('\\', "/"));
+                    (matches!(plan.class, query::QueryClass::Path)
+                        && (path == literal || path.ends_with(&format!("/{literal}"))))
+                        as u8
+                };
+                exact_path(b)
+                    .cmp(&exact_path(a))
+                    .then_with(|| {
+                        original_ids
+                            .contains(&b.match_id)
+                            .cmp(&original_ids.contains(&a.match_id))
+                    })
+                    .then_with(|| b.score.total_cmp(&a.score))
+                    .then_with(|| a.match_id.cmp(&b.match_id))
+            });
+            hits = originals;
+        } else {
+            hits.truncate(ranking::CANDIDATE_LIMIT);
+        }
+        let candidate_count = hits.len();
+        let prepared = ranking::prepare(hits, &plan)?;
+        let stat_terms = ranking::statistics_terms(&prepared, &plan)?;
+        let stats = corpus_stats(&tx, filter, &stat_terms)?;
+        let (hits, traces) =
+            ranking::rerank(prepared, &plan, &stats, options, chrono::Utc::now(), limit)?;
+        tx.commit()?;
+        Ok(ranking::RankedSearch {
+            generation,
+            hits,
+            traces,
+            probes: plan.probes,
+            candidate_count,
+        })
     }
 
     /// Enumerate physical occurrences equivalent to a session match at the
@@ -1303,6 +1446,136 @@ fn create_query_tables(tx: &Transaction<'_>) -> Result<()> {
          );",
     )?;
     Ok(())
+}
+
+fn register_search_functions(conn: &Connection, path_glob: Option<GlobSet>) -> Result<()> {
+    let flags = rusqlite::functions::FunctionFlags::SQLITE_UTF8
+        | rusqlite::functions::FunctionFlags::SQLITE_DETERMINISTIC;
+    conn.create_scalar_function("bm25_score", 6, flags, |ctx| {
+        let tf = ctx.get::<u32>(0)?;
+        let length = ctx.get::<i64>(1)? as u64;
+        let documents = ctx.get::<i64>(2)? as u64;
+        let frequency = ctx.get::<i64>(3)? as u64;
+        let total = ctx.get::<i64>(4)? as u64;
+        let weight = ctx.get::<u32>(5)?;
+        Ok(if documents == 0 || frequency == 0 {
+            0.0
+        } else {
+            f64::from(
+                upstream::scoring::lucene_score(
+                    tf,
+                    length,
+                    total as f64 / documents as f64,
+                    documents,
+                    frequency,
+                ) * weight as f32,
+            )
+        })
+    })?;
+    let query_glob = path_glob;
+    conn.create_scalar_function("bm25_path_matches", 1, flags, move |ctx| {
+        let path = ctx.get::<String>(0)?;
+        Ok(query_glob.as_ref().is_none_or(|glob| glob.is_match(path)))
+    })?;
+    conn.create_scalar_function("bm25_path_normalized", 1, flags, |ctx| {
+        let path = ctx.get::<String>(0)?;
+        Ok(crate::text::fold(&path.replace('\\', "/")))
+    })?;
+    Ok(())
+}
+
+fn retrieve_terms(
+    cache: &std::sync::Mutex<hot::Cache>,
+    tx: &Transaction<'_>,
+    generation: u64,
+    terms: &[String],
+    filter: &SearchFilter,
+    path_glob: Option<&GlobSet>,
+    limit: usize,
+) -> Result<Vec<Hit>> {
+    if terms.is_empty() {
+        return Ok(Vec::new());
+    }
+    if let Some(hits) = hot::search(cache, tx, generation, terms, filter, path_glob, limit)? {
+        Ok(hits)
+    } else {
+        retrieve_ranked_terms(tx, terms, filter, path_glob, limit)
+    }
+}
+
+fn retrieve_ranked_terms(
+    tx: &Transaction<'_>,
+    terms: &[String],
+    filter: &SearchFilter,
+    _path_glob: Option<&GlobSet>,
+    limit: usize,
+) -> Result<Vec<Hit>> {
+    if terms.is_empty() {
+        return Ok(Vec::new());
+    }
+    create_query_tables(tx)?;
+    tx.execute("DELETE FROM bm25_query_terms", [])?;
+    tx.execute("DELETE FROM bm25_query_accum", [])?;
+    let mut stmt = tx.prepare_cached("INSERT INTO bm25_query_terms(term_id,weight) SELECT id,1 FROM terms WHERE term=?1 ON CONFLICT(term_id) DO UPDATE SET weight=weight+1")?;
+    for term in terms {
+        stmt.execute(params![term])?;
+    }
+    let sql = "INSERT INTO bm25_query_accum(chunk_id,score)
+        SELECT p.chunk_id,SUM(bm25_score(p.tf,c.token_len,st.doc_count,ts.doc_freq,st.total_tokens,qt.weight))
+        FROM bm25_query_terms qt JOIN postings p ON p.term_id=qt.term_id
+        JOIN chunks c ON c.id=p.chunk_id JOIN sources s ON s.key=c.source_key AND s.eligible=1
+        JOIN stats st ON st.collection=s.collection AND st.kind=s.kind
+        JOIN term_stats ts ON ts.collection=s.collection AND ts.kind=s.kind AND ts.term_id=p.term_id
+        WHERE s.collection=?1 AND s.kind=?2 AND (?3 IS NULL OR c.agent=?3)
+          AND (?4 IS NULL OR c.session_id=?4) AND (?5 IS NULL OR c.timestamp>=?5)
+          AND (?6 IS NULL OR c.timestamp<?6) AND bm25_path_matches(s.path)
+        GROUP BY p.chunk_id";
+    tx.execute(
+        sql,
+        params![
+            filter.collection,
+            filter.kind,
+            filter.agent,
+            filter.session_id,
+            filter.after,
+            filter.before
+        ],
+    )?;
+    if filter.kind == "session" {
+        load_top_session_hits(tx, limit as i64)
+    } else {
+        load_top_hits(tx, limit as i64)
+    }
+}
+
+fn corpus_stats(
+    tx: &Transaction<'_>,
+    filter: &SearchFilter,
+    terms: &std::collections::BTreeSet<String>,
+) -> Result<ranking::CorpusStats> {
+    let (documents, total): (i64, i64) = tx.query_row("SELECT COALESCE(doc_count,0),COALESCE(total_tokens,0) FROM stats WHERE collection=?1 AND kind=?2", params![filter.collection,filter.kind], |r| Ok((r.get(0)?,r.get(1)?))).optional()?.unwrap_or((0,0));
+    let mut idf = std::collections::BTreeMap::new();
+    let encoded = serde_json::to_string(&terms.iter().collect::<Vec<_>>())?;
+    let mut stmt = tx.prepare("SELECT t.term,ts.doc_freq FROM terms t JOIN term_stats ts ON ts.term_id=t.id WHERE ts.collection=?1 AND ts.kind=?2 AND t.term IN (SELECT value FROM json_each(?3))")?;
+    let rows = stmt.query_map(params![filter.collection, filter.kind, encoded], |r| {
+        Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)?))
+    })?;
+    for row in rows {
+        let (term, df) = row?;
+        idf.insert(
+            term,
+            ((documents as f64 - df as f64 + 0.5) / (df as f64 + 0.5) + 1.).ln(),
+        );
+    }
+    Ok(ranking::CorpusStats {
+        documents: documents.max(0) as u64,
+        average_length: if documents > 0 {
+            total as f64 / documents as f64
+        } else {
+            1.
+        },
+        idf,
+    })
 }
 
 fn load_top_hits(tx: &Transaction<'_>, limit: i64) -> Result<Vec<Hit>> {

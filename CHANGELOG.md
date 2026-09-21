@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- Add a reproducible raw-versus-ranked evaluation harness with feature
+  ablations, retrieval metrics, latency percentiles, update timing, and
+  WAL-aware database sizing.
+- Route MCP search through bounded field-aware lexical reranking with exact
+  symbol/path/diagnostic tiers, bounded query probes, session-only decay,
+  structural deduplication, weighted lexical similarity, and MMR diversity;
+  retain raw BM25 for comparison and compatibility.
+- Upgrade lexical normalization to tokenizer v4 with compound, path, dotted,
+  kebab, and qualified-name surface forms. Older derived indexes are detected
+  and refreshed automatically; stale internal match IDs can expire while
+  source transcripts remain unchanged.
+- Document field weighting, exact-match tiers, lexical expansion, session
+  decay, structural deduplication, weighted similarity, MMR, and deferred
+  semantic retrieval.
+
 - Keep context windows tied to physical session occurrences when event IDs repeat within a file.
 - Group verified logical session-message replicas before search result limits; expose copy counts and paginated source copies while retaining every original context.
 

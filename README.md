@@ -35,7 +35,11 @@ Project edits are coalesced and reconciled asynchronously. Changed or uncertain 
 - `search_project`: required `query`; optional `path_glob`, `limit` (default 10, maximum 50), and `max_response_bytes` (default 16384, maximum 65536).
 - `search_sessions`: search with `query`, optional `agent` (`codex`, `claude`, `copilot`), `session_id`, UTC RFC3339 `after`/`before`, and the same result limits. Use `mode: "context"` with a returned `match_id`, `before_events`/`after_events` (default 2, maximum 10), and an optional returned `cursor` for surrounding context. Search hits include `copy_count`. Use `mode: "copies"` with a `match_id`, optional `limit`, and returned `cursor` to page through equivalent source occurrences; each copy has a match ID usable in context mode. Copies cursors expire when the index generation changes, so restart that listing after an update.
 
-Queries are plain lexical text, at most 8192 UTF-8 bytes. There are no Boolean, regex or semantic/vector query operators. Identifier normalization retains complete case-folded identifiers and camel/snake components without stemming or stopword removal.
+Queries are plain lexical text, at most 8192 UTF-8 bytes. There are no Boolean,
+regex or semantic/vector query operators. Identifier normalization retains
+complete case-folded identifiers and camel/snake components. Natural-language
+ranking suppresses common stopwords when useful and falls back to the literal
+terms if reduction would empty the query; there is no stemming.
 
 Responses include generation, coverage, verification timestamps, and `building`, `ready`, `refreshing`, or `degraded` status. Ongoing indexing is a successful tool response with `building` or `refreshing` status, even when separate coverage diagnostics exist; `degraded` describes a completed reconciliation with coverage issues. Reconciliation can return partial or empty results; check coverage before treating absence as definitive. Date filtering uses inclusive `after` and exclusive `before`; undated session events do not satisfy date filters. Excerpt budgets count serialized UTF-8 bytes, not model tokens. Search excerpts are compact contiguous windows of at most 640 UTF-8 bytes, centered on a query match. Each hit reports `excerpt_byte_offset` within its full decoded indexed chunk and `excerpt_truncated`; the original chunk/event source bounds are preserved. Response-level `truncated` reports further trimming to satisfy the response budget. Session context expansion retains its existing pagination and larger text windows.
 
@@ -56,7 +60,7 @@ This project reuses attributed BM25 Turbo code under AGPL-3.0-only. See `LICENSE
 
 Session discovery uses `CODEX_HOME` (default `~/.codex`), `CLAUDE_CONFIG_DIR` (default `~/.claude`), and `COPILOT_HOME` (default `~/.copilot`). It reads supported histories below those roots and uses recorded project directories to establish ownership. Source histories are never rewritten.
 
-Identical visible message/result fields within one event are indexed once when they have the same semantic context. Distinct fields, tool arguments, and separate events remain searchable. Existing session checkpoints are reprocessed when this normalization changes. At search time, verified replicas of a logical session message share one representative occurrence before the result limit is applied. Grouping requires matching provider, session/event identifiers, and the complete ordered normalized content, role, tool, and field metadata of the physical event. Rollout timestamps can differ between copies: date filters apply before grouping, and the selected hit retains its own timestamp. `copy_count` counts matching occurrences in the search scope; copies mode lists all currently eligible equivalents with their individual timestamps, including occurrences outside the original date filter. Tool records remain separate because older indexes can use a call ID as a fallback event ID; grouping does not guess identity from ID spelling. Missing IDs, conflicting content, and distinct events remain separate; repeated chunks within the representative event are preserved. All original indexed occurrences remain available through copies/context modes. This grouping works with existing indexes and does not rewrite session files or change the underlying BM25 corpus statistics.
+Identical visible message/result fields within one event are indexed once when they have the same semantic context. Distinct fields, tool arguments, and separate events remain searchable. Existing session checkpoints are reprocessed when this normalization changes. At search time, verified replicas of a logical session message share one representative occurrence before the result limit is applied. Grouping requires matching provider, session/event identifiers, and the complete ordered normalized content, role, tool, and field metadata of the physical event. Rollout timestamps can differ between copies: date filters apply before grouping, and the selected hit retains its own timestamp. `copy_count` counts matching occurrences in the search scope; copies mode lists all currently eligible equivalents with their individual timestamps, including occurrences outside the original date filter. Tool records remain separate because older indexes can use a call ID as a fallback event ID; grouping does not guess identity from ID spelling. Missing IDs, conflicting content, and distinct events remain separate; repeated chunks within the representative event are preserved. All original indexed occurrences remain available through copies/context modes. Raw retrieval and copies/context retain physical occurrences; ranked retrieval may additionally collapse structurally duplicate content for diversity while preserving those physical occurrences for copies/context. This grouping works with existing indexes and does not rewrite session files or change the underlying BM25 corpus statistics.
 
 Session offsets, normalized chunks, deduplication state, and tool-call correlation state commit together. Appends validate the existing byte prefix and parse new complete records; incomplete tails remain pending. Replacements and truncations trigger reconciliation. Huge JSON strings and source text are spooled in bounded pieces. Unknown or malformed provider variants appear in categorized coverage diagnostics.
 
@@ -65,6 +69,27 @@ Verified worktree associations are persisted in a shared identity registry. Sess
 The default own-result exclusions recognize provider tool identities using the MCP server name `bm25-mcp` or `bm25_mcp`. If your client uses another server name, set `BM25_MCP_OWN_TOOL_NAMES` to a JSON array of its exact mapped tool identities. Calls remain searchable; these tools' returned result bodies are excluded. Bare tool-name collisions are not automatically excluded.
 
 `coverage.memory` reports sampled owner RSS, observed peak RSS, the soft target, and pressure. Set `BM25_MCP_MEMORY_MIB` before starting the first client to change the default 512 MiB target. Search uses numeric raw postings, SQLite read snapshots, and a bounded shared posting cache. Broad queries fall back to disk-backed accumulation. Under memory pressure the owner evicts the posting cache, reduces query concurrency, and slows background work. This is a soft target, not an enforced process limit.
+
+## Ranking evaluation
+
+Search keeps the raw `Store::search` BM25 API as its oracle and applies the
+bounded field-aware ranker through `Store::search_ranked`. Ranking uses
+deterministic query classes, exact symbol/path/diagnostic tiers, bounded
+lexical expansion, phrase proximity, session-only time decay, structural
+deduplication, weighted Jaccard, and MMR. Field weights and approximation
+limits are documented in [docs/ranking-implementation.md](docs/ranking-implementation.md).
+Embeddings and model-based rerankers are intentionally deferred.
+
+Run `cargo run --release --quiet --example evaluate_ranking > validation/ranking-latest.json`
+to compare raw, enhanced, and leave-one-feature-out variants on the synthetic
+fixture. The report includes Recall@10/20, MRR, nDCG@10, duplicate rate, p50/p95
+latency, candidate/probe counts, indexing/update latency, and SQLite database
+bytes including WAL/SHM sidecars. Fixture numbers are regression evidence and
+do not represent production-wide retrieval quality.
+
+For a read-only source-tree smoke check, run
+`cargo run --quiet --example evaluate_real_ranking -- /path/to/tree`; it
+reports representative ranked paths and snippets from a disposable index.
 
 ## Validation
 

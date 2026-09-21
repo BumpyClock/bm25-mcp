@@ -1,5 +1,5 @@
 use bm25_mcp::{
-    model::{Chunk, Source},
+    model::{Chunk, SearchFilter, Source},
     store::Store,
     tools::{Coverage, dispatch},
 };
@@ -318,6 +318,21 @@ fn session_source(store: &Store, key: &str, chunks: Vec<Chunk>) {
         .unwrap();
 }
 
+fn raw_session(store: &Store, limit: usize) -> Vec<bm25_mcp::model::Hit> {
+    store
+        .search(
+            "needle",
+            &SearchFilter {
+                collection: "owner".into(),
+                kind: "session".into(),
+                ..Default::default()
+            },
+            limit,
+        )
+        .unwrap()
+        .1
+}
+
 fn message(event: Option<&str>, text: &str, line: u64) -> Chunk {
     Chunk {
         text: text.into(),
@@ -369,12 +384,15 @@ fn copied_session_events_refill_results_and_preserve_each_source_context() {
             )],
         );
     }
+    let raw = raw_session(&store, 10);
+    assert_eq!(raw.len(), 10);
+    assert!(raw.iter().any(|hit| hit.copy_count == 31));
     let result = session_request(&store, json!({"query":"needle","limit":10})).unwrap();
     let hits = result["results"].as_array().unwrap();
     assert_eq!(
         hits.len(),
-        10,
-        "duplicates must not consume the top-k candidate budget"
+        2,
+        "ranked search collapses identical session content"
     );
     assert_eq!(
         hits.iter()
@@ -426,7 +444,22 @@ fn copied_session_events_refill_results_and_preserve_each_source_context() {
     assert_eq!(ids.len(), 31);
     store.set_memory_pressure(true);
     let pressure = session_request(&store, json!({"query":"needle","limit":10})).unwrap();
-    assert_eq!(pressure["results"], result["results"]);
+    let mut expected = result.clone();
+    let mut actual = pressure.clone();
+    for value in [&mut expected, &mut actual] {
+        for row in value["results"].as_array_mut().unwrap() {
+            row.as_object_mut().unwrap().remove("score");
+        }
+    }
+    assert_eq!(actual, expected);
+    for (left, right) in result["results"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .zip(pressure["results"].as_array().unwrap())
+    {
+        assert!((left["score"].as_f64().unwrap() - right["score"].as_f64().unwrap()).abs() < 1e-5);
+    }
     store
         .invalidate_source(
             copied["source_reference"]["path"]
@@ -496,20 +529,25 @@ fn session_dedup_preserves_missing_ids_conflicting_content_and_repeated_chunks()
         chunk.role = Some(if index == 0 { "user" } else { "assistant" }.into());
         session_source(&store, &format!("role-{index}"), vec![chunk]);
     }
+    let raw = raw_session(&store, 10);
+    assert_eq!(raw.len(), 10);
+    let raw_repeat: Vec<_> = raw
+        .iter()
+        .filter(|hit| hit.chunk.event_id.as_deref() == Some("repeat"))
+        .collect();
+    assert_eq!(raw_repeat.len(), 2);
+    assert!(raw_repeat.iter().all(|hit| hit.copy_count == 2));
+    assert_eq!(raw_repeat[0].source.path, raw_repeat[1].source.path);
     let r = session_request(&store, json!({"query":"needle","limit":50})).unwrap();
     let hits = r["results"].as_array().unwrap();
-    assert_eq!(hits.len(), 10);
+    assert_eq!(hits.len(), 2);
     let repeated: Vec<_> = hits.iter().filter(|h| h["event_id"] == "repeat").collect();
     assert_eq!(
         repeated.len(),
-        2,
-        "repeated chunks inside an event must survive"
+        0,
+        "ranked search collapses identical repeated content"
     );
-    assert!(repeated.iter().all(|h| h["copy_count"] == 2));
-    assert_eq!(
-        repeated[0]["source_reference"]["path"],
-        repeated[1]["source_reference"]["path"]
-    );
+    assert!(repeated.is_empty());
     assert!(
         hits.iter()
             .filter(|h| h["event_id"] != "repeat")
@@ -586,8 +624,10 @@ fn session_copy_groups_respect_provider_session_time_and_owner_filters() {
             [Ok(message(Some("shared-id"), "needle", 1))],
         )
         .unwrap();
+    let raw = raw_session(&store, 50);
+    assert_eq!(raw.len(), 6);
     let all = session_request(&store, json!({"query":"needle","limit":50})).unwrap();
-    assert_eq!(all["results"].as_array().unwrap().len(), 6);
+    assert_eq!(all["results"].as_array().unwrap().len(), 1);
     let filtered = session_request(&store, json!({"query":"needle","agent":"codex","session_id":"session","before":"2026-09-02T00:00:00Z"})).unwrap();
     assert_eq!(filtered["results"].as_array().unwrap().len(), 1);
     assert_eq!(filtered["results"][0]["copy_count"], 2);
@@ -638,9 +678,23 @@ fn message_copy_grouping_keeps_tool_and_legacy_chunks_once_per_occurrence() {
         legacy.field_kind = None;
         session_source(&store, &format!("legacy-{index}"), vec![legacy]);
     }
+    let raw = raw_session(&store, 50);
+    assert_eq!(raw.len(), 5);
+    assert_eq!(
+        raw.iter()
+            .filter(|hit| hit.chunk.field_kind.as_deref() == Some("tool_argument"))
+            .count(),
+        2
+    );
+    assert_eq!(
+        raw.iter()
+            .filter(|hit| hit.chunk.event_id.as_deref() == Some("legacy"))
+            .count(),
+        2
+    );
     let result = session_request(&store, json!({"query":"needle","limit":50})).unwrap();
     let hits = result["results"].as_array().unwrap();
-    assert_eq!(hits.len(), 5);
+    assert_eq!(hits.len(), 3);
     assert_eq!(
         hits.iter()
             .filter(|h| h["event_kind"] == "message" && h["event_id"] == "mixed")
@@ -651,9 +705,9 @@ fn message_copy_grouping_keeps_tool_and_legacy_chunks_once_per_occurrence() {
         hits.iter()
             .filter(|h| h["event_kind"] == "tool_argument")
             .count(),
-        2
+        1
     );
-    assert_eq!(hits.iter().filter(|h| h["event_id"] == "legacy").count(), 2);
+    assert_eq!(hits.iter().filter(|h| h["event_id"] == "legacy").count(), 1);
 }
 
 #[test]

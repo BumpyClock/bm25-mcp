@@ -345,7 +345,8 @@ pub fn dispatch(
             after,
             before,
         };
-        let (generation, hits) = store.search(query, &filter, limit)?;
+        let ranked = store.search_ranked(query, &filter, limit)?;
+        let (generation, hits) = ranked;
         response["generation"] = json!(generation);
         for hit in hits {
             let mut item = if is_session {

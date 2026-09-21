@@ -18,7 +18,7 @@ use unicode_casefold::UnicodeCaseFold;
 
 /// Bump this when changing emitted terms. Persisting it with the schema makes
 /// a tokenizer change an explicit migration instead of silently mixing terms.
-pub const TOKENIZER_VERSION: &str = "bm25-mcp-tokenizer-v3";
+pub const TOKENIZER_VERSION: &str = "bm25-mcp-tokenizer-v4";
 
 /// Version of the complete lexical normalizer, including the Unicode tables
 /// used by Rust's character classification and the pinned full case-folding
@@ -63,10 +63,8 @@ pub fn tokenize_checked(text: &str) -> std::io::Result<Vec<String>> {
     let mut terms = Vec::new();
     let mut occurrence = Vec::new();
     for character in text.chars() {
-        if character.is_alphanumeric() || character == '_' {
-            tokenizer.try_push(character, &mut |term| occurrence.push(term))?;
-        } else {
-            tokenizer.try_finish(&mut |term| occurrence.push(term))?;
+        tokenizer.try_push(character, &mut |term| occurrence.push(term))?;
+        if !character.is_alphanumeric() && character != '_' && !is_surface_separator(character) {
             append_query_occurrence(&mut terms, &mut occurrence);
         }
     }
@@ -85,6 +83,17 @@ fn append_query_occurrence(output: &mut Vec<String>, occurrence: &mut Vec<String
     }
 }
 
+/// Full case folding shared by structural identities and lexical normalization.
+pub fn fold(text: &str) -> String {
+    text.chars().flat_map(|c| c.case_fold()).collect()
+}
+
+/// Complete tokenizer output used by ranking fields. Compound forms are also
+/// persisted in postings, so index and query paths share exact parity.
+pub fn surface_tokens(text: &str) -> std::io::Result<Vec<String>> {
+    tokenize_checked(text)
+}
+
 /// An incremental document/query tokenizer.
 ///
 /// `push` accepts decoded Unicode scalar values, not raw bytes. Callers must
@@ -92,6 +101,7 @@ fn append_query_occurrence(output: &mut Vec<String>, occurrence: &mut Vec<String
 #[derive(Debug, Default)]
 pub struct StreamingTokenizer {
     run: Option<RunTokenizer>,
+    surface: Option<SurfaceTokenizer>,
 }
 
 impl StreamingTokenizer {
@@ -117,6 +127,14 @@ impl StreamingTokenizer {
             self.run
                 .get_or_insert_with(RunTokenizer::default)
                 .push(character, emit)?;
+            self.surface
+                .get_or_insert_with(SurfaceTokenizer::default)
+                .push(character);
+        } else if is_surface_separator(character) {
+            self.try_finish_run(emit)?;
+            self.surface
+                .get_or_insert_with(SurfaceTokenizer::default)
+                .push_separator(character);
         } else {
             self.try_finish(emit)?;
         }
@@ -149,8 +167,69 @@ impl StreamingTokenizer {
 
     /// Fallible counterpart to [`StreamingTokenizer::finish`].
     pub fn try_finish(&mut self, emit: &mut impl FnMut(String)) -> std::io::Result<()> {
+        self.try_finish_run(emit)?;
+        if let Some(mut surface) = self.surface.take() {
+            surface.finish(emit)?;
+        }
+        Ok(())
+    }
+
+    fn try_finish_run(&mut self, emit: &mut impl FnMut(String)) -> std::io::Result<()> {
         if let Some(mut run) = self.run.take() {
             run.finish(emit)?;
+        }
+        Ok(())
+    }
+}
+
+fn is_surface_separator(character: char) -> bool {
+    matches!(character, '-' | '.' | ':' | '/' | '\\')
+}
+
+#[derive(Debug, Default)]
+struct SurfaceTokenizer {
+    form: FormAccumulator,
+    trimmed: FormAccumulator,
+    saw_alphanumeric: bool,
+    saw_separator: bool,
+    trimmed_has_separator: bool,
+    pending_separator: Option<char>,
+    dedup: FormDeduper,
+}
+
+impl SurfaceTokenizer {
+    fn push(&mut self, character: char) {
+        self.form.push_char(character);
+        if let Some(separator) = self.pending_separator.take() {
+            self.trimmed.push_char(separator);
+            self.trimmed_has_separator = true;
+        }
+        self.trimmed.push_char(character);
+        self.saw_alphanumeric |= character.is_alphanumeric();
+    }
+
+    fn push_separator(&mut self, character: char) {
+        self.form.push_char(character);
+        if let Some(separator) = self.pending_separator.replace(character) {
+            self.trimmed.push_char(separator);
+            self.trimmed_has_separator = true;
+        }
+        self.saw_separator = true;
+    }
+
+    fn finish(&mut self, emit: &mut impl FnMut(String)) -> std::io::Result<()> {
+        if self.saw_alphanumeric && self.saw_separator {
+            if self.pending_separator.is_some() && self.trimmed_has_separator {
+                let trimmed = std::mem::take(&mut self.trimmed).finish();
+                if self.dedup.insert(&trimmed)? {
+                    emit(trimmed);
+                }
+            } else {
+                let form = std::mem::take(&mut self.form).finish();
+                if self.dedup.insert(&form)? {
+                    emit(form);
+                }
+            }
         }
         Ok(())
     }
@@ -520,5 +599,74 @@ mod tests {
         sorted.sort();
         sorted.dedup();
         assert_eq!(sorted.len(), terms.len());
+    }
+
+    #[test]
+    fn surface_tokens_keep_exact_code_forms_and_lexical_parts() {
+        let terms = surface_tokens("/src/HTTPServer.rs Namespace::HTTPServer foo-bar").unwrap();
+        for expected in [
+            "src",
+            "httpserver",
+            "http",
+            "server",
+            "rs",
+            "namespace",
+            "foo",
+            "bar",
+            "/src/httpserver.rs",
+            "namespace::httpserver",
+            "foo-bar",
+        ] {
+            assert!(
+                terms.iter().any(|term| term == expected),
+                "missing {expected:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn surface_tokens_bound_casefold_expansion() {
+        let token = format!("{}ß", "a".repeat(MAX_TERM_BYTES));
+        assert!(
+            surface_tokens(&token)
+                .unwrap()
+                .iter()
+                .all(|term| term.len() <= MAX_TERM_BYTES)
+        );
+    }
+
+    #[test]
+    fn compound_forms_survive_streaming_boundaries_and_sentence_delimiters() {
+        let mut tokenizer = StreamingTokenizer::new();
+        let mut terms = Vec::new();
+        tokenizer.push_str("Namespace::HTTP", &mut |term| terms.push(term));
+        tokenizer.push_str("Server.rs", &mut |term| terms.push(term));
+        tokenizer.finish(&mut |term| terms.push(term));
+        assert!(terms.iter().any(|term| term == "namespace::httpserver.rs"));
+        assert!(terms.iter().any(|term| term == "namespace"));
+        assert!(terms.iter().any(|term| term == "httpserver"));
+        assert!(terms.iter().any(|term| term == "rs"));
+
+        let sentence = tokenize("foo.bar, next");
+        assert!(sentence.contains(&"foo.bar".to_owned()));
+        assert!(!sentence.iter().any(|term| term.contains(',')));
+        assert_eq!(
+            tokenize("foo.")
+                .iter()
+                .filter(|term| *term == "foo")
+                .count(),
+            1
+        );
+
+        let qualified_sentence = tokenize("Foo::bar.");
+        assert!(qualified_sentence.contains(&"foo::bar".to_owned()));
+    }
+
+    #[test]
+    fn huge_compound_form_uses_digest_storage() {
+        let input = format!("/{}", "A".repeat(100_000));
+        let terms = tokenize(&input);
+        assert!(terms.iter().any(|term| term.starts_with(LONG_TERM_PREFIX)));
+        assert!(terms.iter().all(|term| term.len() < 100));
     }
 }

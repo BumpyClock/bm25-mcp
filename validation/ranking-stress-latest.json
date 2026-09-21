@@ -1,0 +1,36 @@
+{
+  "cases": {
+    "distinct": {
+      "candidate_count": 200,
+      "documents": 220,
+      "indexing_ms": 503.227,
+      "latency_ms": {
+        "p50_ms": 541.518084,
+        "p95_ms": 598.173
+      },
+      "text_bytes": {
+        "max": 16052,
+        "min": 16050
+      }
+    },
+    "identical": {
+      "candidate_count": 200,
+      "documents": 220,
+      "indexing_ms": 476.264291,
+      "latency_ms": {
+        "p50_ms": 189.463958,
+        "p95_ms": 192.683416
+      },
+      "text_bytes": {
+        "max": 16031,
+        "min": 16031
+      }
+    }
+  },
+  "notes": [
+    "release-mode bounded stress probe",
+    "220 documents force the 200-candidate cap",
+    "each chunk is below the 16 KiB production bound",
+    "SQLite and machine-local filesystem timing"
+  ]
+}

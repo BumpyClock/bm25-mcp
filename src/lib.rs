@@ -12,3 +12,6 @@ pub mod runtime;
 pub mod tools;
 
 mod git_changes;
+
+pub mod query;
+pub mod ranking;

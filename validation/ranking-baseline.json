@@ -1,0 +1,246 @@
+{
+  "cases": [
+    {
+      "duplicate_rate10": 0.9,
+      "kind": "project",
+      "latency_ms_median": 0.211625,
+      "mrr": 0.0,
+      "ndcg10": 0.0,
+      "query": "HybridPersistenceCoordinator",
+      "rank": null,
+      "recall10": 0.0,
+      "recall20": 0.0,
+      "top": [
+        "repeat-10",
+        "repeat-4",
+        "repeat-0",
+        "repeat-2",
+        "repeat-17",
+        "repeat-8",
+        "repeat-11",
+        "repeat-14",
+        "repeat-12",
+        "repeat-9"
+      ]
+    },
+    {
+      "duplicate_rate10": 0.9,
+      "kind": "project",
+      "latency_ms_median": 0.187916,
+      "mrr": 0.0,
+      "ndcg10": 0.0,
+      "query": "persistence coordinator",
+      "rank": null,
+      "recall10": 0.0,
+      "recall20": 0.0,
+      "top": [
+        "repeat-10",
+        "repeat-4",
+        "repeat-0",
+        "repeat-2",
+        "repeat-17",
+        "repeat-8",
+        "repeat-11",
+        "repeat-14",
+        "repeat-12",
+        "repeat-9"
+      ]
+    },
+    {
+      "duplicate_rate10": 0.9,
+      "kind": "project",
+      "latency_ms_median": 0.19799999999999998,
+      "mrr": 0.0,
+      "ndcg10": 0.0,
+      "query": "manager-search.ts",
+      "rank": null,
+      "recall10": 0.0,
+      "recall20": 0.0,
+      "top": [
+        "repeat-10",
+        "repeat-4",
+        "repeat-0",
+        "repeat-2",
+        "repeat-17",
+        "repeat-8",
+        "repeat-11",
+        "repeat-14",
+        "repeat-12",
+        "repeat-9"
+      ]
+    },
+    {
+      "duplicate_rate10": 0.9,
+      "kind": "project",
+      "latency_ms_median": 0.196958,
+      "mrr": 0.0,
+      "ndcg10": 0.0,
+      "query": "src/empty-manager.ts",
+      "rank": null,
+      "recall10": 0.0,
+      "recall20": 0.0,
+      "top": [
+        "repeat-10",
+        "repeat-4",
+        "repeat-0",
+        "repeat-2",
+        "repeat-17",
+        "repeat-8",
+        "repeat-11",
+        "repeat-14",
+        "repeat-12",
+        "repeat-9"
+      ]
+    },
+    {
+      "duplicate_rate10": 0.0,
+      "kind": "project",
+      "latency_ms_median": 0.152416,
+      "mrr": 1.0,
+      "ndcg10": 1.0,
+      "query": "Foo::Bar::bazValue",
+      "rank": 1,
+      "recall10": 1.0,
+      "recall20": 1.0,
+      "top": [
+        "qualified"
+      ]
+    },
+    {
+      "duplicate_rate10": 0.0,
+      "kind": "session",
+      "latency_ms_median": 1.198291,
+      "mrr": 1.0,
+      "ndcg10": 1.0,
+      "query": "\"Zone Not Found\"",
+      "rank": 1,
+      "recall10": 1.0,
+      "recall20": 1.0,
+      "top": [
+        "diagnostic",
+        "reasoning"
+      ]
+    },
+    {
+      "duplicate_rate10": 0.8,
+      "kind": "session",
+      "latency_ms_median": 1.541417,
+      "mrr": 1.0,
+      "ndcg10": 0.9173194127129571,
+      "query": "why did subscriptions disappear after cloud sync?",
+      "rank": 1,
+      "recall10": 1.0,
+      "recall20": 1.0,
+      "top": [
+        "reasoning",
+        "tool-0",
+        "tool-4",
+        "tool-8",
+        "tool-5",
+        "tool-1",
+        "tool-15",
+        "tool-11",
+        "tool-12",
+        "tool-7"
+      ]
+    },
+    {
+      "duplicate_rate10": 0.0,
+      "kind": "project",
+      "latency_ms_median": 0.176041,
+      "mrr": 1.0,
+      "ndcg10": 1.0,
+      "query": "why did subscriptions disappear after cloud sync?",
+      "rank": 1,
+      "recall10": 1.0,
+      "recall20": 1.0,
+      "top": [
+        "definition",
+        "test",
+        "caller"
+      ]
+    },
+    {
+      "duplicate_rate10": 0.8,
+      "kind": "session",
+      "latency_ms_median": 1.352375,
+      "mrr": 1.0,
+      "ndcg10": 1.0,
+      "query": "architectural decision atomic checkpoint",
+      "rank": 1,
+      "recall10": 1.0,
+      "recall20": 1.0,
+      "top": [
+        "decision",
+        "tool-0",
+        "tool-4",
+        "tool-8",
+        "tool-5",
+        "tool-1",
+        "tool-15",
+        "tool-11",
+        "tool-12",
+        "tool-7"
+      ]
+    },
+    {
+      "duplicate_rate10": 0.0,
+      "kind": "session",
+      "latency_ms_median": 1.199541,
+      "mrr": 1.0,
+      "ndcg10": 1.0,
+      "query": "HybridPersistenceCoordinator",
+      "rank": 1,
+      "recall10": 1.0,
+      "recall20": 1.0,
+      "top": [
+        "old-symbol"
+      ]
+    },
+    {
+      "duplicate_rate10": 0.0,
+      "kind": "project",
+      "latency_ms_median": 0.17316700000000002,
+      "mrr": 0.5,
+      "ndcg10": 0.5787641110093001,
+      "query": "subscription active state",
+      "rank": 2,
+      "recall10": 1.0,
+      "recall20": 1.0,
+      "top": [
+        "caller",
+        "definition"
+      ]
+    },
+    {
+      "duplicate_rate10": 0.0,
+      "kind": "project",
+      "latency_ms_median": 0.127375,
+      "mrr": 0.0,
+      "ndcg10": -0.0,
+      "query": "panic",
+      "rank": null,
+      "recall10": 0.0,
+      "recall20": 0.0,
+      "top": []
+    },
+    {
+      "duplicate_rate10": 0.0,
+      "kind": "project",
+      "latency_ms_median": 0.145709,
+      "mrr": 1.0,
+      "ndcg10": 1.0,
+      "query": "fixCache",
+      "rank": 1,
+      "recall10": 1.0,
+      "recall20": 1.0,
+      "top": [
+        "literal",
+        "qualified"
+      ]
+    }
+  ],
+  "index_bytes": 4096,
+  "indexing_ms": 25.975959,
+  "mode": "baseline"
+}

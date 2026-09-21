@@ -1,0 +1,3151 @@
+{
+  "cases": [
+    {
+      "candidate_count": 0,
+      "kind": "project",
+      "latency_ms_p50": 0.245959,
+      "latency_ms_p95": 0.27399999999999997,
+      "metrics": {
+        "duplicate_rate10": 0.9,
+        "mrr": 0.0,
+        "ndcg10": 0.0,
+        "rank": null,
+        "recall10": 0.0,
+        "recall20": 0.0,
+        "top": [
+          "repeat-10",
+          "repeat-4",
+          "repeat-0",
+          "repeat-2",
+          "repeat-17",
+          "repeat-8",
+          "repeat-11",
+          "repeat-14",
+          "repeat-12",
+          "repeat-9"
+        ]
+      },
+      "mode": "raw",
+      "probes": 0,
+      "query": "HybridPersistenceCoordinator"
+    },
+    {
+      "candidate_count": 21,
+      "kind": "project",
+      "latency_ms_p50": 2.664125,
+      "latency_ms_p95": 2.847,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 0.9753714271839448,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "definition",
+          "repeat-10",
+          "test",
+          "caller"
+        ]
+      },
+      "mode": "enhanced",
+      "probes": 0,
+      "query": "HybridPersistenceCoordinator"
+    },
+    {
+      "candidate_count": 21,
+      "kind": "project",
+      "latency_ms_p50": 2.582375,
+      "latency_ms_p95": 2.7855000000000003,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 0.9753714271839448,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "definition",
+          "repeat-10",
+          "test",
+          "caller"
+        ]
+      },
+      "mode": "no_fields",
+      "probes": 0,
+      "query": "HybridPersistenceCoordinator"
+    },
+    {
+      "candidate_count": 21,
+      "kind": "project",
+      "latency_ms_p50": 2.7375,
+      "latency_ms_p95": 2.759375,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 0.5,
+        "ndcg10": 0.6576351038729463,
+        "rank": 2,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "repeat-10",
+          "definition",
+          "test",
+          "caller"
+        ]
+      },
+      "mode": "no_classification",
+      "probes": 0,
+      "query": "HybridPersistenceCoordinator"
+    },
+    {
+      "candidate_count": 21,
+      "kind": "project",
+      "latency_ms_p50": 2.770083,
+      "latency_ms_p95": 2.811542,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 0.5,
+        "ndcg10": 0.6576351038729463,
+        "rank": 2,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "repeat-10",
+          "definition",
+          "test",
+          "caller"
+        ]
+      },
+      "mode": "no_exact",
+      "probes": 0,
+      "query": "HybridPersistenceCoordinator"
+    },
+    {
+      "candidate_count": 21,
+      "kind": "project",
+      "latency_ms_p50": 2.470875,
+      "latency_ms_p95": 2.4995,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 0.9753714271839448,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "definition",
+          "repeat-10",
+          "test",
+          "caller"
+        ]
+      },
+      "mode": "no_proximity",
+      "probes": 0,
+      "query": "HybridPersistenceCoordinator"
+    },
+    {
+      "candidate_count": 21,
+      "kind": "project",
+      "latency_ms_p50": 2.528959,
+      "latency_ms_p95": 2.530958,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 0.9753714271839448,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "definition",
+          "repeat-10",
+          "test",
+          "caller"
+        ]
+      },
+      "mode": "no_expansion",
+      "probes": 0,
+      "query": "HybridPersistenceCoordinator"
+    },
+    {
+      "candidate_count": 21,
+      "kind": "project",
+      "latency_ms_p50": 2.525416,
+      "latency_ms_p95": 2.532834,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 0.9753714271839448,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "definition",
+          "repeat-10",
+          "test",
+          "caller"
+        ]
+      },
+      "mode": "no_decay",
+      "probes": 0,
+      "query": "HybridPersistenceCoordinator"
+    },
+    {
+      "candidate_count": 21,
+      "kind": "project",
+      "latency_ms_p50": 2.806541,
+      "latency_ms_p95": 2.839875,
+      "metrics": {
+        "duplicate_rate10": 0.8,
+        "mrr": 1.0,
+        "ndcg10": 0.8609101556836468,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "definition",
+          "repeat-10",
+          "repeat-17",
+          "repeat-11",
+          "repeat-14",
+          "repeat-12",
+          "repeat-16",
+          "repeat-15",
+          "repeat-13",
+          "repeat-4"
+        ]
+      },
+      "mode": "no_dedupe",
+      "probes": 0,
+      "query": "HybridPersistenceCoordinator"
+    },
+    {
+      "candidate_count": 21,
+      "kind": "project",
+      "latency_ms_p50": 2.686417,
+      "latency_ms_p95": 2.7065,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 0.9753714271839448,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "definition",
+          "repeat-10",
+          "test",
+          "caller"
+        ]
+      },
+      "mode": "no_similarity",
+      "probes": 0,
+      "query": "HybridPersistenceCoordinator"
+    },
+    {
+      "candidate_count": 21,
+      "kind": "project",
+      "latency_ms_p50": 2.6960830000000002,
+      "latency_ms_p95": 2.726041,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 0.9753714271839448,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "definition",
+          "repeat-10",
+          "test",
+          "caller"
+        ]
+      },
+      "mode": "no_mmr",
+      "probes": 0,
+      "query": "HybridPersistenceCoordinator"
+    },
+    {
+      "candidate_count": 0,
+      "kind": "project",
+      "latency_ms_p50": 0.213167,
+      "latency_ms_p95": 0.219334,
+      "metrics": {
+        "duplicate_rate10": 0.9,
+        "mrr": 0.0,
+        "ndcg10": 0.0,
+        "rank": null,
+        "recall10": 0.0,
+        "recall20": 0.0,
+        "top": [
+          "repeat-10",
+          "repeat-4",
+          "repeat-0",
+          "repeat-2",
+          "repeat-17",
+          "repeat-8",
+          "repeat-11",
+          "repeat-14",
+          "repeat-12",
+          "repeat-9"
+        ]
+      },
+      "mode": "raw",
+      "probes": 0,
+      "query": "persistence coordinator"
+    },
+    {
+      "candidate_count": 21,
+      "kind": "project",
+      "latency_ms_p50": 2.495959,
+      "latency_ms_p95": 2.513709,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 0.3333333333333333,
+        "ndcg10": 0.5610190285608107,
+        "rank": 3,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "repeat-10",
+          "test",
+          "definition",
+          "caller"
+        ]
+      },
+      "mode": "enhanced",
+      "probes": 0,
+      "query": "persistence coordinator"
+    },
+    {
+      "candidate_count": 21,
+      "kind": "project",
+      "latency_ms_p50": 2.461084,
+      "latency_ms_p95": 2.550125,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 0.25,
+        "ndcg10": 0.5098636669766151,
+        "rank": 4,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "repeat-10",
+          "test",
+          "caller",
+          "definition"
+        ]
+      },
+      "mode": "no_fields",
+      "probes": 0,
+      "query": "persistence coordinator"
+    },
+    {
+      "candidate_count": 21,
+      "kind": "project",
+      "latency_ms_p50": 2.442167,
+      "latency_ms_p95": 2.5430409999999997,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 0.3333333333333333,
+        "ndcg10": 0.5610190285608107,
+        "rank": 3,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "repeat-10",
+          "test",
+          "definition",
+          "caller"
+        ]
+      },
+      "mode": "no_classification",
+      "probes": 0,
+      "query": "persistence coordinator"
+    },
+    {
+      "candidate_count": 21,
+      "kind": "project",
+      "latency_ms_p50": 2.6363749999999997,
+      "latency_ms_p95": 2.6866250000000003,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 0.3333333333333333,
+        "ndcg10": 0.5610190285608107,
+        "rank": 3,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "repeat-10",
+          "test",
+          "definition",
+          "caller"
+        ]
+      },
+      "mode": "no_exact",
+      "probes": 0,
+      "query": "persistence coordinator"
+    },
+    {
+      "candidate_count": 21,
+      "kind": "project",
+      "latency_ms_p50": 2.505458,
+      "latency_ms_p95": 2.577333,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 0.3333333333333333,
+        "ndcg10": 0.5610190285608107,
+        "rank": 3,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "repeat-10",
+          "test",
+          "definition",
+          "caller"
+        ]
+      },
+      "mode": "no_proximity",
+      "probes": 0,
+      "query": "persistence coordinator"
+    },
+    {
+      "candidate_count": 21,
+      "kind": "project",
+      "latency_ms_p50": 2.464334,
+      "latency_ms_p95": 2.604709,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 0.3333333333333333,
+        "ndcg10": 0.5610190285608107,
+        "rank": 3,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "repeat-10",
+          "test",
+          "definition",
+          "caller"
+        ]
+      },
+      "mode": "no_expansion",
+      "probes": 0,
+      "query": "persistence coordinator"
+    },
+    {
+      "candidate_count": 21,
+      "kind": "project",
+      "latency_ms_p50": 2.662333,
+      "latency_ms_p95": 2.677958,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 0.3333333333333333,
+        "ndcg10": 0.5610190285608107,
+        "rank": 3,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "repeat-10",
+          "test",
+          "definition",
+          "caller"
+        ]
+      },
+      "mode": "no_decay",
+      "probes": 0,
+      "query": "persistence coordinator"
+    },
+    {
+      "candidate_count": 21,
+      "kind": "project",
+      "latency_ms_p50": 2.709583,
+      "latency_ms_p95": 2.729708,
+      "metrics": {
+        "duplicate_rate10": 0.8,
+        "mrr": 0.05,
+        "ndcg10": 0.07759626176752121,
+        "rank": 20,
+        "recall10": 0.0,
+        "recall20": 1.0,
+        "top": [
+          "repeat-10",
+          "test",
+          "repeat-17",
+          "repeat-11",
+          "repeat-14",
+          "repeat-12",
+          "repeat-16",
+          "repeat-15",
+          "repeat-13",
+          "repeat-4"
+        ]
+      },
+      "mode": "no_dedupe",
+      "probes": 0,
+      "query": "persistence coordinator"
+    },
+    {
+      "candidate_count": 21,
+      "kind": "project",
+      "latency_ms_p50": 2.464041,
+      "latency_ms_p95": 2.5535829999999997,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 0.3333333333333333,
+        "ndcg10": 0.5610190285608107,
+        "rank": 3,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "repeat-10",
+          "test",
+          "definition",
+          "caller"
+        ]
+      },
+      "mode": "no_similarity",
+      "probes": 0,
+      "query": "persistence coordinator"
+    },
+    {
+      "candidate_count": 21,
+      "kind": "project",
+      "latency_ms_p50": 2.626125,
+      "latency_ms_p95": 2.7127079999999997,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 0.3333333333333333,
+        "ndcg10": 0.5610190285608107,
+        "rank": 3,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "repeat-10",
+          "test",
+          "definition",
+          "caller"
+        ]
+      },
+      "mode": "no_mmr",
+      "probes": 0,
+      "query": "persistence coordinator"
+    },
+    {
+      "candidate_count": 0,
+      "kind": "project",
+      "latency_ms_p50": 0.22125,
+      "latency_ms_p95": 0.238375,
+      "metrics": {
+        "duplicate_rate10": 0.9,
+        "mrr": 0.0,
+        "ndcg10": 0.0,
+        "rank": null,
+        "recall10": 0.0,
+        "recall20": 0.0,
+        "top": [
+          "repeat-10",
+          "repeat-4",
+          "repeat-0",
+          "repeat-2",
+          "repeat-17",
+          "repeat-8",
+          "repeat-11",
+          "repeat-14",
+          "repeat-12",
+          "repeat-9"
+        ]
+      },
+      "mode": "raw",
+      "probes": 0,
+      "query": "manager-search.ts"
+    },
+    {
+      "candidate_count": 19,
+      "kind": "project",
+      "latency_ms_p50": 2.784,
+      "latency_ms_p95": 2.8197080000000003,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "definition",
+          "repeat-10"
+        ]
+      },
+      "mode": "enhanced",
+      "probes": 0,
+      "query": "manager-search.ts"
+    },
+    {
+      "candidate_count": 19,
+      "kind": "project",
+      "latency_ms_p50": 2.5703750000000003,
+      "latency_ms_p95": 2.5742920000000002,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "definition",
+          "repeat-10"
+        ]
+      },
+      "mode": "no_fields",
+      "probes": 0,
+      "query": "manager-search.ts"
+    },
+    {
+      "candidate_count": 18,
+      "kind": "project",
+      "latency_ms_p50": 2.4075830000000003,
+      "latency_ms_p95": 2.4342919999999997,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 0.0,
+        "ndcg10": 0.0,
+        "rank": null,
+        "recall10": 0.0,
+        "recall20": 0.0,
+        "top": [
+          "repeat-10"
+        ]
+      },
+      "mode": "no_classification",
+      "probes": 1,
+      "query": "manager-search.ts"
+    },
+    {
+      "candidate_count": 19,
+      "kind": "project",
+      "latency_ms_p50": 2.6127920000000002,
+      "latency_ms_p95": 2.645333,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 0.5,
+        "ndcg10": 0.6309297535714575,
+        "rank": 2,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "repeat-10",
+          "definition"
+        ]
+      },
+      "mode": "no_exact",
+      "probes": 0,
+      "query": "manager-search.ts"
+    },
+    {
+      "candidate_count": 19,
+      "kind": "project",
+      "latency_ms_p50": 2.518459,
+      "latency_ms_p95": 2.5195,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "definition",
+          "repeat-10"
+        ]
+      },
+      "mode": "no_proximity",
+      "probes": 0,
+      "query": "manager-search.ts"
+    },
+    {
+      "candidate_count": 19,
+      "kind": "project",
+      "latency_ms_p50": 2.654417,
+      "latency_ms_p95": 2.76375,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "definition",
+          "repeat-10"
+        ]
+      },
+      "mode": "no_expansion",
+      "probes": 0,
+      "query": "manager-search.ts"
+    },
+    {
+      "candidate_count": 19,
+      "kind": "project",
+      "latency_ms_p50": 2.69475,
+      "latency_ms_p95": 2.725708,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "definition",
+          "repeat-10"
+        ]
+      },
+      "mode": "no_decay",
+      "probes": 0,
+      "query": "manager-search.ts"
+    },
+    {
+      "candidate_count": 19,
+      "kind": "project",
+      "latency_ms_p50": 2.807083,
+      "latency_ms_p95": 2.878625,
+      "metrics": {
+        "duplicate_rate10": 0.8,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "definition",
+          "repeat-10",
+          "repeat-17",
+          "repeat-11",
+          "repeat-14",
+          "repeat-12",
+          "repeat-16",
+          "repeat-15",
+          "repeat-13",
+          "repeat-4"
+        ]
+      },
+      "mode": "no_dedupe",
+      "probes": 0,
+      "query": "manager-search.ts"
+    },
+    {
+      "candidate_count": 19,
+      "kind": "project",
+      "latency_ms_p50": 2.713583,
+      "latency_ms_p95": 2.8357080000000003,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "definition",
+          "repeat-10"
+        ]
+      },
+      "mode": "no_similarity",
+      "probes": 0,
+      "query": "manager-search.ts"
+    },
+    {
+      "candidate_count": 19,
+      "kind": "project",
+      "latency_ms_p50": 2.752333,
+      "latency_ms_p95": 2.764583,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "definition",
+          "repeat-10"
+        ]
+      },
+      "mode": "no_mmr",
+      "probes": 0,
+      "query": "manager-search.ts"
+    },
+    {
+      "candidate_count": 0,
+      "kind": "project",
+      "latency_ms_p50": 0.235916,
+      "latency_ms_p95": 0.24912499999999999,
+      "metrics": {
+        "duplicate_rate10": 0.9,
+        "mrr": 0.0,
+        "ndcg10": 0.0,
+        "rank": null,
+        "recall10": 0.0,
+        "recall20": 0.0,
+        "top": [
+          "repeat-10",
+          "repeat-4",
+          "repeat-0",
+          "repeat-2",
+          "repeat-17",
+          "repeat-8",
+          "repeat-11",
+          "repeat-14",
+          "repeat-12",
+          "repeat-9"
+        ]
+      },
+      "mode": "raw",
+      "probes": 0,
+      "query": "src/empty-manager.ts"
+    },
+    {
+      "candidate_count": 19,
+      "kind": "project",
+      "latency_ms_p50": 2.452667,
+      "latency_ms_p95": 2.5807909999999996,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "path",
+          "repeat-10"
+        ]
+      },
+      "mode": "enhanced",
+      "probes": 0,
+      "query": "src/empty-manager.ts"
+    },
+    {
+      "candidate_count": 19,
+      "kind": "project",
+      "latency_ms_p50": 2.6510409999999998,
+      "latency_ms_p95": 2.724542,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "path",
+          "repeat-10"
+        ]
+      },
+      "mode": "no_fields",
+      "probes": 0,
+      "query": "src/empty-manager.ts"
+    },
+    {
+      "candidate_count": 18,
+      "kind": "project",
+      "latency_ms_p50": 2.584291,
+      "latency_ms_p95": 2.6220000000000003,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 0.0,
+        "ndcg10": 0.0,
+        "rank": null,
+        "recall10": 0.0,
+        "recall20": 0.0,
+        "top": [
+          "repeat-10"
+        ]
+      },
+      "mode": "no_classification",
+      "probes": 1,
+      "query": "src/empty-manager.ts"
+    },
+    {
+      "candidate_count": 19,
+      "kind": "project",
+      "latency_ms_p50": 2.678666,
+      "latency_ms_p95": 2.7225,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "path",
+          "repeat-10"
+        ]
+      },
+      "mode": "no_exact",
+      "probes": 0,
+      "query": "src/empty-manager.ts"
+    },
+    {
+      "candidate_count": 19,
+      "kind": "project",
+      "latency_ms_p50": 2.421917,
+      "latency_ms_p95": 2.563333,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "path",
+          "repeat-10"
+        ]
+      },
+      "mode": "no_proximity",
+      "probes": 0,
+      "query": "src/empty-manager.ts"
+    },
+    {
+      "candidate_count": 19,
+      "kind": "project",
+      "latency_ms_p50": 2.609041,
+      "latency_ms_p95": 2.659167,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "path",
+          "repeat-10"
+        ]
+      },
+      "mode": "no_expansion",
+      "probes": 0,
+      "query": "src/empty-manager.ts"
+    },
+    {
+      "candidate_count": 19,
+      "kind": "project",
+      "latency_ms_p50": 2.417208,
+      "latency_ms_p95": 2.537375,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "path",
+          "repeat-10"
+        ]
+      },
+      "mode": "no_decay",
+      "probes": 0,
+      "query": "src/empty-manager.ts"
+    },
+    {
+      "candidate_count": 19,
+      "kind": "project",
+      "latency_ms_p50": 2.738,
+      "latency_ms_p95": 2.8475,
+      "metrics": {
+        "duplicate_rate10": 0.8,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "path",
+          "repeat-10",
+          "repeat-17",
+          "repeat-11",
+          "repeat-14",
+          "repeat-12",
+          "repeat-16",
+          "repeat-15",
+          "repeat-13",
+          "repeat-4"
+        ]
+      },
+      "mode": "no_dedupe",
+      "probes": 0,
+      "query": "src/empty-manager.ts"
+    },
+    {
+      "candidate_count": 19,
+      "kind": "project",
+      "latency_ms_p50": 2.4404589999999997,
+      "latency_ms_p95": 2.555792,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "path",
+          "repeat-10"
+        ]
+      },
+      "mode": "no_similarity",
+      "probes": 0,
+      "query": "src/empty-manager.ts"
+    },
+    {
+      "candidate_count": 19,
+      "kind": "project",
+      "latency_ms_p50": 2.493042,
+      "latency_ms_p95": 2.524958,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "path",
+          "repeat-10"
+        ]
+      },
+      "mode": "no_mmr",
+      "probes": 0,
+      "query": "src/empty-manager.ts"
+    },
+    {
+      "candidate_count": 0,
+      "kind": "project",
+      "latency_ms_p50": 0.184833,
+      "latency_ms_p95": 0.189916,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "qualified"
+        ]
+      },
+      "mode": "raw",
+      "probes": 0,
+      "query": "Foo::Bar::bazValue"
+    },
+    {
+      "candidate_count": 1,
+      "kind": "project",
+      "latency_ms_p50": 0.247917,
+      "latency_ms_p95": 0.252292,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "qualified"
+        ]
+      },
+      "mode": "enhanced",
+      "probes": 0,
+      "query": "Foo::Bar::bazValue"
+    },
+    {
+      "candidate_count": 1,
+      "kind": "project",
+      "latency_ms_p50": 0.23916700000000002,
+      "latency_ms_p95": 0.24004199999999998,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "qualified"
+        ]
+      },
+      "mode": "no_fields",
+      "probes": 0,
+      "query": "Foo::Bar::bazValue"
+    },
+    {
+      "candidate_count": 1,
+      "kind": "project",
+      "latency_ms_p50": 0.306875,
+      "latency_ms_p95": 0.334542,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "qualified"
+        ]
+      },
+      "mode": "no_classification",
+      "probes": 1,
+      "query": "Foo::Bar::bazValue"
+    },
+    {
+      "candidate_count": 1,
+      "kind": "project",
+      "latency_ms_p50": 0.237459,
+      "latency_ms_p95": 0.238041,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "qualified"
+        ]
+      },
+      "mode": "no_exact",
+      "probes": 0,
+      "query": "Foo::Bar::bazValue"
+    },
+    {
+      "candidate_count": 1,
+      "kind": "project",
+      "latency_ms_p50": 0.236625,
+      "latency_ms_p95": 0.237584,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "qualified"
+        ]
+      },
+      "mode": "no_proximity",
+      "probes": 0,
+      "query": "Foo::Bar::bazValue"
+    },
+    {
+      "candidate_count": 1,
+      "kind": "project",
+      "latency_ms_p50": 0.235792,
+      "latency_ms_p95": 0.237333,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "qualified"
+        ]
+      },
+      "mode": "no_expansion",
+      "probes": 0,
+      "query": "Foo::Bar::bazValue"
+    },
+    {
+      "candidate_count": 1,
+      "kind": "project",
+      "latency_ms_p50": 0.233709,
+      "latency_ms_p95": 0.234125,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "qualified"
+        ]
+      },
+      "mode": "no_decay",
+      "probes": 0,
+      "query": "Foo::Bar::bazValue"
+    },
+    {
+      "candidate_count": 1,
+      "kind": "project",
+      "latency_ms_p50": 0.235,
+      "latency_ms_p95": 0.238916,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "qualified"
+        ]
+      },
+      "mode": "no_dedupe",
+      "probes": 0,
+      "query": "Foo::Bar::bazValue"
+    },
+    {
+      "candidate_count": 1,
+      "kind": "project",
+      "latency_ms_p50": 0.232625,
+      "latency_ms_p95": 0.23358299999999999,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "qualified"
+        ]
+      },
+      "mode": "no_similarity",
+      "probes": 0,
+      "query": "Foo::Bar::bazValue"
+    },
+    {
+      "candidate_count": 1,
+      "kind": "project",
+      "latency_ms_p50": 0.237417,
+      "latency_ms_p95": 0.24704099999999998,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "qualified"
+        ]
+      },
+      "mode": "no_mmr",
+      "probes": 0,
+      "query": "Foo::Bar::bazValue"
+    },
+    {
+      "candidate_count": 0,
+      "kind": "session",
+      "latency_ms_p50": 1.413542,
+      "latency_ms_p95": 1.478542,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "diagnostic",
+          "reasoning"
+        ]
+      },
+      "mode": "raw",
+      "probes": 0,
+      "query": "\"Zone Not Found\""
+    },
+    {
+      "candidate_count": 2,
+      "kind": "session",
+      "latency_ms_p50": 1.3855,
+      "latency_ms_p95": 1.398208,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "diagnostic",
+          "reasoning"
+        ]
+      },
+      "mode": "enhanced",
+      "probes": 0,
+      "query": "\"Zone Not Found\""
+    },
+    {
+      "candidate_count": 2,
+      "kind": "session",
+      "latency_ms_p50": 1.5825,
+      "latency_ms_p95": 1.615292,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "diagnostic",
+          "reasoning"
+        ]
+      },
+      "mode": "no_fields",
+      "probes": 0,
+      "query": "\"Zone Not Found\""
+    },
+    {
+      "candidate_count": 2,
+      "kind": "session",
+      "latency_ms_p50": 1.4285420000000002,
+      "latency_ms_p95": 1.451708,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "diagnostic",
+          "reasoning"
+        ]
+      },
+      "mode": "no_classification",
+      "probes": 0,
+      "query": "\"Zone Not Found\""
+    },
+    {
+      "candidate_count": 2,
+      "kind": "session",
+      "latency_ms_p50": 1.471625,
+      "latency_ms_p95": 1.53325,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "diagnostic",
+          "reasoning"
+        ]
+      },
+      "mode": "no_exact",
+      "probes": 0,
+      "query": "\"Zone Not Found\""
+    },
+    {
+      "candidate_count": 2,
+      "kind": "session",
+      "latency_ms_p50": 1.353125,
+      "latency_ms_p95": 1.5135420000000002,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "diagnostic",
+          "reasoning"
+        ]
+      },
+      "mode": "no_proximity",
+      "probes": 0,
+      "query": "\"Zone Not Found\""
+    },
+    {
+      "candidate_count": 2,
+      "kind": "session",
+      "latency_ms_p50": 1.382833,
+      "latency_ms_p95": 1.398208,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "diagnostic",
+          "reasoning"
+        ]
+      },
+      "mode": "no_expansion",
+      "probes": 0,
+      "query": "\"Zone Not Found\""
+    },
+    {
+      "candidate_count": 2,
+      "kind": "session",
+      "latency_ms_p50": 1.4176250000000001,
+      "latency_ms_p95": 1.4768750000000002,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "diagnostic",
+          "reasoning"
+        ]
+      },
+      "mode": "no_decay",
+      "probes": 0,
+      "query": "\"Zone Not Found\""
+    },
+    {
+      "candidate_count": 2,
+      "kind": "session",
+      "latency_ms_p50": 1.3440830000000001,
+      "latency_ms_p95": 1.410708,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "diagnostic",
+          "reasoning"
+        ]
+      },
+      "mode": "no_dedupe",
+      "probes": 0,
+      "query": "\"Zone Not Found\""
+    },
+    {
+      "candidate_count": 2,
+      "kind": "session",
+      "latency_ms_p50": 1.333583,
+      "latency_ms_p95": 1.367959,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "diagnostic",
+          "reasoning"
+        ]
+      },
+      "mode": "no_similarity",
+      "probes": 0,
+      "query": "\"Zone Not Found\""
+    },
+    {
+      "candidate_count": 2,
+      "kind": "session",
+      "latency_ms_p50": 1.334917,
+      "latency_ms_p95": 1.335208,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "diagnostic",
+          "reasoning"
+        ]
+      },
+      "mode": "no_mmr",
+      "probes": 0,
+      "query": "\"Zone Not Found\""
+    },
+    {
+      "candidate_count": 0,
+      "kind": "session",
+      "latency_ms_p50": 1.373291,
+      "latency_ms_p95": 1.564458,
+      "metrics": {
+        "duplicate_rate10": 0.8,
+        "mrr": 1.0,
+        "ndcg10": 0.9173194127129571,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "reasoning",
+          "tool-0",
+          "tool-4",
+          "tool-8",
+          "tool-5",
+          "tool-1",
+          "tool-15",
+          "tool-11",
+          "tool-12",
+          "tool-7"
+        ]
+      },
+      "mode": "raw",
+      "probes": 0,
+      "query": "why did subscriptions disappear after cloud sync?"
+    },
+    {
+      "candidate_count": 20,
+      "kind": "session",
+      "latency_ms_p50": 17.23975,
+      "latency_ms_p95": 17.456041,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 0.9828422279067397,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "reasoning",
+          "tool-0",
+          "diagnostic"
+        ]
+      },
+      "mode": "enhanced",
+      "probes": 0,
+      "query": "why did subscriptions disappear after cloud sync?"
+    },
+    {
+      "candidate_count": 20,
+      "kind": "session",
+      "latency_ms_p50": 17.43825,
+      "latency_ms_p95": 17.629833,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 0.9828422279067397,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "reasoning",
+          "tool-0",
+          "diagnostic"
+        ]
+      },
+      "mode": "no_fields",
+      "probes": 0,
+      "query": "why did subscriptions disappear after cloud sync?"
+    },
+    {
+      "candidate_count": 20,
+      "kind": "session",
+      "latency_ms_p50": 17.296042,
+      "latency_ms_p95": 17.313625,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 0.9828422279067397,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "reasoning",
+          "tool-0",
+          "diagnostic"
+        ]
+      },
+      "mode": "no_classification",
+      "probes": 0,
+      "query": "why did subscriptions disappear after cloud sync?"
+    },
+    {
+      "candidate_count": 20,
+      "kind": "session",
+      "latency_ms_p50": 17.43825,
+      "latency_ms_p95": 17.472583999999998,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 0.9828422279067397,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "reasoning",
+          "tool-0",
+          "diagnostic"
+        ]
+      },
+      "mode": "no_exact",
+      "probes": 0,
+      "query": "why did subscriptions disappear after cloud sync?"
+    },
+    {
+      "candidate_count": 20,
+      "kind": "session",
+      "latency_ms_p50": 17.144584000000002,
+      "latency_ms_p95": 17.148166999999997,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 0.9828422279067397,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "reasoning",
+          "tool-0",
+          "diagnostic"
+        ]
+      },
+      "mode": "no_proximity",
+      "probes": 0,
+      "query": "why did subscriptions disappear after cloud sync?"
+    },
+    {
+      "candidate_count": 20,
+      "kind": "session",
+      "latency_ms_p50": 17.35675,
+      "latency_ms_p95": 17.586375,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 0.9828422279067397,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "reasoning",
+          "tool-0",
+          "diagnostic"
+        ]
+      },
+      "mode": "no_expansion",
+      "probes": 0,
+      "query": "why did subscriptions disappear after cloud sync?"
+    },
+    {
+      "candidate_count": 20,
+      "kind": "session",
+      "latency_ms_p50": 17.319834,
+      "latency_ms_p95": 18.067792,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 0.9828422279067397,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "reasoning",
+          "tool-0",
+          "diagnostic"
+        ]
+      },
+      "mode": "no_decay",
+      "probes": 0,
+      "query": "why did subscriptions disappear after cloud sync?"
+    },
+    {
+      "candidate_count": 20,
+      "kind": "session",
+      "latency_ms_p50": 17.409459,
+      "latency_ms_p95": 18.481458999999997,
+      "metrics": {
+        "duplicate_rate10": 0.8,
+        "mrr": 1.0,
+        "ndcg10": 0.9173194127129571,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "reasoning",
+          "tool-0",
+          "tool-4",
+          "tool-8",
+          "tool-5",
+          "tool-1",
+          "tool-15",
+          "tool-11",
+          "tool-12",
+          "tool-7"
+        ]
+      },
+      "mode": "no_dedupe",
+      "probes": 0,
+      "query": "why did subscriptions disappear after cloud sync?"
+    },
+    {
+      "candidate_count": 20,
+      "kind": "session",
+      "latency_ms_p50": 17.518124999999998,
+      "latency_ms_p95": 17.621042,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 0.9828422279067397,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "reasoning",
+          "tool-0",
+          "diagnostic"
+        ]
+      },
+      "mode": "no_similarity",
+      "probes": 0,
+      "query": "why did subscriptions disappear after cloud sync?"
+    },
+    {
+      "candidate_count": 20,
+      "kind": "session",
+      "latency_ms_p50": 17.399,
+      "latency_ms_p95": 17.534125,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 0.9828422279067397,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "reasoning",
+          "tool-0",
+          "diagnostic"
+        ]
+      },
+      "mode": "no_mmr",
+      "probes": 0,
+      "query": "why did subscriptions disappear after cloud sync?"
+    },
+    {
+      "candidate_count": 0,
+      "kind": "project",
+      "latency_ms_p50": 0.21016700000000002,
+      "latency_ms_p95": 0.23291699999999999,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "definition",
+          "test",
+          "caller"
+        ]
+      },
+      "mode": "raw",
+      "probes": 0,
+      "query": "why did subscriptions disappear after cloud sync?"
+    },
+    {
+      "candidate_count": 3,
+      "kind": "project",
+      "latency_ms_p50": 0.457792,
+      "latency_ms_p95": 0.47316600000000003,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "definition",
+          "test",
+          "caller"
+        ]
+      },
+      "mode": "enhanced",
+      "probes": 1,
+      "query": "why did subscriptions disappear after cloud sync?"
+    },
+    {
+      "candidate_count": 3,
+      "kind": "project",
+      "latency_ms_p50": 0.440209,
+      "latency_ms_p95": 0.44379199999999996,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "definition",
+          "test",
+          "caller"
+        ]
+      },
+      "mode": "no_fields",
+      "probes": 1,
+      "query": "why did subscriptions disappear after cloud sync?"
+    },
+    {
+      "candidate_count": 3,
+      "kind": "project",
+      "latency_ms_p50": 0.441583,
+      "latency_ms_p95": 0.449625,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "definition",
+          "test",
+          "caller"
+        ]
+      },
+      "mode": "no_classification",
+      "probes": 1,
+      "query": "why did subscriptions disappear after cloud sync?"
+    },
+    {
+      "candidate_count": 3,
+      "kind": "project",
+      "latency_ms_p50": 0.446125,
+      "latency_ms_p95": 0.7295,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "definition",
+          "test",
+          "caller"
+        ]
+      },
+      "mode": "no_exact",
+      "probes": 1,
+      "query": "why did subscriptions disappear after cloud sync?"
+    },
+    {
+      "candidate_count": 3,
+      "kind": "project",
+      "latency_ms_p50": 0.49491599999999997,
+      "latency_ms_p95": 0.574542,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "definition",
+          "test",
+          "caller"
+        ]
+      },
+      "mode": "no_proximity",
+      "probes": 1,
+      "query": "why did subscriptions disappear after cloud sync?"
+    },
+    {
+      "candidate_count": 3,
+      "kind": "project",
+      "latency_ms_p50": 0.436042,
+      "latency_ms_p95": 0.5257499999999999,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "definition",
+          "test",
+          "caller"
+        ]
+      },
+      "mode": "no_expansion",
+      "probes": 0,
+      "query": "why did subscriptions disappear after cloud sync?"
+    },
+    {
+      "candidate_count": 3,
+      "kind": "project",
+      "latency_ms_p50": 0.449333,
+      "latency_ms_p95": 0.460042,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "definition",
+          "test",
+          "caller"
+        ]
+      },
+      "mode": "no_decay",
+      "probes": 1,
+      "query": "why did subscriptions disappear after cloud sync?"
+    },
+    {
+      "candidate_count": 3,
+      "kind": "project",
+      "latency_ms_p50": 0.435833,
+      "latency_ms_p95": 0.439458,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "definition",
+          "test",
+          "caller"
+        ]
+      },
+      "mode": "no_dedupe",
+      "probes": 1,
+      "query": "why did subscriptions disappear after cloud sync?"
+    },
+    {
+      "candidate_count": 3,
+      "kind": "project",
+      "latency_ms_p50": 0.429125,
+      "latency_ms_p95": 0.430125,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "definition",
+          "test",
+          "caller"
+        ]
+      },
+      "mode": "no_similarity",
+      "probes": 1,
+      "query": "why did subscriptions disappear after cloud sync?"
+    },
+    {
+      "candidate_count": 3,
+      "kind": "project",
+      "latency_ms_p50": 0.477875,
+      "latency_ms_p95": 0.541667,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "definition",
+          "test",
+          "caller"
+        ]
+      },
+      "mode": "no_mmr",
+      "probes": 1,
+      "query": "why did subscriptions disappear after cloud sync?"
+    },
+    {
+      "candidate_count": 0,
+      "kind": "session",
+      "latency_ms_p50": 1.409167,
+      "latency_ms_p95": 1.489708,
+      "metrics": {
+        "duplicate_rate10": 0.8,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "decision",
+          "tool-0",
+          "tool-4",
+          "tool-8",
+          "tool-5",
+          "tool-1",
+          "tool-15",
+          "tool-11",
+          "tool-12",
+          "tool-7"
+        ]
+      },
+      "mode": "raw",
+      "probes": 0,
+      "query": "architectural decision atomic checkpoint"
+    },
+    {
+      "candidate_count": 21,
+      "kind": "session",
+      "latency_ms_p50": 17.774833,
+      "latency_ms_p95": 18.475542,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "decision",
+          "new-noise",
+          "tool-0",
+          "old-symbol"
+        ]
+      },
+      "mode": "enhanced",
+      "probes": 0,
+      "query": "architectural decision atomic checkpoint"
+    },
+    {
+      "candidate_count": 21,
+      "kind": "session",
+      "latency_ms_p50": 17.579833999999998,
+      "latency_ms_p95": 17.739833,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "decision",
+          "tool-0",
+          "new-noise",
+          "old-symbol"
+        ]
+      },
+      "mode": "no_fields",
+      "probes": 0,
+      "query": "architectural decision atomic checkpoint"
+    },
+    {
+      "candidate_count": 21,
+      "kind": "session",
+      "latency_ms_p50": 17.594458,
+      "latency_ms_p95": 17.783125000000002,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "decision",
+          "new-noise",
+          "tool-0",
+          "old-symbol"
+        ]
+      },
+      "mode": "no_classification",
+      "probes": 0,
+      "query": "architectural decision atomic checkpoint"
+    },
+    {
+      "candidate_count": 21,
+      "kind": "session",
+      "latency_ms_p50": 17.469459,
+      "latency_ms_p95": 17.57075,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "decision",
+          "new-noise",
+          "tool-0",
+          "old-symbol"
+        ]
+      },
+      "mode": "no_exact",
+      "probes": 0,
+      "query": "architectural decision atomic checkpoint"
+    },
+    {
+      "candidate_count": 21,
+      "kind": "session",
+      "latency_ms_p50": 17.333292,
+      "latency_ms_p95": 18.071707999999997,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "decision",
+          "new-noise",
+          "tool-0",
+          "old-symbol"
+        ]
+      },
+      "mode": "no_proximity",
+      "probes": 0,
+      "query": "architectural decision atomic checkpoint"
+    },
+    {
+      "candidate_count": 21,
+      "kind": "session",
+      "latency_ms_p50": 18.159499999999998,
+      "latency_ms_p95": 18.292875,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "decision",
+          "new-noise",
+          "tool-0",
+          "old-symbol"
+        ]
+      },
+      "mode": "no_expansion",
+      "probes": 0,
+      "query": "architectural decision atomic checkpoint"
+    },
+    {
+      "candidate_count": 21,
+      "kind": "session",
+      "latency_ms_p50": 18.293042,
+      "latency_ms_p95": 20.284582999999998,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "decision",
+          "new-noise",
+          "tool-0",
+          "old-symbol"
+        ]
+      },
+      "mode": "no_decay",
+      "probes": 0,
+      "query": "architectural decision atomic checkpoint"
+    },
+    {
+      "candidate_count": 21,
+      "kind": "session",
+      "latency_ms_p50": 17.856,
+      "latency_ms_p95": 18.051084,
+      "metrics": {
+        "duplicate_rate10": 0.6,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "decision",
+          "new-noise",
+          "tool-0",
+          "old-symbol",
+          "tool-4",
+          "tool-8",
+          "tool-5",
+          "tool-1",
+          "tool-15",
+          "tool-11"
+        ]
+      },
+      "mode": "no_dedupe",
+      "probes": 0,
+      "query": "architectural decision atomic checkpoint"
+    },
+    {
+      "candidate_count": 21,
+      "kind": "session",
+      "latency_ms_p50": 17.451207999999998,
+      "latency_ms_p95": 17.515791999999998,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "decision",
+          "new-noise",
+          "tool-0",
+          "old-symbol"
+        ]
+      },
+      "mode": "no_similarity",
+      "probes": 0,
+      "query": "architectural decision atomic checkpoint"
+    },
+    {
+      "candidate_count": 21,
+      "kind": "session",
+      "latency_ms_p50": 17.454959,
+      "latency_ms_p95": 17.549540999999998,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "decision",
+          "new-noise",
+          "tool-0",
+          "old-symbol"
+        ]
+      },
+      "mode": "no_mmr",
+      "probes": 0,
+      "query": "architectural decision atomic checkpoint"
+    },
+    {
+      "candidate_count": 0,
+      "kind": "session",
+      "latency_ms_p50": 1.22025,
+      "latency_ms_p95": 1.271417,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "old-symbol"
+        ]
+      },
+      "mode": "raw",
+      "probes": 0,
+      "query": "HybridPersistenceCoordinator"
+    },
+    {
+      "candidate_count": 1,
+      "kind": "session",
+      "latency_ms_p50": 1.393084,
+      "latency_ms_p95": 1.497833,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "old-symbol"
+        ]
+      },
+      "mode": "enhanced",
+      "probes": 0,
+      "query": "HybridPersistenceCoordinator"
+    },
+    {
+      "candidate_count": 1,
+      "kind": "session",
+      "latency_ms_p50": 1.276458,
+      "latency_ms_p95": 1.282584,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "old-symbol"
+        ]
+      },
+      "mode": "no_fields",
+      "probes": 0,
+      "query": "HybridPersistenceCoordinator"
+    },
+    {
+      "candidate_count": 1,
+      "kind": "session",
+      "latency_ms_p50": 2.480666,
+      "latency_ms_p95": 2.569417,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "old-symbol"
+        ]
+      },
+      "mode": "no_classification",
+      "probes": 1,
+      "query": "HybridPersistenceCoordinator"
+    },
+    {
+      "candidate_count": 1,
+      "kind": "session",
+      "latency_ms_p50": 1.40975,
+      "latency_ms_p95": 1.618708,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "old-symbol"
+        ]
+      },
+      "mode": "no_exact",
+      "probes": 0,
+      "query": "HybridPersistenceCoordinator"
+    },
+    {
+      "candidate_count": 1,
+      "kind": "session",
+      "latency_ms_p50": 1.265417,
+      "latency_ms_p95": 1.2780420000000001,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "old-symbol"
+        ]
+      },
+      "mode": "no_proximity",
+      "probes": 0,
+      "query": "HybridPersistenceCoordinator"
+    },
+    {
+      "candidate_count": 1,
+      "kind": "session",
+      "latency_ms_p50": 1.322416,
+      "latency_ms_p95": 1.5185000000000002,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "old-symbol"
+        ]
+      },
+      "mode": "no_expansion",
+      "probes": 0,
+      "query": "HybridPersistenceCoordinator"
+    },
+    {
+      "candidate_count": 1,
+      "kind": "session",
+      "latency_ms_p50": 1.256292,
+      "latency_ms_p95": 1.270208,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "old-symbol"
+        ]
+      },
+      "mode": "no_decay",
+      "probes": 0,
+      "query": "HybridPersistenceCoordinator"
+    },
+    {
+      "candidate_count": 1,
+      "kind": "session",
+      "latency_ms_p50": 1.245708,
+      "latency_ms_p95": 1.25975,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "old-symbol"
+        ]
+      },
+      "mode": "no_dedupe",
+      "probes": 0,
+      "query": "HybridPersistenceCoordinator"
+    },
+    {
+      "candidate_count": 1,
+      "kind": "session",
+      "latency_ms_p50": 1.260917,
+      "latency_ms_p95": 1.263375,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "old-symbol"
+        ]
+      },
+      "mode": "no_similarity",
+      "probes": 0,
+      "query": "HybridPersistenceCoordinator"
+    },
+    {
+      "candidate_count": 1,
+      "kind": "session",
+      "latency_ms_p50": 1.39825,
+      "latency_ms_p95": 1.61975,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "old-symbol"
+        ]
+      },
+      "mode": "no_mmr",
+      "probes": 0,
+      "query": "HybridPersistenceCoordinator"
+    },
+    {
+      "candidate_count": 0,
+      "kind": "project",
+      "latency_ms_p50": 0.17925,
+      "latency_ms_p95": 0.194083,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 0.5,
+        "ndcg10": 0.5787641110093001,
+        "rank": 2,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "caller",
+          "definition"
+        ]
+      },
+      "mode": "raw",
+      "probes": 0,
+      "query": "subscription active state"
+    },
+    {
+      "candidate_count": 2,
+      "kind": "project",
+      "latency_ms_p50": 0.322083,
+      "latency_ms_p95": 0.33504100000000003,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 0.5,
+        "ndcg10": 0.5787641110093001,
+        "rank": 2,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "caller",
+          "definition"
+        ]
+      },
+      "mode": "enhanced",
+      "probes": 0,
+      "query": "subscription active state"
+    },
+    {
+      "candidate_count": 2,
+      "kind": "project",
+      "latency_ms_p50": 0.305375,
+      "latency_ms_p95": 0.3085,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 0.5,
+        "ndcg10": 0.5787641110093001,
+        "rank": 2,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "caller",
+          "definition"
+        ]
+      },
+      "mode": "no_fields",
+      "probes": 0,
+      "query": "subscription active state"
+    },
+    {
+      "candidate_count": 2,
+      "kind": "project",
+      "latency_ms_p50": 0.302458,
+      "latency_ms_p95": 0.48950000000000005,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 0.5,
+        "ndcg10": 0.5787641110093001,
+        "rank": 2,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "caller",
+          "definition"
+        ]
+      },
+      "mode": "no_classification",
+      "probes": 0,
+      "query": "subscription active state"
+    },
+    {
+      "candidate_count": 2,
+      "kind": "project",
+      "latency_ms_p50": 0.411833,
+      "latency_ms_p95": 0.47425,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 0.5,
+        "ndcg10": 0.5787641110093001,
+        "rank": 2,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "caller",
+          "definition"
+        ]
+      },
+      "mode": "no_exact",
+      "probes": 0,
+      "query": "subscription active state"
+    },
+    {
+      "candidate_count": 2,
+      "kind": "project",
+      "latency_ms_p50": 0.33433300000000005,
+      "latency_ms_p95": 0.345375,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 0.5,
+        "ndcg10": 0.5787641110093001,
+        "rank": 2,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "caller",
+          "definition"
+        ]
+      },
+      "mode": "no_proximity",
+      "probes": 0,
+      "query": "subscription active state"
+    },
+    {
+      "candidate_count": 2,
+      "kind": "project",
+      "latency_ms_p50": 0.31920899999999996,
+      "latency_ms_p95": 0.3195,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 0.5,
+        "ndcg10": 0.5787641110093001,
+        "rank": 2,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "caller",
+          "definition"
+        ]
+      },
+      "mode": "no_expansion",
+      "probes": 0,
+      "query": "subscription active state"
+    },
+    {
+      "candidate_count": 2,
+      "kind": "project",
+      "latency_ms_p50": 0.370167,
+      "latency_ms_p95": 0.547458,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 0.5,
+        "ndcg10": 0.5787641110093001,
+        "rank": 2,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "caller",
+          "definition"
+        ]
+      },
+      "mode": "no_decay",
+      "probes": 0,
+      "query": "subscription active state"
+    },
+    {
+      "candidate_count": 2,
+      "kind": "project",
+      "latency_ms_p50": 0.344792,
+      "latency_ms_p95": 0.37175,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 0.5,
+        "ndcg10": 0.5787641110093001,
+        "rank": 2,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "caller",
+          "definition"
+        ]
+      },
+      "mode": "no_dedupe",
+      "probes": 0,
+      "query": "subscription active state"
+    },
+    {
+      "candidate_count": 2,
+      "kind": "project",
+      "latency_ms_p50": 0.311333,
+      "latency_ms_p95": 0.314083,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 0.5,
+        "ndcg10": 0.5787641110093001,
+        "rank": 2,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "caller",
+          "definition"
+        ]
+      },
+      "mode": "no_similarity",
+      "probes": 0,
+      "query": "subscription active state"
+    },
+    {
+      "candidate_count": 2,
+      "kind": "project",
+      "latency_ms_p50": 0.308833,
+      "latency_ms_p95": 0.546917,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 0.5,
+        "ndcg10": 0.5787641110093001,
+        "rank": 2,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "caller",
+          "definition"
+        ]
+      },
+      "mode": "no_mmr",
+      "probes": 0,
+      "query": "subscription active state"
+    },
+    {
+      "candidate_count": 0,
+      "kind": "project",
+      "latency_ms_p50": 0.15625,
+      "latency_ms_p95": 0.16783299999999998,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 0.0,
+        "ndcg10": -0.0,
+        "rank": null,
+        "recall10": 0.0,
+        "recall20": 0.0,
+        "top": []
+      },
+      "mode": "raw",
+      "probes": 0,
+      "query": "panic"
+    },
+    {
+      "candidate_count": 1,
+      "kind": "project",
+      "latency_ms_p50": 0.24816600000000003,
+      "latency_ms_p95": 0.250292,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "alias"
+        ]
+      },
+      "mode": "enhanced",
+      "probes": 1,
+      "query": "panic"
+    },
+    {
+      "candidate_count": 1,
+      "kind": "project",
+      "latency_ms_p50": 0.268667,
+      "latency_ms_p95": 0.307125,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "alias"
+        ]
+      },
+      "mode": "no_fields",
+      "probes": 1,
+      "query": "panic"
+    },
+    {
+      "candidate_count": 1,
+      "kind": "project",
+      "latency_ms_p50": 0.23762499999999998,
+      "latency_ms_p95": 0.265958,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "alias"
+        ]
+      },
+      "mode": "no_classification",
+      "probes": 1,
+      "query": "panic"
+    },
+    {
+      "candidate_count": 1,
+      "kind": "project",
+      "latency_ms_p50": 0.22304200000000002,
+      "latency_ms_p95": 0.223542,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "alias"
+        ]
+      },
+      "mode": "no_exact",
+      "probes": 1,
+      "query": "panic"
+    },
+    {
+      "candidate_count": 1,
+      "kind": "project",
+      "latency_ms_p50": 0.225333,
+      "latency_ms_p95": 0.364917,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "alias"
+        ]
+      },
+      "mode": "no_proximity",
+      "probes": 1,
+      "query": "panic"
+    },
+    {
+      "candidate_count": 0,
+      "kind": "project",
+      "latency_ms_p50": 0.206875,
+      "latency_ms_p95": 0.28375,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 0.0,
+        "ndcg10": -0.0,
+        "rank": null,
+        "recall10": 0.0,
+        "recall20": 0.0,
+        "top": []
+      },
+      "mode": "no_expansion",
+      "probes": 0,
+      "query": "panic"
+    },
+    {
+      "candidate_count": 1,
+      "kind": "project",
+      "latency_ms_p50": 0.2325,
+      "latency_ms_p95": 0.24233300000000002,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "alias"
+        ]
+      },
+      "mode": "no_decay",
+      "probes": 1,
+      "query": "panic"
+    },
+    {
+      "candidate_count": 1,
+      "kind": "project",
+      "latency_ms_p50": 0.221583,
+      "latency_ms_p95": 0.222375,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "alias"
+        ]
+      },
+      "mode": "no_dedupe",
+      "probes": 1,
+      "query": "panic"
+    },
+    {
+      "candidate_count": 1,
+      "kind": "project",
+      "latency_ms_p50": 0.22179200000000002,
+      "latency_ms_p95": 0.224875,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "alias"
+        ]
+      },
+      "mode": "no_similarity",
+      "probes": 1,
+      "query": "panic"
+    },
+    {
+      "candidate_count": 1,
+      "kind": "project",
+      "latency_ms_p50": 0.285125,
+      "latency_ms_p95": 0.306875,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "alias"
+        ]
+      },
+      "mode": "no_mmr",
+      "probes": 1,
+      "query": "panic"
+    },
+    {
+      "candidate_count": 0,
+      "kind": "project",
+      "latency_ms_p50": 0.18083300000000002,
+      "latency_ms_p95": 0.185666,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "literal",
+          "qualified"
+        ]
+      },
+      "mode": "raw",
+      "probes": 0,
+      "query": "fixCache"
+    },
+    {
+      "candidate_count": 2,
+      "kind": "project",
+      "latency_ms_p50": 0.289708,
+      "latency_ms_p95": 0.3085,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "literal",
+          "qualified"
+        ]
+      },
+      "mode": "enhanced",
+      "probes": 0,
+      "query": "fixCache"
+    },
+    {
+      "candidate_count": 2,
+      "kind": "project",
+      "latency_ms_p50": 0.25575000000000003,
+      "latency_ms_p95": 0.2575,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "literal",
+          "qualified"
+        ]
+      },
+      "mode": "no_fields",
+      "probes": 0,
+      "query": "fixCache"
+    },
+    {
+      "candidate_count": 2,
+      "kind": "project",
+      "latency_ms_p50": 0.33641699999999997,
+      "latency_ms_p95": 0.347625,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "literal",
+          "qualified"
+        ]
+      },
+      "mode": "no_classification",
+      "probes": 3,
+      "query": "fixCache"
+    },
+    {
+      "candidate_count": 2,
+      "kind": "project",
+      "latency_ms_p50": 0.30174999999999996,
+      "latency_ms_p95": 0.408458,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "literal",
+          "qualified"
+        ]
+      },
+      "mode": "no_exact",
+      "probes": 0,
+      "query": "fixCache"
+    },
+    {
+      "candidate_count": 2,
+      "kind": "project",
+      "latency_ms_p50": 0.251125,
+      "latency_ms_p95": 0.257292,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "literal",
+          "qualified"
+        ]
+      },
+      "mode": "no_proximity",
+      "probes": 0,
+      "query": "fixCache"
+    },
+    {
+      "candidate_count": 2,
+      "kind": "project",
+      "latency_ms_p50": 0.244083,
+      "latency_ms_p95": 0.24633400000000003,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "literal",
+          "qualified"
+        ]
+      },
+      "mode": "no_expansion",
+      "probes": 0,
+      "query": "fixCache"
+    },
+    {
+      "candidate_count": 2,
+      "kind": "project",
+      "latency_ms_p50": 0.244667,
+      "latency_ms_p95": 0.24566600000000002,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "literal",
+          "qualified"
+        ]
+      },
+      "mode": "no_decay",
+      "probes": 0,
+      "query": "fixCache"
+    },
+    {
+      "candidate_count": 2,
+      "kind": "project",
+      "latency_ms_p50": 0.263625,
+      "latency_ms_p95": 0.309583,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "literal",
+          "qualified"
+        ]
+      },
+      "mode": "no_dedupe",
+      "probes": 0,
+      "query": "fixCache"
+    },
+    {
+      "candidate_count": 2,
+      "kind": "project",
+      "latency_ms_p50": 0.25004200000000004,
+      "latency_ms_p95": 0.281208,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "literal",
+          "qualified"
+        ]
+      },
+      "mode": "no_similarity",
+      "probes": 0,
+      "query": "fixCache"
+    },
+    {
+      "candidate_count": 2,
+      "kind": "project",
+      "latency_ms_p50": 0.293667,
+      "latency_ms_p95": 0.326,
+      "metrics": {
+        "duplicate_rate10": 0.0,
+        "mrr": 1.0,
+        "ndcg10": 1.0,
+        "rank": 1,
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "top": [
+          "literal",
+          "qualified"
+        ]
+      },
+      "mode": "no_mmr",
+      "probes": 0,
+      "query": "fixCache"
+    }
+  ],
+  "database_bytes": 3889096,
+  "indexing_ms": 36.224792,
+  "mode": "raw_and_ranked_fixture",
+  "notes": [
+    "raw is Store.search; enhanced and ablations use Store.search_ranked_with",
+    "database_bytes includes SQLite WAL/SHM when present",
+    "fixture is synthetic and does not establish production-wide quality"
+  ],
+  "samples": 3,
+  "schema": 2,
+  "tokenizer": "v4",
+  "update_ms": 0.648166,
+  "warmups": 1
+}

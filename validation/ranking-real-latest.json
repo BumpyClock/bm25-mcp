@@ -1,0 +1,540 @@
+{
+  "chunks": 252,
+  "indexing_ms": 233.69037500000002,
+  "notes": [
+    "read-only source scan into a disposable index",
+    "latency includes local SQLite and concurrent machine workload"
+  ],
+  "queries": [
+    {
+      "baseline_ms": 0.589375,
+      "baseline_rank": 2,
+      "baseline_top": [
+        {
+          "lines": [
+            301,
+            360
+          ],
+          "path": "tools.rs"
+        },
+        {
+          "lines": [
+            481,
+            540
+          ],
+          "path": "store.rs"
+        },
+        {
+          "lines": [
+            541,
+            600
+          ],
+          "path": "store.rs"
+        },
+        {
+          "lines": [
+            1501,
+            1560
+          ],
+          "path": "store.rs"
+        },
+        {
+          "lines": [
+            1621,
+            1680
+          ],
+          "path": "store.rs"
+        }
+      ],
+      "candidate_count": 50,
+      "latency_ms": 33.727833,
+      "query": "search_ranked",
+      "ranked_rank": 1,
+      "results": [
+        {
+          "lines": [
+            481,
+            540
+          ],
+          "path": "store.rs",
+          "symbol_or_excerpt": "        if changed > 0 {"
+        },
+        {
+          "lines": [
+            301,
+            360
+          ],
+          "path": "tools.rs",
+          "symbol_or_excerpt": "            && a.after_events.is_none()"
+        },
+        {
+          "lines": [
+            541,
+            600
+          ],
+          "path": "store.rs",
+          "symbol_or_excerpt": "        query_text: &str,"
+        },
+        {
+          "lines": [
+            61,
+            120
+          ],
+          "path": "ranking.rs",
+          "symbol_or_excerpt": "    }"
+        },
+        {
+          "lines": [
+            1501,
+            1560
+          ],
+          "path": "store.rs",
+          "symbol_or_excerpt": "        Ok(hits)"
+        }
+      ],
+      "target_path": "store.rs"
+    },
+    {
+      "baseline_ms": 0.5285,
+      "baseline_rank": 2,
+      "baseline_top": [
+        {
+          "lines": [
+            541,
+            600
+          ],
+          "path": "store.rs"
+        },
+        {
+          "lines": [
+            1,
+            60
+          ],
+          "path": "ranking.rs"
+        },
+        {
+          "lines": [
+            241,
+            300
+          ],
+          "path": "ranking.rs"
+        },
+        {
+          "lines": [
+            721,
+            780
+          ],
+          "path": "ranking.rs"
+        },
+        {
+          "lines": [
+            721,
+            780
+          ],
+          "path": "store.rs"
+        }
+      ],
+      "candidate_count": 40,
+      "latency_ms": 29.899333,
+      "query": "RankingOptions",
+      "ranked_rank": 1,
+      "results": [
+        {
+          "lines": [
+            1,
+            60
+          ],
+          "path": "ranking.rs",
+          "symbol_or_excerpt": "//! Bounded field-aware relevance followed by structural dedupe and MMR."
+        },
+        {
+          "lines": [
+            241,
+            300
+          ],
+          "path": "ranking.rs",
+          "symbol_or_excerpt": "                    | \"def\""
+        },
+        {
+          "lines": [
+            541,
+            600
+          ],
+          "path": "store.rs",
+          "symbol_or_excerpt": "        query_text: &str,"
+        },
+        {
+          "lines": [
+            721,
+            780
+          ],
+          "path": "ranking.rs",
+          "symbol_or_excerpt": "        }"
+        },
+        {
+          "lines": [
+            781,
+            840
+          ],
+          "path": "ranking.rs",
+          "symbol_or_excerpt": "        );"
+        }
+      ],
+      "target_path": "ranking.rs"
+    },
+    {
+      "baseline_ms": 0.49391599999999997,
+      "baseline_rank": 2,
+      "baseline_top": [
+        {
+          "lines": [
+            121,
+            180
+          ],
+          "path": "query.rs"
+        },
+        {
+          "lines": [
+            61,
+            120
+          ],
+          "path": "text.rs"
+        },
+        {
+          "lines": [
+            481,
+            540
+          ],
+          "path": "ranking.rs"
+        },
+        {
+          "lines": [
+            121,
+            180
+          ],
+          "path": "ranking.rs"
+        },
+        {
+          "lines": [
+            1261,
+            1320
+          ],
+          "path": "store.rs"
+        }
+      ],
+      "candidate_count": 25,
+      "latency_ms": 18.236124999999998,
+      "query": "tokenize_checked",
+      "ranked_rank": 1,
+      "results": [
+        {
+          "lines": [
+            61,
+            120
+          ],
+          "path": "text.rs",
+          "symbol_or_excerpt": "pub fn tokenize_checked(text: &str) -> std::io::Result<Vec<String>> {"
+        },
+        {
+          "lines": [
+            121,
+            180
+          ],
+          "path": "query.rs",
+          "symbol_or_excerpt": "            | \"has\""
+        },
+        {
+          "lines": [
+            481,
+            540
+          ],
+          "path": "ranking.rs",
+          "symbol_or_excerpt": "                surfaces,"
+        },
+        {
+          "lines": [
+            1,
+            60
+          ],
+          "path": "text.rs",
+          "symbol_or_excerpt": "//! Versioned lexical normalization shared by index writers and readers."
+        },
+        {
+          "lines": [
+            121,
+            180
+          ],
+          "path": "ranking.rs",
+          "symbol_or_excerpt": "struct Field {"
+        }
+      ],
+      "target_path": "text.rs"
+    },
+    {
+      "baseline_ms": 0.732708,
+      "baseline_rank": 5,
+      "baseline_top": [
+        {
+          "lines": [
+            121,
+            180
+          ],
+          "path": "tools.rs"
+        },
+        {
+          "lines": [
+            61,
+            120
+          ],
+          "path": "tools.rs"
+        },
+        {
+          "lines": [
+            541,
+            598
+          ],
+          "path": "tools.rs"
+        },
+        {
+          "lines": [
+            721,
+            780
+          ],
+          "path": "runtime.rs"
+        },
+        {
+          "lines": [
+            721,
+            780
+          ],
+          "path": "store.rs"
+        }
+      ],
+      "candidate_count": 119,
+      "latency_ms": 75.821833,
+      "query": "session copies",
+      "ranked_rank": 1,
+      "results": [
+        {
+          "lines": [
+            721,
+            780
+          ],
+          "path": "store.rs",
+          "symbol_or_excerpt": "                        original_ids"
+        },
+        {
+          "lines": [
+            121,
+            180
+          ],
+          "path": "tools.rs",
+          "symbol_or_excerpt": "            .cursor"
+        },
+        {
+          "lines": [
+            541,
+            598
+          ],
+          "path": "tools.rs",
+          "symbol_or_excerpt": "            cursor += term.len();"
+        },
+        {
+          "lines": [
+            721,
+            780
+          ],
+          "path": "runtime.rs",
+          "symbol_or_excerpt": "    struct Lease(Arc<RootState>);"
+        },
+        {
+          "lines": [
+            61,
+            120
+          ],
+          "path": "tools.rs",
+          "symbol_or_excerpt": "        matches!(name, \"search_project\" | \"search_sessions\"),"
+        }
+      ],
+      "target_path": "store.rs"
+    },
+    {
+      "baseline_ms": 0.690208,
+      "baseline_rank": 1,
+      "baseline_top": [
+        {
+          "lines": [
+            1,
+            60
+          ],
+          "path": "ranking.rs"
+        },
+        {
+          "lines": [
+            1681,
+            1740
+          ],
+          "path": "store.rs"
+        },
+        {
+          "lines": [
+            1621,
+            1680
+          ],
+          "path": "store.rs"
+        },
+        {
+          "lines": [
+            841,
+            900
+          ],
+          "path": "store.rs"
+        },
+        {
+          "lines": [
+            181,
+            240
+          ],
+          "path": "ranking.rs"
+        }
+      ],
+      "candidate_count": 58,
+      "latency_ms": 40.786333,
+      "query": "BM25 candidate reranking",
+      "ranked_rank": 1,
+      "results": [
+        {
+          "lines": [
+            181,
+            240
+          ],
+          "path": "ranking.rs",
+          "symbol_or_excerpt": "        normalization,"
+        },
+        {
+          "lines": [
+            1,
+            60
+          ],
+          "path": "ranking.rs",
+          "symbol_or_excerpt": "//! Bounded field-aware relevance followed by structural dedupe and MMR."
+        },
+        {
+          "lines": [
+            1681,
+            1740
+          ],
+          "path": "store.rs",
+          "symbol_or_excerpt": "        same_event = same_session_event_sql(\"copy.occurrence_id\", \"candidate.occurrence_id\")"
+        },
+        {
+          "lines": [
+            481,
+            540
+          ],
+          "path": "store.rs",
+          "symbol_or_excerpt": "        if changed > 0 {"
+        },
+        {
+          "lines": [
+            1621,
+            1680
+          ],
+          "path": "store.rs",
+          "symbol_or_excerpt": "           AND NULLIF(TRIM(c.event_id),'') IS NOT NULL"
+        }
+      ],
+      "target_path": "ranking.rs"
+    },
+    {
+      "baseline_ms": 0.563666,
+      "baseline_rank": 3,
+      "baseline_top": [
+        {
+          "lines": [
+            601,
+            660
+          ],
+          "path": "text.rs"
+        },
+        {
+          "lines": [
+            1,
+            13
+          ],
+          "path": "upstream/NOTICE.md"
+        },
+        {
+          "lines": [
+            1,
+            60
+          ],
+          "path": "store.rs"
+        },
+        {
+          "lines": [
+            1981,
+            2040
+          ],
+          "path": "store.rs"
+        },
+        {
+          "lines": [
+            2101,
+            2160
+          ],
+          "path": "store.rs"
+        }
+      ],
+      "candidate_count": 101,
+      "latency_ms": 64.248333,
+      "query": "store.rs",
+      "ranked_rank": 1,
+      "results": [
+        {
+          "lines": [
+            1,
+            60
+          ],
+          "path": "store.rs",
+          "symbol_or_excerpt": "//! Durable, transactional BM25 storage."
+        },
+        {
+          "lines": [
+            2041,
+            2100
+          ],
+          "path": "store.rs",
+          "symbol_or_excerpt": "        };"
+        },
+        {
+          "lines": [
+            61,
+            120
+          ],
+          "path": "store.rs",
+          "symbol_or_excerpt": "#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]"
+        },
+        {
+          "lines": [
+            1201,
+            1260
+          ],
+          "path": "store.rs",
+          "symbol_or_excerpt": "             doc_count INTEGER NOT NULL,"
+        },
+        {
+          "lines": [
+            601,
+            660
+          ],
+          "path": "store.rs",
+          "symbol_or_excerpt": "        let mut active_probes = Vec::new();"
+        }
+      ],
+      "target_path": "store.rs"
+    }
+  ],
+  "root": "src",
+  "sources": 20
+}
