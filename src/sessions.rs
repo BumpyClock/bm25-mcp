@@ -172,6 +172,9 @@ pub fn scan_sessions_observed(
     );
     match &result {
         Ok(report) if report.cancelled => progress.finish_run(ProgressPhase::Cancelled),
+        Ok(report) if !report.coverage.discovery_complete => {
+            progress.finish_run(ProgressPhase::Failed)
+        }
         Ok(_) => progress.finish_run(ProgressPhase::Complete),
         Err(error) if error.to_string().contains("session scan cancelled") => {
             progress.record_cancellation();

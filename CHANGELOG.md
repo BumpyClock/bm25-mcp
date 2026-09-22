@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Preserve collection-wide pending work, errors, and exclusions across precise
+  source updates, including rejected sources without indexed rows; keep failed
+  discovery, cancellation, and restart coverage incomplete until reconciled.
+- Validate the final search returned by evaluation readiness waits and retry
+  raced responses under the original deadline; reject non-ready later queries
+  as successful measurements.
+- Replay version 6 session checkpoints once to restore inspection diagnostics
+  omitted by older checkpoints; retain incremental parsing after reconstruction.
 - Expose path-free indexing progress through an MCP status resource, with
   separate prepared and committed chunk counts and phase/work measurements.
 - Flush completed evaluation records immediately and replace ranked readiness

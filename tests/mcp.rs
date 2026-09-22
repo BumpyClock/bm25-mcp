@@ -171,6 +171,90 @@ impl Drop for Client {
 }
 
 #[test]
+fn precise_session_updates_preserve_collection_coverage() {
+    for problem in ["tail", "malformed", "rejected"] {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().join("project");
+        let homes = dir.path().join("homes");
+        let sessions = homes.join("codex/sessions");
+        std::fs::create_dir_all(&root).unwrap();
+        std::fs::create_dir_all(&sessions).unwrap();
+        let a = sessions.join("a.jsonl");
+        let b = sessions.join("b.jsonl");
+        let header = json!({"type":"session_meta","payload":{"id":"coverage","cwd":root}});
+        let event = |id: &str| json!({"type":"response_item","payload":{"type":"message","id":id,"role":"user","content":[{"type":"text","text":id}]}});
+        let prefix = format!("{header}\n{}\n", event("coverageprefixqvx"));
+        std::fs::write(
+            &a,
+            match problem {
+                "tail" => format!("{prefix}{{\"type\":"),
+                "malformed" => format!("{prefix}not-json\n"),
+                _ => format!("{}\n", event("rejectedqvx")),
+            },
+        )
+        .unwrap();
+        std::fs::write(&b, format!("{header}\n{}\n", event("coveragebaseqvx"))).unwrap();
+        let mut client = Client::start(&root, &dir.path().join("cache"), &homes);
+        let initial = client.until_status(|value| {
+            value["sessions"]["progress"]["phase"] == "complete"
+                && value["sessions"]["coverage"]["pending_changes"].is_number()
+        });
+        let initial_coverage = &initial["sessions"]["coverage"];
+        if problem == "tail" {
+            assert_eq!(initial_coverage["pending_changes"], 1);
+        } else {
+            assert!(initial_coverage["error_count"].as_u64().unwrap() > 0);
+        }
+        if problem == "rejected" {
+            assert_eq!(client.search_sessions("rejectedqvx")["results"], json!([]));
+            assert_eq!(initial_coverage["excluded_count"], 1);
+        }
+        for marker in ["coverageappendoneqvx", "coverageappendtwoqvx"] {
+            let before = client.status()["sessions"]["progress"]["run_id"]
+                .as_u64()
+                .unwrap();
+            let mut file = std::fs::OpenOptions::new().append(true).open(&b).unwrap();
+            writeln!(file, "{}", event(marker)).unwrap();
+            file.flush().unwrap();
+            drop(file);
+            let updated = client.until_status(|value| {
+                value["sessions"]["progress"]["run_id"].as_u64().unwrap() > before
+                    && value["sessions"]["progress"]["phase"] == "complete"
+                    && value["sessions"]["coverage"]["pending_changes"].is_number()
+            });
+            for field in [
+                "pending_changes",
+                "error_count",
+                "excluded_count",
+                "diagnostics",
+            ] {
+                assert_eq!(
+                    updated["sessions"]["coverage"][field], initial_coverage[field],
+                    "{problem}: unrelated update changed {field}: {updated}"
+                );
+            }
+            let response = client.search_sessions(marker);
+            assert!(
+                !response["results"].as_array().unwrap().is_empty(),
+                "{response}"
+            );
+            assert_eq!(response["status"], updated["sessions"]["status"]);
+            for field in [
+                "pending_changes",
+                "error_count",
+                "excluded_count",
+                "diagnostics",
+            ] {
+                assert_eq!(
+                    response["coverage"][field],
+                    updated["sessions"]["coverage"][field]
+                );
+            }
+        }
+    }
+}
+
+#[test]
 fn mcp_search_refresh_and_multiple_clients() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path().join("project");

@@ -14,6 +14,7 @@ from pathlib import Path
 from acceptance import (
     Client,
     JsonlWriter,
+    is_settled,
     public_coverage,
     public_number,
     public_progress,
@@ -290,8 +291,14 @@ def evaluate(binary, label, jobs, only=None, timeout=3600, output_suffix="", obs
                         begin = time.perf_counter()
                         r = client.tool('search_' + kind, args, timeout=remaining())
                         ms = (time.perf_counter() - begin) * 1000
-                        hits = r.get('results', [])
                         private_json(response_dir / (hashlib.sha256((name + q['id']).encode()).hexdigest() + '.json'), r)
+                        if not is_settled(r):
+                            writer.write({'type':'failure', 'project':name, 'kind':kind,
+                                          'id':q['id'], 'stage':'query', 'error':'not_settled',
+                                          'status':public_status(r['status']),
+                                          'coverage':public_coverage(r.get('coverage'))})
+                            return
+                        hits = r.get('results', [])
 
                         def expected(h):
                             if kind == 'project':

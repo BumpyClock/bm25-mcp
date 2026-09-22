@@ -96,6 +96,39 @@ matching parser checkpoint commit atomically; interrupted suffix work resumes
 from the last durable checkpoint. Progress visibility does not permit
 unverified partial data to become searchable.
 
+### Collection coverage
+
+Coverage describes current source outcomes, not the work in the latest progress
+run. Each collection retains compact counts and diagnostic categories keyed by
+the existing source identity, including rejected sources with no index rows.
+Discovery failures and watcher failures are separate from source outcomes.
+
+| Transition | Coverage rule |
+| --- | --- |
+| Successful full scan | Replace outcomes from the authoritative discovered set; remove absent outcomes only after successful discovery and durable removals. |
+| Successful precise scan | Replace only reconciled source outcomes; preserve untouched sources and discovery failures. |
+| Incomplete tail | Keep the source pending even when its complete prefix is searchable. |
+| Parse/read failure or rejected ownership | Retain the source's errors/exclusions independently of searchable rows. |
+| Confirmed deletion | Remove that source's outcome after its index removal succeeds. |
+| Source repair | Replace its old outcome, clearing resolved errors and pending work without accumulating repeated observations. |
+| Cancelled or failed scan | Preserve unresolved and unvisited outcomes; report unfinished work as unknown, never clean completion. |
+| Failed discovery | Preserve unseen sources and discovery diagnostics until an authoritative full scan succeeds. |
+| Watcher failure/recovery | Add/remove the watcher diagnostic independently; recovery does not erase source or discovery problems. |
+| Owner restart | Require full reconciliation; an empty in-memory ledger is unknown coverage, not a clean collection. |
+
+Outcomes are published no earlier than the corresponding durable source and
+checkpoint operation (or verified exclusion/removal). Active or uncertain work
+takes precedence over diagnostics. Completed coverage with errors and no pending
+work is `degraded`; it remains a valid settled evaluation target.
+`reconciled_at` is the time of the latest completed reconciliation operation,
+which can be source-specific. It does not mean every source was freshly verified
+at that time. Coverage is reconstructed after restart; there is no new ledger
+storage or SQL schema migration. The existing session checkpoint format advances
+from version 6 to 7 because older checkpoints omitted inspection-only diagnostic
+counts. Older prefixes are replayed once, through the existing atomic checkpoint
+replacement path; subsequent precise updates retain suffix-only parsing and
+normal prefix verification.
+
 ## Development
 
 ```sh
@@ -160,7 +193,14 @@ The oracle tests compare both cached and disk-backed rankings with a fresh upstr
 Evaluation readiness waits use the status resource rather than repeated ranked
 searches. Each RPC has a wall-time deadline, including blocked protocol I/O;
 a timed-out connection is closed rather than reused. A readiness wait performs
-one final requested search after reconciliation. Separate ingestion probes
+the requested search after a qualifying status observation and validates that
+search response's own status and coverage. If a change races the observation,
+it resumes bounded status polling under the same original deadline. Empty ready
+results and completed degraded coverage with zero pending work are valid;
+positive or unknown pending work is not settled. Caller predicates that need
+progress fields apply to the status observation. Later evaluation queries are
+checked independently; an earlier settled response is not permanent readiness
+certification. Separate ingestion probes
 measure search latency and first searchable results without conflating them
 with readiness observation.
 

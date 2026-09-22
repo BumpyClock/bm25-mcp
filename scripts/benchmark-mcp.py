@@ -11,6 +11,7 @@ import time
 from acceptance import (
     Client,
     emit,
+    is_settled,
     public_coverage,
     public_memory,
     public_progress,
@@ -114,10 +115,7 @@ def main():
                     peak_rss,
                     memory.get('peak_observed_rss_bytes', 0)
                 )
-                if (
-                    result.get('status') in ('ready', 'degraded')
-                    and coverage.get('pending_changes') == 0
-                ):
+                if is_settled(result):
                     samples.append(elapsed)
                 else:
                     partial += 1

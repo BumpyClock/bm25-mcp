@@ -192,6 +192,9 @@ pub fn scan_project_observed(
     );
     match &result {
         Ok(report) if report.cancelled => progress.finish_run(ProgressPhase::Cancelled),
+        Ok(report) if !report.coverage.discovery_complete => {
+            progress.finish_run(ProgressPhase::Failed)
+        }
         Ok(_) => progress.finish_run(ProgressPhase::Complete),
         Err(error) if error.to_string().contains("indexing_cancelled") => {
             progress.record_cancellation();
@@ -246,12 +249,14 @@ fn scan_project_observed_inner(
         .map(|source| (source.key.as_str(), source.version.as_str()))
         .collect();
     let mut report = ScanReport::default();
+    report.coverage.full = changes.is_none();
     let mut seen = HashSet::new();
     let mut candidate_walk_failed = false;
     let precise_candidates = if let Some(paths) = precise_paths.as_ref() {
         let mut candidates = HashSet::new();
         for path in paths {
             if !path.starts_with(&root) {
+                candidate_walk_failed = true;
                 report.excluded_count = report.excluded_count.saturating_add(1);
                 bump_diagnostic(&mut report, "outside_root");
                 continue;
@@ -261,12 +266,22 @@ fn scan_project_observed_inner(
                     candidates.insert(path.clone());
                 }
                 Ok(metadata) if metadata.file_type().is_symlink() => {
-                    report.excluded_count = report.excluded_count.saturating_add(1);
-                    bump_diagnostic(&mut report, "symlink_excluded");
+                    record_discovered_exclusion(
+                        &mut report,
+                        collection,
+                        &root,
+                        path,
+                        "symlink_excluded",
+                    );
                 }
                 Ok(_) => {
-                    report.excluded_count = report.excluded_count.saturating_add(1);
-                    bump_diagnostic(&mut report, "non_file_change");
+                    record_discovered_exclusion(
+                        &mut report,
+                        collection,
+                        &root,
+                        path,
+                        "non_file_change",
+                    );
                 }
                 Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
                     // Preserve deleted candidates so the final reconciliation
@@ -274,8 +289,16 @@ fn scan_project_observed_inner(
                     candidates.insert(path.clone());
                 }
                 Err(error) => {
-                    candidate_walk_failed = true;
-                    record_error(&mut report, format!("reading changed path: {error}"));
+                    let relative = normalize_relative(path.strip_prefix(&root)?);
+                    let key = source_key(collection, &relative);
+                    let mut source_report = ScanReport::default();
+                    record_error(&mut source_report, format!("reading changed path: {error}"));
+                    bump_diagnostic(&mut source_report, "source_read");
+                    if existing.iter().any(|source| source.key == key) {
+                        store.remove_source(&key)?;
+                    }
+                    seen.insert(key.clone());
+                    report.record_source(key, source_report);
                 }
             }
         }
@@ -285,12 +308,31 @@ fn scan_project_observed_inner(
     };
     let (files, mut walk_failed) = discover_project_files(
         &root,
+        collection,
         precise_candidates.as_ref(),
         should_continue,
         &mut report,
         progress,
     )?;
     walk_failed |= candidate_walk_failed;
+    report.coverage.discovery_complete = !walk_failed;
+    report.coverage.discovery = crate::coverage::SourceOutcome::from_report(&report);
+    // Discovery may already have attributed exclusions to individual sources.
+    for outcome in report.coverage.sources.values().flatten() {
+        report.coverage.discovery.excluded -= outcome.excluded;
+        report.coverage.discovery.errors -= outcome.errors;
+        report.coverage.discovery.pending -= outcome.pending;
+        for (category, count) in &outcome.diagnostics {
+            if let Some(total) = report.coverage.discovery.diagnostics.get_mut(category) {
+                *total -= count;
+            }
+        }
+    }
+    report
+        .coverage
+        .discovery
+        .diagnostics
+        .retain(|_, count| *count > 0);
     progress.record_discovered(files.len() as u64);
 
     for path in &files {
@@ -303,6 +345,7 @@ fn scan_project_observed_inner(
             _ => continue,
         };
         let key = source_key(collection, &relative);
+        let mut source_report = ScanReport::default();
         progress.record_current_source_bytes(0);
         progress.set_phase(ProgressPhase::Normalization);
         match read_source(
@@ -324,9 +367,9 @@ fn scan_project_observed_inner(
                 let chunk_count = store
                     .mark_source_verified(&key)
                     .with_context(|| format!("verifying unchanged source {}", source.path))?;
-                report.sources = report.sources.saturating_add(1);
-                report.chunks = report.chunks.saturating_add(chunk_count);
-                bump_diagnostic(&mut report, "unchanged_index_reuse");
+                source_report.sources = 1;
+                source_report.chunks = chunk_count;
+                bump_diagnostic(&mut source_report, "unchanged_index_reuse");
                 progress.record_file_completed();
             }
             Ok(ReadOutcome::Cached {
@@ -334,7 +377,7 @@ fn scan_project_observed_inner(
                 chunks,
                 chunk_count,
             }) => {
-                bump_diagnostic(&mut report, "content_cache_hit");
+                bump_diagnostic(&mut source_report, "content_cache_hit");
                 seen.insert(key.clone());
                 let source = Source {
                     key: key.clone(),
@@ -343,7 +386,7 @@ fn scan_project_observed_inner(
                     version,
                     kind: PROJECT_SOURCE_KIND.to_owned(),
                 };
-                report.chunks = report.chunks.saturating_add(chunk_count);
+                source_report.chunks = chunk_count;
                 progress.record_prepared_chunks(chunk_count);
                 if existing_versions.get(key.as_str()).copied() == Some(source.version.as_str()) {
                     store
@@ -363,7 +406,7 @@ fn scan_project_observed_inner(
                     progress.record_work(WorkKind::DurableTxn, commit_started.elapsed());
                     progress.record_committed_chunks(chunk_count);
                 }
-                report.sources = report.sources.saturating_add(1);
+                source_report.sources = 1;
                 progress.record_file_completed();
             }
             Ok(ReadOutcome::Included {
@@ -372,7 +415,7 @@ fn scan_project_observed_inner(
                 chunks,
             }) => {
                 if cache.is_some() {
-                    bump_diagnostic(&mut report, "content_cache_miss");
+                    bump_diagnostic(&mut source_report, "content_cache_miss");
                 }
                 seen.insert(key.clone());
                 let source = Source {
@@ -382,7 +425,7 @@ fn scan_project_observed_inner(
                     version: version.clone(),
                     kind: PROJECT_SOURCE_KIND.to_owned(),
                 };
-                report.chunks = report.chunks.saturating_add(chunks);
+                source_report.chunks = chunks;
                 let cache_copy = cache.as_ref().map(|_| spool.reopen()).transpose()?;
                 if existing_versions.get(key.as_str()).copied() == Some(version.as_str()) {
                     drop(spool);
@@ -410,28 +453,28 @@ fn scan_project_observed_inner(
                     // source replacement into a failed reconciliation.
                     let cache_started = Instant::now();
                     if let Err(error) = content_cache.put(&version, cache_copy) {
-                        bump_diagnostic(&mut report, "content_cache_write_error");
-                        record_error(&mut report, format!("content cache: {error}"));
+                        bump_diagnostic(&mut source_report, "content_cache_write_error");
+                        record_error(&mut source_report, format!("content cache: {error}"));
                     }
                     progress.record_work(WorkKind::TempFileOps, cache_started.elapsed());
                 }
-                report.sources = report.sources.saturating_add(1);
+                source_report.sources = 1;
                 progress.record_file_completed();
             }
             Ok(ReadOutcome::Excluded { reason }) => {
                 // An ineligible replacement must remove its old searchable
                 // membership.  It is intentionally absent from `seen`.
                 if cache.is_some() {
-                    bump_diagnostic(&mut report, "content_cache_miss");
+                    bump_diagnostic(&mut source_report, "content_cache_miss");
                 }
-                report.excluded_count = report.excluded_count.saturating_add(1);
+                source_report.excluded_count = 1;
                 if reason == "binary content" {
-                    bump_diagnostic(&mut report, "binary_excluded");
+                    bump_diagnostic(&mut source_report, "binary_excluded");
                 } else if reason == "unsupported or malformed text encoding" {
-                    bump_diagnostic(&mut report, "unsupported_encoding");
+                    bump_diagnostic(&mut source_report, "unsupported_encoding");
                 }
                 if reason != "binary content" {
-                    record_error(&mut report, format!("excluded {relative}: {reason}"));
+                    record_error(&mut source_report, format!("excluded {relative}: {reason}"));
                 }
                 if let Some(source) = existing.iter().find(|source| source.key == key) {
                     store.remove_source(&source.key)?;
@@ -440,10 +483,12 @@ fn scan_project_observed_inner(
                 progress.record_file_completed();
             }
             Err(error) => {
-                record_error(&mut report, format!("{relative}: {error}"));
+                record_error(&mut source_report, format!("{relative}: {error}"));
                 progress.record_file_completed();
             }
         }
+        ensure!(should_continue(), "indexing_cancelled");
+        report.record_source(key, source_report);
     }
 
     // A precise change set only reconciles the requested source keys. A full
@@ -457,6 +502,14 @@ fn scan_project_observed_inner(
                 progress.record_file_completed();
             }
         }
+        if let Some(paths) = precise_paths {
+            for path in paths {
+                if let Ok(relative) = path.strip_prefix(&root) {
+                    let key = source_key(collection, &normalize_relative(relative));
+                    report.coverage.sources.entry(key).or_insert(None);
+                }
+            }
+        }
     }
 
     Ok(report)
@@ -464,6 +517,7 @@ fn scan_project_observed_inner(
 
 fn discover_project_files(
     root: &Path,
+    collection: &str,
     candidates: Option<&HashSet<PathBuf>>,
     should_continue: &dyn Fn() -> bool,
     report: &mut ScanReport,
@@ -511,22 +565,26 @@ fn discover_project_files(
         let path = entry.path();
         if is_git_metadata_path(path, root) {
             if path.is_file() {
-                report.excluded_count = report.excluded_count.saturating_add(1);
-                bump_diagnostic(report, "git_metadata_excluded");
+                record_discovered_exclusion(
+                    report,
+                    collection,
+                    root,
+                    path,
+                    "git_metadata_excluded",
+                );
             }
             continue;
         }
         let file_type = match entry.file_type() {
             Some(file_type) => file_type,
             None => {
-                report.excluded_count = report.excluded_count.saturating_add(1);
+                record_discovered_exclusion(report, collection, root, path, "non_file_change");
                 continue;
             }
         };
         if !file_type.is_file() {
             if file_type.is_symlink() {
-                report.excluded_count = report.excluded_count.saturating_add(1);
-                bump_diagnostic(report, "symlink_excluded");
+                record_discovered_exclusion(report, collection, root, path, "symlink_excluded");
             }
             continue;
         }
@@ -539,6 +597,27 @@ fn discover_project_files(
     }
     progress.record_work(WorkKind::Discovery, discovery_started.elapsed());
     Ok((files, walk_failed))
+}
+
+fn record_discovered_exclusion(
+    report: &mut ScanReport,
+    collection: &str,
+    root: &Path,
+    path: &Path,
+    category: &str,
+) {
+    let mut outcome = ScanReport {
+        excluded_count: 1,
+        ..ScanReport::default()
+    };
+    bump_diagnostic(&mut outcome, category);
+    let relative = path
+        .strip_prefix(root)
+        .expect("discovery stays within root");
+    report.record_source(
+        source_key(collection, &normalize_relative(relative)),
+        outcome,
+    );
 }
 
 fn canonical_or_normalized(path: &Path) -> PathBuf {
@@ -563,7 +642,7 @@ fn canonical_or_normalized(path: &Path) -> PathBuf {
             other => normalized.push(other.as_os_str()),
         }
     }
-    normalized
+    crate::identity::canonical_or_normalized(&normalized)
 }
 
 fn resolve_project_candidate(root: &Path, path: &Path) -> PathBuf {

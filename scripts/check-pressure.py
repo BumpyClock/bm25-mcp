@@ -228,9 +228,7 @@ def main():
                 "search_project",
                 READ_QUERY,
                 timeout=args.timeout,
-            )
-            normal_initial = normal_client.tool(
-                "search_project", project_arguments(READ_QUERY)
+                arguments=project_arguments(READ_QUERY),
             )
 
             for _ in range(4):
@@ -242,9 +240,7 @@ def main():
                 "search_project",
                 READ_QUERY,
                 timeout=args.timeout,
-            )
-            pressure_initial = pressure_clients[0].tool(
-                "search_project", project_arguments(READ_QUERY)
+                arguments=project_arguments(READ_QUERY),
             )
             assert_same_signature(normal_initial, pressure_initial, "initial")
             emit(
@@ -319,10 +315,14 @@ def main():
                 normal_client, EDIT_QUERY, TARGET_PATH, args.timeout
             )
             assert_same_signature(normal_fresh, pressure_fresh, "fresh edit")
-            old_pressure = pressure_poller.tool(
-                "search_project", project_arguments(OLD_QUERY)
+            old_pressure, _ = settle(
+                pressure_poller, "search_project", OLD_QUERY,
+                arguments=project_arguments(OLD_QUERY), timeout=args.timeout,
             )
-            old_normal = normal_client.tool("search_project", project_arguments(OLD_QUERY))
+            old_normal, _ = settle(
+                normal_client, "search_project", OLD_QUERY,
+                arguments=project_arguments(OLD_QUERY), timeout=args.timeout,
+            )
             if any(hit.get("relative_path") == TARGET_PATH for hit in old_pressure.get("results", [])):
                 raise AssertionError("pressure owner retained stale edit result")
             if any(hit.get("relative_path") == TARGET_PATH for hit in old_normal.get("results", [])):

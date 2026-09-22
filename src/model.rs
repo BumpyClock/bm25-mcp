@@ -60,6 +60,8 @@ fn one_copy() -> usize {
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ScanReport {
+    #[serde(skip)]
+    pub coverage: crate::coverage::CoverageUpdate,
     #[serde(default)]
     pub cancelled: bool,
     #[serde(default)]
@@ -70,4 +72,22 @@ pub struct ScanReport {
     pub error_count: u64,
     pub pending_count: u64,
     pub errors: Vec<String>,
+}
+
+impl ScanReport {
+    pub(crate) fn record_source(&mut self, key: String, report: Self) {
+        let outcome = crate::coverage::SourceOutcome::from_report(&report);
+        self.coverage.sources.insert(key, Some(outcome));
+        self.sources += report.sources;
+        self.chunks += report.chunks;
+        self.excluded_count += report.excluded_count;
+        self.error_count += report.error_count;
+        self.pending_count += report.pending_count;
+        for (category, count) in report.diagnostics {
+            *self.diagnostics.entry(category).or_default() += count;
+        }
+        let remaining = 64usize.saturating_sub(self.errors.len());
+        self.errors
+            .extend(report.errors.into_iter().take(remaining));
+    }
 }

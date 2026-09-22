@@ -34,6 +34,8 @@ def load_script(name, filename):
 evaluation = load_script('evaluate_siblings', 'evaluate-siblings.py')
 summary = load_script('summarize_siblings', 'summarize-sibling-eval.py')
 updates = load_script('exercise_updates', 'exercise-updates.py')
+benchmark = load_script('benchmark_mcp', 'benchmark-mcp.py')
+pressure = load_script('check_pressure', 'check-pressure.py')
 SECRET = 'sensitive_customer_query_and_transcript'
 
 
@@ -544,9 +546,84 @@ class ClientTests(FixtureTest):
                 self.assertLess(time.monotonic() - start, 1)
                 self.assertIsNotNone(client.process.poll())
                 self.assertTrue(client.process.stdout.closed)
+                with self.assertRaisesRegex(RuntimeError, 'connection is closed'):
+                    settle(client, 'search_project', timeout=.15)
+
+    def test_settle_propagates_transport_failure_without_reconnecting(self):
+        for mode in ('exit', 'malformed'):
+            with self.subTest(mode=mode):
+                client = self.client(mode)
+                with mock.patch('acceptance.subprocess.Popen') as reconnect:
+                    with self.assertRaisesRegex(RuntimeError, '^MCP request failed$'):
+                        settle(client, 'search_project', timeout=.5)
+                    with self.assertRaisesRegex(RuntimeError, 'connection is closed'):
+                        settle(client, 'search_project', timeout=.5)
+                reconnect.assert_not_called()
+                self.assertTrue(client.closed.is_set())
 
 
 class SettleTests(unittest.TestCase):
+    def setUp(self):
+        self.now = 0
+        self.clock = mock.patch('acceptance.time.monotonic', side_effect=lambda: self.now)
+        self.clock.start()
+        self.addCleanup(self.clock.stop)
+        self.sleeps = mock.patch('acceptance.time.sleep', side_effect=self.advance)
+        self.sleep = self.sleeps.start()
+        self.addCleanup(self.sleeps.stop)
+
+    def advance(self, seconds):
+        self.now += seconds
+
+    def status_response(self, state):
+        return {'contents': [{'text': json.dumps({'project': state})}]}
+
+    def ready_client(self):
+        client = mock.Mock()
+        client.rpc.return_value = self.status_response({
+            'status': 'ready', 'coverage': {'pending_changes': 0},
+        })
+        client.tool.return_value = {
+            'status': 'ready', 'coverage': {'pending_changes': 0}, 'results': [],
+        }
+        return client
+
+    def test_status_search_race_resumes_observation_until_recovery(self):
+        ready = {'status': 'ready', 'coverage': {'pending_changes': 0}}
+        refreshing = {'status': 'refreshing', 'coverage': {'pending_changes': None}}
+        final = {**ready, 'results': []}
+        states = [ready, refreshing, ready]
+        searches = [{**refreshing, 'results': []}, final]
+        calls = []
+        observed = []
+        clock = [0]
+
+        class FakeClient:
+            def rpc(self, method, params, timeout):
+                calls.append(method)
+                return {'contents': [{'text': json.dumps({'project': states.pop(0)})}]}
+
+            def tool(self, tool, args, timeout):
+                calls.append(tool)
+                return searches.pop(0)
+
+        def sleep(seconds):
+            clock[0] += seconds
+
+        with mock.patch('acceptance.time.monotonic', side_effect=lambda: clock[0]), \
+             mock.patch('acceptance.time.sleep', side_effect=sleep) as sleeps:
+            actual, elapsed = settle(
+                FakeClient(), 'search_project', timeout=5, observer=observed.append,
+            )
+        self.assertIs(actual, final)
+        self.assertEqual(calls, [
+            'resources/read', 'search_project', 'resources/read',
+            'resources/read', 'search_project',
+        ])
+        self.assertEqual(observed, [ready, refreshing, ready])
+        self.assertEqual(sleeps.call_args_list, [mock.call(1), mock.call(1)])
+        self.assertEqual(elapsed, 2)
+
     def test_resources_only_until_settled_then_exactly_one_requested_search(self):
         states = [
             {'status':'building', 'coverage':{'pending_changes':0}},
@@ -555,7 +632,10 @@ class SettleTests(unittest.TestCase):
         ]
         calls = []
         observed = []
-        result = {'results':['requested-result']}
+        result = {
+            'status': 'degraded', 'coverage': {'pending_changes': 0},
+            'results': ['requested-result'],
+        }
 
         class FakeClient:
             def rpc(self, method, params, timeout):
@@ -646,6 +726,176 @@ class SettleTests(unittest.TestCase):
         self.assertEqual(actual['status'], 'ready')
         self.assertEqual(calls, ['resources/read', 'resources/read', 'search_project'])
 
+    def test_repeated_races_expire_the_original_deadline(self):
+        client = self.ready_client()
+        client.tool.return_value = {
+            'status': 'refreshing', 'coverage': {'pending_changes': None}, 'results': [],
+        }
+        observed = []
+        with self.assertRaisesRegex(TimeoutError, 'Reconciliation deadline exceeded'):
+            settle(client, 'search_project', timeout=2.5, observer=observed.append)
+        self.assertEqual(self.now, 2.5)
+        self.assertEqual(self.sleep.call_args_list, [mock.call(1), mock.call(1), mock.call(.5)])
+        self.assertEqual([call.kwargs['timeout'] for call in client.rpc.call_args_list], [2.5, 1.5, .5])
+        self.assertEqual([call.kwargs['timeout'] for call in client.tool.call_args_list], [2.5, 1.5, .5])
+        self.assertEqual(len(observed), 3)
+        self.assertEqual(
+            [call[0] for call in client.method_calls],
+            ['rpc', 'tool', 'rpc', 'tool', 'rpc', 'tool'],
+        )
+
+    def test_empty_ready_and_completed_degraded_searches_are_valid(self):
+        for status in ('ready', 'degraded'):
+            with self.subTest(status=status):
+                client = self.ready_client()
+                state = {
+                    'status': status,
+                    'coverage': {'pending_changes': 0, 'error_count': 2 if status == 'degraded' else 0},
+                }
+                client.rpc.return_value = self.status_response(state)
+                client.tool.return_value = {**state, 'results': []}
+                actual, elapsed = settle(client, 'search_project', timeout=5)
+                self.assertIs(actual, client.tool.return_value)
+                self.assertEqual(actual['results'], [])
+                self.assertEqual(elapsed, 0)
+                client.rpc.assert_called_once()
+                client.tool.assert_called_once()
+        self.sleep.assert_not_called()
+
+    def test_non_ready_searches_return_to_bounded_status_observation(self):
+        for status, pending in (
+            ('building', 0), ('refreshing', 0), ('ready', 1), ('ready', None),
+            ('degraded', 1), ('degraded', None),
+        ):
+            with self.subTest(status=status, pending=pending):
+                self.now = 0
+                self.sleep.reset_mock()
+                client = self.ready_client()
+                final = client.tool.return_value
+                client.tool.side_effect = [
+                    {'status': status, 'coverage': {'pending_changes': pending}, 'results': []},
+                    final,
+                ]
+                ready = {'status': 'ready', 'coverage': {'pending_changes': 0}}
+                waiting = [
+                    {'status': 'building', 'coverage': {'pending_changes': None},
+                     'progress': {'records_processed': count}}
+                    for count in (1, 2, 3)
+                ]
+                client.rpc.side_effect = [
+                    self.status_response(state) for state in [ready, *waiting, ready]
+                ]
+                observations = []
+                actual, elapsed = settle(
+                    client, 'search_project', timeout=5, poll_interval=.25,
+                    observer=observations.append,
+                )
+                self.assertIs(actual, final)
+                self.assertEqual(elapsed, 1)
+                self.assertEqual(observations, [ready, *waiting, ready])
+                self.assertEqual(
+                    [call[0] for call in client.method_calls],
+                    ['rpc', 'tool', 'rpc', 'rpc', 'rpc', 'rpc', 'tool'],
+                )
+                self.assertEqual(self.sleep.call_args_list, [mock.call(.25)] * 4)
+
+    def test_status_predicate_is_reapplied_after_race_but_not_to_search_progress(self):
+        client = self.ready_client()
+        ready = {'status': 'ready', 'coverage': {'pending_changes': 0}}
+        states = [
+            {**ready, 'progress': {'run_id': run_id}}
+            for run_id in (2, 1, 2)
+        ]
+        client.rpc.side_effect = [self.status_response(state) for state in states]
+        final = client.tool.return_value
+        client.tool.side_effect = [
+            {'status': 'refreshing', 'coverage': {'pending_changes': None}, 'results': []},
+            final,
+        ]
+        predicate = mock.Mock(side_effect=lambda state: state['progress']['run_id'] == 2)
+        actual, _ = settle(
+            client, 'search_project', timeout=5, status_predicate=predicate,
+        )
+        self.assertIs(actual, final)
+        self.assertEqual(predicate.call_args_list, [mock.call(state) for state in states])
+        self.assertEqual(client.tool.call_count, 2)
+        self.assertNotIn('progress', actual)
+
+    def test_malformed_status_protocol_fails_instead_of_polling(self):
+        for response in (
+            None, [], {}, {'contents': []}, {'contents': [None]},
+            {'contents': [{'text': None}]}, {'contents': [{'text': SECRET}]},
+            {'contents': [{'text': '[]'}]}, {'contents': [{'text': '{"sessions":{}}'}]},
+        ):
+            with self.subTest(response=response):
+                client = self.ready_client()
+                client.rpc.return_value = response
+                with self.assertRaisesRegex(RuntimeError, '^Invalid (status|readiness) response$'):
+                    settle(client, 'search_project', timeout=5)
+                client.rpc.assert_called_once()
+                client.tool.assert_not_called()
+        self.sleep.assert_not_called()
+
+    def test_malformed_status_and_search_readiness_are_not_retried(self):
+        malformed = [
+            None, [], {}, {'status': SECRET, 'coverage': {'pending_changes': 0}},
+            {'status': 'ready'}, {'status': 'ready', 'coverage': []},
+            {'status': 'ready', 'coverage': {}},
+        ] + [
+            {'status': 'ready', 'coverage': {'pending_changes': pending}}
+            for pending in (False, True, -1, 0.0, '0', [], {})
+        ]
+        for stage in ('status', 'search'):
+            for response in malformed:
+                with self.subTest(stage=stage, response=response):
+                    client = self.ready_client()
+                    if stage == 'status':
+                        client.rpc.return_value = self.status_response(response)
+                    else:
+                        client.tool.return_value = response
+                    with self.assertRaisesRegex(RuntimeError, '^Invalid readiness response$'):
+                        settle(client, 'search_project', timeout=5)
+                    client.rpc.assert_called_once()
+                    self.assertEqual(client.tool.call_count, int(stage == 'search'))
+        self.sleep.assert_not_called()
+
+    def test_transport_and_timeout_failures_propagate_without_retry(self):
+        for stage in ('rpc', 'tool'):
+            for error in (OSError(SECRET), TimeoutError(SECRET), RuntimeError(SECRET)):
+                with self.subTest(stage=stage, error=type(error).__name__):
+                    client = self.ready_client()
+                    getattr(client, stage).side_effect = error
+                    with self.assertRaises(type(error)) as caught:
+                        settle(client, 'search_project', timeout=5)
+                    self.assertIs(caught.exception, error)
+                    client.rpc.assert_called_once()
+                    self.assertEqual(client.tool.call_count, int(stage == 'tool'))
+        self.sleep.assert_not_called()
+
+    def test_status_and_observer_time_count_against_the_same_deadline(self):
+        client = self.ready_client()
+
+        def slow_status(*args, **kwargs):
+            self.advance(2)
+            return client.rpc.return_value
+
+        client.rpc.side_effect = slow_status
+        with self.assertRaises(TimeoutError):
+            settle(
+                client, 'search_project', timeout=3,
+                observer=lambda state: self.advance(2),
+            )
+        client.tool.assert_not_called()
+        self.sleep.assert_not_called()
+
+    def test_invalid_poll_interval_is_rejected_without_protocol_io(self):
+        for interval in (-1, float('inf'), float('nan')):
+            with self.subTest(interval=interval):
+                client = self.ready_client()
+                with self.assertRaises(ValueError):
+                    settle(client, 'search_project', poll_interval=interval)
+                client.rpc.assert_not_called()
+
 
 class WriterTests(FixtureTest):
     def test_concurrent_records_are_whole_visible_and_synced(self):
@@ -687,6 +937,107 @@ class WriterTests(FixtureTest):
         rows = [json.loads(line) for line in public.splitlines()]
         self.assertEqual(rows[0]['project'], 'project-0001')
         self.assertEqual(sum(r['phase'] == 'relevance' for r in rows), 2)
+
+
+class MeasurementTests(FixtureTest):
+    def response(self, status='ready', pending=0):
+        return {
+            'status': status, 'coverage': {'pending_changes': pending},
+            'results': [],
+        }
+
+    def test_acceptance_excludes_later_non_ready_latency_samples(self):
+        client = mock.Mock()
+        ready = self.response()
+        client.tool.side_effect = (
+            [ready] * 11
+            + [self.response('refreshing', None), self.response('ready', 2),
+               self.response('ready', None), ready, self.response('degraded')]
+        )
+        with mock.patch.object(acceptance.time, 'sleep'):
+            samples, partial, _ = acceptance.measure(client, 2, 0, timeout=5)
+        self.assertEqual(len(samples), 2)
+        self.assertEqual(partial, 3)
+        self.assertEqual(client.tool.call_count, 16)
+
+    def test_context_transport_failure_is_not_mistaken_for_a_stale_match(self):
+        for error in (
+            RuntimeError('MCP connection is closed'),
+            acceptance.McpRequestError('MCP request failed'),
+        ):
+            with self.subTest(error=type(error).__name__):
+                client = mock.Mock()
+                ready = self.response()
+                session = {**ready, 'results': [{'match_id': 'match'}]}
+                client.tool.side_effect = [session] + [ready] * 10 + [error, ready]
+                if isinstance(error, acceptance.McpRequestError):
+                    samples, partial, _ = acceptance.measure(client, 1, 9, timeout=5)
+                    self.assertEqual(len(samples), 1)
+                    self.assertEqual(partial, 1)
+                    self.assertEqual(client.tool.call_count, 13)
+                else:
+                    with self.assertRaises(RuntimeError) as caught:
+                        acceptance.measure(client, 1, 9, timeout=5)
+                    self.assertIs(caught.exception, error)
+                    self.assertEqual(client.tool.call_count, 12)
+
+    def test_benchmark_excludes_later_non_ready_latency_samples(self):
+        client = mock.Mock()
+        ready = self.response()
+        client.rpc.return_value = {
+            'contents': [{'text': json.dumps({'project': ready, 'sessions': ready})}],
+        }
+        client.tool.side_effect = [ready, ready, self.response('building', None), ready]
+        rows = []
+        with mock.patch.object(benchmark, 'Client', return_value=client), \
+             mock.patch.object(benchmark, 'emit', side_effect=rows.append), \
+             mock.patch.object(benchmark.time, 'sleep'), \
+             mock.patch.object(benchmark.tempfile, 'TemporaryDirectory',
+                               return_value=contextlib.nullcontext(str(self.root))), \
+             mock.patch.object(sys, 'argv', [
+                 'benchmark-mcp.py', '--project', str(self.root), '--requests', '1',
+             ]):
+            benchmark.main()
+        measurement = next(row for row in rows if row['phase'] == 'queries')
+        self.assertEqual(measurement['requests'], 1)
+        self.assertEqual(measurement['partial_responses_excluded'], 1)
+        self.assertEqual(client.tool.call_count, 4)
+        client.close.assert_called_once()
+
+    def test_pressure_baseline_compares_the_settled_responses_without_an_unchecked_reread(self):
+        binary = self.root / 'binary'
+        binary.write_bytes(b'synthetic')
+        clients = []
+        rows = []
+        ready = {**self.response(), 'results': [{'relative_path': 'fixture.rs', 'score': 1}]}
+
+        def make_client(*args, **kwargs):
+            client = mock.Mock()
+            client.rpc.return_value = {
+                'contents': [{'text': json.dumps({'project': ready})}],
+            }
+            client.tool.side_effect = [ready, self.response('refreshing', None)]
+            clients.append(client)
+            return client
+
+        with mock.patch.object(pressure, 'Client', side_effect=make_client), \
+             mock.patch.object(pressure, 'make_fixture'), \
+             mock.patch.object(pressure, 'emit', side_effect=rows.append), \
+             mock.patch.object(pressure, 'wait_pressure', side_effect=TimeoutError('stop after baseline')), \
+             mock.patch.object(pressure.tempfile, 'TemporaryDirectory',
+                               return_value=contextlib.nullcontext(str(self.root))), \
+             mock.patch.object(sys, 'argv', ['check-pressure.py', '--binary', str(binary)]):
+            with self.assertRaisesRegex(TimeoutError, 'stop after baseline'):
+                pressure.main()
+        baseline = next(row for row in rows if row['phase'] == 'baseline_compare')
+        expected = [{'path': 'fixture.rs', 'score': 1.0}]
+        self.assertEqual(baseline['normal'], expected)
+        self.assertEqual(baseline['pressure_owner'], expected)
+        for client in clients[:2]:
+            client.tool.assert_called_once_with(
+                'search_project', pressure.project_arguments(pressure.READ_QUERY),
+                timeout=mock.ANY,
+            )
 
 
 class EvaluationTests(FixtureTest):
@@ -749,6 +1100,27 @@ class EvaluationTests(FixtureTest):
 
     def rows(self, label='after'):
         return [json.loads(line) for line in (self.root / 'validation' / f'siblings-{label}.jsonl').read_text().splitlines()]
+
+    def test_later_non_ready_query_is_not_published_as_a_successful_measurement(self):
+        client_type = self.fake_client()
+
+        class RacedClient(client_type):
+            def tool(self, tool, args, timeout=None):
+                result = super().tool(tool, args, timeout)
+                if args['query'] != 'index' and self.queries == 2:
+                    result.update(status='refreshing', results=[])
+                    result['coverage']['pending_changes'] = None
+                return result
+
+        with mock.patch.object(evaluation, 'Client', RacedClient):
+            evaluation.evaluate(self.binary, 'after', 1)
+        rows = self.rows()
+        self.assertEqual(sum(row['type'] == 'query' for row in rows), 3)
+        self.assertFalse(any(row['type'] == 'complete' for row in rows))
+        failures = [row for row in rows if row['type'] == 'failure']
+        self.assertEqual(len(failures), 3)
+        self.assertEqual({row['error'] for row in failures}, {'not_settled'})
+        self.assertNotIn(SECRET, json.dumps(rows))
 
     def test_completed_rows_visible_during_later_query_and_failing_worktree(self):
         query_blocked, query_release = threading.Event(), threading.Event()

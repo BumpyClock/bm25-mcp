@@ -230,6 +230,49 @@ fn restarted_owner_recovers_persisted_index_after_offline_edit() {
 }
 
 #[test]
+fn restarted_owner_reconstructs_unresolved_session_coverage() {
+    let (_temp, root, cache, homes) = temp_workspace();
+    let logs = homes.join("codex/sessions");
+    fs::create_dir_all(&logs).unwrap();
+    fs::write(
+        logs.join("pending.jsonl"),
+        format!("{}\n{}\n{{\"type\":",
+            json!({"type":"session_meta","payload":{"cwd":root,"id":"restart"}}),
+            json!({"type":"response_item","payload":{"type":"message","id":"event","role":"user","content":[{"type":"text","text":"restartprefixqvx"}]}}),
+        ),
+    ).unwrap();
+    let mut first = Client::start(&root, &cache, &homes);
+    wait_for("initial pending tail", || {
+        let status = first.status();
+        (status["sessions"]["coverage"]["pending_changes"] == 1).then_some(())
+    });
+    let owner_dir = owner_directory(&cache, &root);
+    drop(first);
+    wait_owner_stopped(&owner_dir);
+    let mut restarted = Client::start(&root, &cache, &homes);
+    let status = restarted.status();
+    assert!(
+        status["sessions"]["coverage"]["pending_changes"].is_null()
+            || status["sessions"]["coverage"]["pending_changes"] == 1,
+        "restart must not invent clean coverage: {status}"
+    );
+    wait_for("reconstructed pending tail", || {
+        let status = restarted.status();
+        (status["sessions"]["coverage"]["pending_changes"] == 1).then_some(())
+    });
+    let response = restarted.search_sessions("restartprefixqvx");
+    assert_eq!(
+        response["result"]["structuredContent"]["coverage"]["pending_changes"],
+        1
+    );
+    assert_eq!(
+        response["result"]["structuredContent"]["status"],
+        "refreshing"
+    );
+    assert_eq!(result_items(&response).len(), 1);
+}
+
+#[test]
 fn git_worktrees_share_sessions_but_keep_code_collections_separate() {
     let (_temp, primary, cache, homes) = temp_workspace();
     run_git(&primary, &["init", "-q"]);

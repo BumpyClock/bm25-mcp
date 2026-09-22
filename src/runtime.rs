@@ -1,6 +1,6 @@
 use crate::{
+    coverage::CollectionCoverage,
     ingest,
-    model::ScanReport,
     progress::ProgressReporter,
     store::Store,
     tools::{self, Coverage},
@@ -269,6 +269,10 @@ impl RootState {
                                 return;
                             }
                         }
+                        Err(_) => {
+                            *state.watch_error.lock().unwrap() = Some("watcher_unavailable".into());
+                            *pending = None;
+                        }
                         _ => *pending = None,
                     }
                     state.epoch.fetch_add(1, Ordering::SeqCst);
@@ -313,7 +317,10 @@ impl RootState {
                     Ok(event) if is_registry_auxiliary_event(&event, &registry_path) => return,
                     Ok(event) if is_owner_cache_directory_event(&event, &registry_path) => return,
                     Ok(event) => session_event_scope(&event, &provider_roots, &registry_path),
-                    Err(_) => None,
+                    Err(_) => {
+                        *state.watch_error.lock().unwrap() = Some("watcher_unavailable".into());
+                        None
+                    }
                 };
                 let mut pending = state.changed_paths.lock().unwrap();
                 match scope {
@@ -543,7 +550,7 @@ fn normalize_watch_path(path: &Path) -> PathBuf {
             component => normalized.push(component.as_os_str()),
         }
     }
-    normalized
+    crate::identity::canonical_or_normalized(&normalized)
 }
 
 fn merge_pending_scope(
@@ -699,6 +706,7 @@ pub fn run_owner(root: &Path, cache: &Path) -> Result<()> {
     let worker_store = store.clone();
     let content_cache_path = dir.join("content-cache");
     let worker = thread::spawn(move || {
+        let mut coverage_by_collection = HashMap::<String, CollectionCoverage>::new();
         let mut content_cache = crate::content_cache::ContentCache::open(&content_cache_path).ok();
         let mut last_full = Instant::now();
         while !worker_stop.load(Ordering::SeqCst) {
@@ -770,7 +778,9 @@ pub fn run_owner(root: &Path, cache: &Path) -> Result<()> {
                             &state.progress,
                         )
                     });
-                    let completed = result.as_ref().is_ok_and(|report| !report.cancelled);
+                    let completed = result.as_ref().is_ok_and(|report| {
+                        !report.cancelled && report.coverage.discovery_complete
+                    });
                     if state.epoch.load(Ordering::SeqCst) == epoch && completed {
                         let git_after = crate::git_changes::Snapshot::capture(&state.root);
                         if state.epoch.load(Ordering::SeqCst) == epoch
@@ -804,15 +814,26 @@ pub fn run_owner(root: &Path, cache: &Path) -> Result<()> {
                             last_full = Instant::now();
                         }
                     }
-                    *state.coverage.lock().unwrap() =
-                        with_watch_error(coverage(result), &state.watch_error);
+                    let ledger = coverage_by_collection
+                        .entry(state.collection.clone())
+                        .or_default();
+                    ledger.apply(&result);
+                    let mut published = state.coverage.lock().unwrap();
+                    *published = ledger.snapshot();
                     if completed && state.safe_epoch.load(Ordering::SeqCst) == epoch {
                         state.scanned.store(epoch, Ordering::SeqCst);
                     } else {
                         state
                             .safe_epoch
                             .store(state.scanned.load(Ordering::SeqCst), Ordering::SeqCst);
-                        merge_pending_scope(&state.changed_paths, paths.as_ref());
+                        merge_pending_scope(
+                            &state.changed_paths,
+                            if result.is_err() {
+                                None
+                            } else {
+                                paths.as_ref()
+                            },
+                        );
                     }
                 }
             }
@@ -836,6 +857,7 @@ pub fn run_owner(root: &Path, cache: &Path) -> Result<()> {
         ..crate::sessions::SessionConfig::default()
     };
     let session_worker = thread::spawn(move || {
+        let mut ledger = CollectionCoverage::default();
         while !session_stop.load(Ordering::SeqCst) {
             let states: Vec<_> = session_roots.lock().unwrap().values().cloned().collect();
             let active = states.iter().find(|s| s.leases.load(Ordering::SeqCst) > 0);
@@ -874,9 +896,12 @@ pub fn run_owner(root: &Path, cache: &Path) -> Result<()> {
                             &session_state.progress,
                         )
                     });
-                    let completed = result.as_ref().is_ok_and(|report| !report.cancelled);
-                    *session_state.coverage.lock().unwrap() =
-                        with_watch_error(coverage(result), &session_state.watch_error);
+                    let completed = result.as_ref().is_ok_and(|report| {
+                        !report.cancelled && report.coverage.discovery_complete
+                    });
+                    ledger.apply(&result);
+                    let mut published = session_state.coverage.lock().unwrap();
+                    *published = ledger.snapshot();
                     if completed
                         && session_state.epoch.load(Ordering::SeqCst) == epoch
                         && session_state.safe_epoch.load(Ordering::SeqCst) == epoch
@@ -887,7 +912,14 @@ pub fn run_owner(root: &Path, cache: &Path) -> Result<()> {
                             session_state.scanned.load(Ordering::SeqCst),
                             Ordering::SeqCst,
                         );
-                        merge_pending_scope(&session_state.changed_paths, paths.as_ref());
+                        merge_pending_scope(
+                            &session_state.changed_paths,
+                            if result.is_err() {
+                                None
+                            } else {
+                                paths.as_ref()
+                            },
+                        );
                     }
                     session_state.in_flight.store(false, Ordering::SeqCst);
                 }
@@ -1031,15 +1063,20 @@ fn serve_connection(
         let sessions = request.name == "search_sessions";
         let start_epoch = state.epoch.load(Ordering::SeqCst);
         let session_epoch = state.sessions.epoch.load(Ordering::SeqCst);
-        let ready = if sessions {
-            session_epoch == state.sessions.scanned.load(Ordering::SeqCst)
+        let (ready, mut coverage) = if sessions {
+            coverage_snapshot(
+                &state.sessions.coverage,
+                &state.sessions.epoch,
+                &state.sessions.scanned,
+                &state.sessions.watch_error,
+            )
         } else {
-            start_epoch == state.scanned.load(Ordering::SeqCst)
-        };
-        let mut coverage = if sessions {
-            state.sessions.coverage.lock().unwrap().clone()
-        } else {
-            state.coverage.lock().unwrap().clone()
+            coverage_snapshot(
+                &state.coverage,
+                &state.epoch,
+                &state.scanned,
+                &state.watch_error,
+            )
         };
         coverage.memory = Some(memory.snapshot());
         if !ready {
@@ -1100,7 +1137,7 @@ fn with_watch_error(mut coverage: Coverage, error: &Mutex<Option<String>>) -> Co
 }
 
 fn search_status(ready: bool, coverage: &Coverage) -> &'static str {
-    if !ready {
+    if !ready || coverage.pending_changes.is_none() {
         if coverage.reconciled_at.is_none() {
             "building"
         } else {
@@ -1116,11 +1153,18 @@ fn search_status(ready: bool, coverage: &Coverage) -> &'static str {
 }
 
 fn status_snapshot(state: &RootState, memory: &MemoryState, sessions: &SessionState) -> Value {
-    let project_ready = state.epoch.load(Ordering::SeqCst) == state.scanned.load(Ordering::SeqCst);
-    let session_ready =
-        sessions.epoch.load(Ordering::SeqCst) == sessions.scanned.load(Ordering::SeqCst);
-    let mut project_coverage = state.coverage.lock().unwrap().clone();
-    let mut session_coverage = sessions.coverage.lock().unwrap().clone();
+    let (project_ready, mut project_coverage) = coverage_snapshot(
+        &state.coverage,
+        &state.epoch,
+        &state.scanned,
+        &state.watch_error,
+    );
+    let (session_ready, mut session_coverage) = coverage_snapshot(
+        &sessions.coverage,
+        &sessions.epoch,
+        &sessions.scanned,
+        &sessions.watch_error,
+    );
     project_coverage.memory = Some(memory.snapshot());
     session_coverage.memory = Some(memory.snapshot());
     if !project_ready {
@@ -1143,23 +1187,19 @@ fn status_snapshot(state: &RootState, memory: &MemoryState, sessions: &SessionSt
     })
 }
 
-fn coverage(result: Result<ScanReport>) -> Coverage {
-    match result {
-        Ok(report) => Coverage {
-            diagnostics: report.diagnostics,
-            reconciled_at: Some(chrono::Utc::now().to_rfc3339()),
-            pending_changes: Some(report.pending_count),
-            excluded_count: report.excluded_count,
-            error_count: report.error_count,
-            errors: report.errors,
-            memory: None,
-        },
-        Err(error) => Coverage {
-            error_count: 1,
-            errors: vec![format!("{error:#}")],
-            ..Coverage::default()
-        },
+fn coverage_snapshot(
+    coverage: &Mutex<Coverage>,
+    epoch: &AtomicU64,
+    scanned: &AtomicU64,
+    watch_error: &Mutex<Option<String>>,
+) -> (bool, Coverage) {
+    let published = coverage.lock().unwrap();
+    let ready = epoch.load(Ordering::SeqCst) == scanned.load(Ordering::SeqCst);
+    let mut snapshot = with_watch_error(published.clone(), watch_error);
+    if !ready {
+        snapshot.pending_changes = None;
     }
+    (ready, snapshot)
 }
 
 fn private_directory(path: &Path) -> Result<()> {
@@ -1214,10 +1254,169 @@ fn read_json<T: serde::de::DeserializeOwned>(reader: &mut impl BufRead) -> Resul
 mod tests {
     use super::*;
 
+    fn session_coverage_after_unrelated_update(problem: &str) {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().join("project");
+        let home = dir.path().join("codex");
+        fs::create_dir_all(&root).unwrap();
+        fs::create_dir_all(home.join("sessions")).unwrap();
+        let config = crate::sessions::SessionConfig {
+            codex_home: home.clone(),
+            claude_config_dir: dir.path().join("claude"),
+            copilot_home: dir.path().join("copilot"),
+            ..crate::sessions::SessionConfig::default()
+        };
+        let store = Store::open(&dir.path().join("index.sqlite3")).unwrap();
+        let owner = ingest::project_identity(&root).unwrap().owner_key;
+        let a = home.join("sessions/a.jsonl");
+        let b = home.join("sessions/b.jsonl");
+        let header = json!({"type":"session_meta","payload":{"cwd":root,"id":"coverage"}});
+        let event = json!({"type":"response_item","payload":{"type":"message","id":"event","role":"user","content":[{"type":"text","text":"coverageprefix"}]}});
+        let prefix = format!("{header}\n{event}\n");
+        fs::write(
+            &a,
+            match problem {
+                "tail" => format!("{prefix}{{\"type\":"),
+                "malformed" => format!("{prefix}not-json\n"),
+                _ => format!("{event}\n"),
+            },
+        )
+        .unwrap();
+        fs::write(&b, &prefix).unwrap();
+        let scan = |changes: Option<&HashSet<PathBuf>>| {
+            crate::sessions::scan_sessions_observed(
+                &root,
+                &owner,
+                &store,
+                &config,
+                changes,
+                &|| true,
+                &ProgressReporter::new(),
+            )
+        };
+        let mut ledger = CollectionCoverage::default();
+        ledger.apply(&scan(None));
+        let initial = ledger.snapshot();
+        if problem == "tail" {
+            assert_eq!(initial.pending_changes, Some(1));
+        } else {
+            assert!(initial.error_count > 0);
+        }
+        if problem == "rejected" {
+            assert_eq!(store.sources(&owner, "session").unwrap().len(), 1);
+            assert_eq!(initial.excluded_count, 1);
+        }
+        fs::write(&b, format!("{prefix}{event}\n")).unwrap();
+        ledger.apply(&scan(Some(&HashSet::from([b]))));
+        let updated = ledger.snapshot();
+        assert_eq!(
+            updated.pending_changes, initial.pending_changes,
+            "{problem}"
+        );
+        assert_eq!(updated.error_count, initial.error_count, "{problem}");
+        assert_eq!(updated.excluded_count, initial.excluded_count, "{problem}");
+        assert_eq!(updated.diagnostics, initial.diagnostics, "{problem}");
+    }
+
+    #[test]
+    fn collection_coverage_preserves_untouched_tail() {
+        session_coverage_after_unrelated_update("tail");
+    }
+
+    #[test]
+    fn collection_coverage_preserves_untouched_error() {
+        session_coverage_after_unrelated_update("malformed");
+    }
+
+    #[test]
+    fn collection_coverage_preserves_rejected_source_without_rows() {
+        session_coverage_after_unrelated_update("rejected");
+    }
+
+    #[test]
+    fn watcher_recovery_does_not_clear_source_diagnostics() {
+        let coverage = Mutex::new(Coverage {
+            reconciled_at: Some("completed".into()),
+            pending_changes: Some(0),
+            error_count: 2,
+            diagnostics: std::collections::BTreeMap::from([("unsupported_record".into(), 2)]),
+            ..Coverage::default()
+        });
+        let epoch = AtomicU64::new(1);
+        let scanned = AtomicU64::new(1);
+        let watch_error = Mutex::new(Some("watcher_unavailable".into()));
+        let (_, failed) = coverage_snapshot(&coverage, &epoch, &scanned, &watch_error);
+        assert_eq!(failed.error_count, 3);
+        assert_eq!(failed.diagnostics.get("watcher_unavailable"), Some(&1));
+        *watch_error.lock().unwrap() = None;
+        let (ready, recovered) = coverage_snapshot(&coverage, &epoch, &scanned, &watch_error);
+        assert_eq!(search_status(ready, &recovered), "degraded");
+        assert_eq!(recovered.error_count, 2);
+        assert!(!recovered.diagnostics.contains_key("watcher_unavailable"));
+        epoch.store(2, Ordering::SeqCst);
+        let (ready, active) = coverage_snapshot(&coverage, &epoch, &scanned, &watch_error);
+        assert_eq!(search_status(ready, &active), "refreshing");
+        assert_eq!(active.pending_changes, None);
+        assert_eq!(active.error_count, 2);
+    }
+
+    #[test]
+    fn status_snapshot_does_not_wait_for_a_durable_index_write() {
+        use std::sync::mpsc;
+        let dir = tempfile::tempdir().unwrap();
+        let store = Store::open(&dir.path().join("index.sqlite3")).unwrap();
+        let sessions = Arc::new(SessionState::new(dir.path().join("registry.json")));
+        let state = RootState::new(dir.path().to_owned(), "collection".into(), sessions.clone());
+        let memory = MemoryState {
+            target: 512 * 1024 * 1024,
+            observed: AtomicU64::new(0),
+            peak: AtomicU64::new(0),
+        };
+        let (entered, blocked) = mpsc::channel();
+        let (release, resume) = mpsc::channel();
+        let writer = thread::spawn(move || {
+            store.replace_source(
+                &crate::model::Source {
+                    key: "source".into(),
+                    collection: "collection".into(),
+                    path: "source.txt".into(),
+                    version: "version".into(),
+                    kind: "project".into(),
+                },
+                std::iter::once_with(|| {
+                    entered.send(()).unwrap();
+                    resume.recv().unwrap();
+                    Ok(crate::model::Chunk {
+                        text: "marker".into(),
+                        ..Default::default()
+                    })
+                }),
+            )
+        });
+        blocked.recv_timeout(Duration::from_secs(5)).unwrap();
+        let (observed, response) = mpsc::channel();
+        let reader = thread::spawn(move || {
+            observed
+                .send(status_snapshot(&state, &memory, &sessions))
+                .unwrap();
+        });
+        let snapshot = response.recv_timeout(Duration::from_secs(2));
+        release.send(()).unwrap();
+        writer.join().unwrap().unwrap();
+        reader.join().unwrap();
+        let snapshot = snapshot.expect("status must not wait for the writer");
+        assert_eq!(snapshot["project"]["status"], "building");
+        assert_eq!(
+            snapshot["project"]["coverage"]["pending_changes"],
+            Value::Null
+        );
+    }
+
     #[test]
     fn not_ready_status_takes_precedence_over_diagnostics() {
         let mut coverage = Coverage {
             error_count: 1,
+            pending_changes: Some(0),
             ..Coverage::default()
         };
         assert_eq!(search_status(false, &coverage), "building");

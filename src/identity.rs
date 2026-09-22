@@ -463,7 +463,7 @@ fn digest_path(path: &Path) -> String {
     text
 }
 
-fn canonical_or_normalized(path: &Path) -> PathBuf {
+pub(crate) fn canonical_or_normalized(path: &Path) -> PathBuf {
     if let Ok(canonical) = fs::canonicalize(path) {
         return canonical;
     }

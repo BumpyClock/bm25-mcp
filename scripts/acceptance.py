@@ -561,6 +561,21 @@ class Client:
             self.worker.join(timeout=join_budget)
 
 
+def is_settled(response):
+    """Validate a status/search readiness envelope; null pending work is unfinished."""
+    if not isinstance(response, dict) or response.get('status') not in (
+        'building', 'refreshing', 'ready', 'degraded',
+    ):
+        raise RuntimeError('Invalid readiness response')
+    coverage = response.get('coverage')
+    if not isinstance(coverage, dict) or 'pending_changes' not in coverage:
+        raise RuntimeError('Invalid readiness response')
+    pending = coverage['pending_changes']
+    if pending is not None and (type(pending) is not int or pending < 0):
+        raise RuntimeError('Invalid readiness response')
+    return response['status'] in ('ready', 'degraded') and pending == 0
+
+
 def settle(
     client,
     tool,
@@ -571,14 +586,18 @@ def settle(
     poll_interval=1,
     status_predicate=None,
 ):
-    """Observe indexing without ranked reads, then perform the requested search once."""
+    """Return a settled search, re-observing status after races under one deadline.
+
+    status_predicate applies only to status snapshots: ordinary search responses
+    do not carry the progress fields that a caller's predicate may require.
+    """
     start = time.monotonic()
     if not math.isfinite(timeout) or timeout <= 0:
         raise TimeoutError('Reconciliation deadline exceeded')
     deadline = start + timeout
     kind = {'search_project':'project', 'search_sessions':'sessions'}[tool]
-    if poll_interval < 0:
-        raise ValueError('poll interval must not be negative')
+    if not math.isfinite(poll_interval) or poll_interval < 0:
+        raise ValueError('poll interval must be finite and non-negative')
 
     def remaining():
         budget = deadline - time.monotonic()
@@ -595,24 +614,19 @@ def settle(
         text = response['contents'][0].get('text')
         if not isinstance(text, str):
             raise RuntimeError('Invalid status response')
-        document = json.loads(text)
+        try:
+            document = json.loads(text)
+        except ValueError:
+            raise RuntimeError('Invalid status response') from None
         state = document.get(kind) if isinstance(document, dict) else None
-        if not isinstance(state, dict):
-            raise RuntimeError('Invalid status response')
+        ready = is_settled(state)
         if observer is not None:
             observer(state)
-        status = state.get('status')
-        coverage = state.get('coverage')
-        ready = (
-            status in ('ready', 'degraded')
-            and isinstance(coverage, dict)
-            and coverage.get('pending_changes') == 0
-            and (status_predicate is None or status_predicate(state))
-        )
-        if ready:
+        if ready and (status_predicate is None or status_predicate(state)):
             result = client.tool(tool, {'query':query, **(arguments or {})}, timeout=remaining())
             remaining()
-            return result, time.monotonic()-start
+            if is_settled(result):
+                return result, time.monotonic()-start
         time.sleep(min(poll_interval, remaining()))
 
 def measure(client, count, worker, timeout=900):
@@ -646,7 +660,7 @@ def measure(client, count, worker, timeout=900):
         start = time.perf_counter()
         try:
             result = client.tool(tool, arguments, timeout=remaining())
-        except RuntimeError:
+        except McpRequestError:
             if arguments.get('mode') != 'context':
                 raise
             contexts = []
@@ -655,7 +669,7 @@ def measure(client, count, worker, timeout=900):
             continue
         elapsed = (time.perf_counter()-start)*1000
         peak = max(peak, (result['coverage'].get('memory') or {}).get('peak_observed_rss_bytes',0))
-        if result['status'] in ('ready','degraded') and result['coverage'].get('pending_changes') == 0:
+        if is_settled(result):
             samples.append(elapsed)
         else:
             partial += 1

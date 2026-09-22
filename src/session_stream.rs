@@ -33,11 +33,9 @@ const MAX_BLOCK_TYPES_IN_MEMORY: usize = 256;
 const MAX_CWD_CACHE_ENTRIES: usize = 4096;
 const MAX_INLINE_DEDUP_BYTES: usize = 64 * 1024;
 const SCRATCH_BATCH_WRITES: usize = 512;
-// The normalized session payload includes exact same-event visible-field
-// suppression.  Bump this whenever the emitted chunk semantics change so an
-// existing checkpoint cannot append new rows to a prefix built by an older
-// normalizer.
-const CHECKPOINT_SCHEMA: u32 = 6;
+// Version 7 also retains inspection diagnostics in the existing checkpoint
+// counts. Older prefixes must be replayed to reconstruct truthful coverage.
+const CHECKPOINT_SCHEMA: u32 = 7;
 const STATE_KIND_OWN_CALL: &str = "own_call";
 const STATE_KIND_TOOL_CALL: &str = "tool_call";
 const STATE_KIND_SEEN_EVENT: &str = "seen_event";
@@ -469,6 +467,8 @@ pub(super) fn scan_observed(
     });
 
     let mut report = ScanReport::default();
+    report.coverage.full = changes.is_none();
+    report.coverage.discovery_complete = true;
     progress.set_phase(ProgressPhase::Discovery);
     let discovery_started = Instant::now();
     let mut files = Vec::new();
@@ -480,6 +480,7 @@ pub(super) fn scan_observed(
                     provider,
                 });
             } else {
+                report.coverage.discovery_complete = false;
                 report.excluded_count = report.excluded_count.saturating_add(1);
                 diagnostic(
                     &mut report,
@@ -489,35 +490,44 @@ pub(super) fn scan_observed(
             }
         }
     } else {
-        discover_files(
+        report.coverage.discovery_complete &= discover_files(
             &config.codex_home.join("sessions"),
             Provider::Codex,
             &mut files,
             &mut report,
+            should_continue,
         );
-        discover_files(
+        report.coverage.discovery_complete &= discover_files(
             &config.codex_home.join("archived_sessions"),
             Provider::Codex,
             &mut files,
             &mut report,
+            should_continue,
         );
-        discover_files(
+        report.coverage.discovery_complete &= discover_files(
             &config.claude_config_dir.join("projects"),
             Provider::Claude,
             &mut files,
             &mut report,
+            should_continue,
         );
-        discover_files(
+        report.coverage.discovery_complete &= discover_files(
             &config.copilot_home.join("session-state"),
             Provider::Copilot,
             &mut files,
             &mut report,
+            should_continue,
         );
     }
     let mut unique = HashSet::new();
     files.retain(|file| unique.insert(file.path.clone()));
     progress.record_work(WorkKind::Discovery, discovery_started.elapsed());
     progress.record_discovered(files.len() as u64);
+    report.coverage.discovery = crate::coverage::SourceOutcome::from_report(&report);
+    report.coverage.scope = files
+        .iter()
+        .map(|file| source_key(owner_key, &source_path(file.provider, &file.path, config)))
+        .collect();
 
     let mut seen_sources = HashSet::new();
     let mut cwd_cache = HashMap::<String, Option<String>>::new();
@@ -534,14 +544,37 @@ pub(super) fn scan_observed(
         let relative = source_path(file.provider, &file.path, config);
         let key = source_key(owner_key, &relative);
         let old = existing.iter().find(|source| source.key == key);
+        let mut source_report = ScanReport::default();
         progress.record_current_source_bytes(0);
-        if !file_is_regular(&file.path) {
-            if let Some(old) = old {
-                store.remove_source(&old.key)?;
+        match fs::symlink_metadata(&file.path) {
+            Ok(metadata) if metadata.file_type().is_file() => {}
+            Err(error) if error.kind() != std::io::ErrorKind::NotFound => {
+                diagnostic(&mut source_report, "source_read", &error.to_string());
+                if let Some(old) = old {
+                    store.remove_source(&old.key)?;
+                }
+                seen_sources.insert(key.clone());
+                report.record_source(key, source_report);
+                progress.record_file_completed();
+                continue;
             }
-            seen_sources.insert(key.clone());
-            progress.record_file_completed();
-            continue;
+            metadata => {
+                if let Some(old) = old {
+                    store.remove_source(&old.key)?;
+                }
+                seen_sources.insert(key.clone());
+                if metadata.is_ok() {
+                    source_report.excluded_count = 1;
+                    source_report
+                        .diagnostics
+                        .insert("non_file_change".into(), 1);
+                    report.record_source(key, source_report);
+                } else {
+                    report.coverage.sources.insert(key, None);
+                }
+                progress.record_file_completed();
+                continue;
+            }
         }
         let checkpoint = store.session_checkpoint(&key)?;
         let parsed = match read_file_with_retries(
@@ -556,18 +589,19 @@ pub(super) fn scan_observed(
             store,
             old,
             checkpoint.as_ref(),
-            &mut report,
+            &mut source_report,
             &mut cwd_cache,
             should_continue,
             progress,
         ) {
             Ok(Some(parsed)) => parsed,
             Ok(None) => {
-                report.excluded_count = report.excluded_count.saturating_add(1);
+                source_report.excluded_count = source_report.excluded_count.saturating_add(1);
                 if let Some(old) = old {
                     store.remove_source(&old.key)?;
                 }
                 seen_sources.insert(key.clone());
+                report.record_source(key, source_report);
                 progress.record_file_completed();
                 continue;
             }
@@ -581,7 +615,7 @@ pub(super) fn scan_observed(
             }
             Err(error) => {
                 diagnostic(
-                    &mut report,
+                    &mut source_report,
                     "source_read",
                     &format!("{}: {error}", file.path.display()),
                 );
@@ -589,14 +623,15 @@ pub(super) fn scan_observed(
                     store.remove_source(&old.key)?;
                 }
                 seen_sources.insert(key.clone());
+                report.record_source(key, source_report);
                 progress.record_file_completed();
                 continue;
             }
         };
-        seen_sources.insert(key);
+        seen_sources.insert(key.clone());
         let prepared_chunk_count = parsed.chunk_count;
-        report.sources = report.sources.saturating_add(1);
-        report.chunks = report.chunks.saturating_add(prepared_chunk_count);
+        source_report.sources = 1;
+        source_report.chunks = prepared_chunk_count;
         let Parsed {
             source,
             chunks,
@@ -659,10 +694,11 @@ pub(super) fn scan_observed(
         }
         progress.record_work(WorkKind::DurableTxn, commit_started.elapsed());
         progress.record_committed_chunks(prepared_chunk_count);
+        report.record_source(key, source_report);
         progress.record_file_completed();
     }
 
-    if !cancelled {
+    if !cancelled && report.coverage.discovery_complete {
         for source in &existing {
             if affected_existing
                 .as_ref()
@@ -670,11 +706,12 @@ pub(super) fn scan_observed(
                 && !seen_sources.contains(&source.key)
             {
                 store.remove_source(&source.key)?;
+                report.coverage.sources.insert(source.key.clone(), None);
                 progress.record_file_completed();
             }
         }
     }
-    report.cancelled = cancelled;
+    report.cancelled |= cancelled || !should_continue();
     Ok(report)
 }
 
@@ -701,7 +738,8 @@ fn read_file_with_retries(
         if attempt != 0 {
             progress.record_retry();
         }
-        match read_file(
+        let mut attempt_report = ScanReport::default();
+        let result = read_file(
             path,
             provider,
             root,
@@ -713,16 +751,23 @@ fn read_file_with_retries(
             store,
             old,
             checkpoint,
-            report,
+            &mut attempt_report,
             cwd_cache,
             should_continue,
             progress,
-        ) {
-            Ok(value) => return Ok(value),
+        );
+        match result {
+            Ok(value) => {
+                *report = attempt_report;
+                return Ok(value);
+            }
             Err(error) if error.to_string().contains("unstable_source") && attempt < 2 => {
                 last = Some(error);
             }
-            Err(error) => return Err(error),
+            Err(error) => {
+                *report = attempt_report;
+                return Err(error);
+            }
         }
     }
     Err(last.unwrap_or_else(|| anyhow!("unstable_source: source changed while reading")))
@@ -859,6 +904,7 @@ fn read_file(
         for (category, count) in &state.diagnostics {
             let total = report.diagnostics.entry(category.clone()).or_default();
             *total = total.saturating_add(*count);
+            report.error_count = report.error_count.saturating_add(*count);
             if report.errors.len() < MAX_REPORTED_ERRORS {
                 report
                     .errors
@@ -866,7 +912,6 @@ fn read_file(
             }
         }
     }
-    let diagnostics_before_file = report.diagnostics.clone();
 
     let mut parser_state = ParseState {
         ids: {
@@ -972,16 +1017,7 @@ fn read_file(
     state.prefix_digest = prefix_digest;
     state.next_line = stream.next_line;
     state.session_id = parser_state.session_id;
-    for (category, total) in &report.diagnostics {
-        let previous = diagnostics_before_file.get(category).copied().unwrap_or(0);
-        let delta = total.saturating_sub(previous);
-        if delta != 0 {
-            let prior = state.diagnostics.get(category).copied().unwrap_or(0);
-            state
-                .diagnostics
-                .insert(category.clone(), prior.saturating_add(delta));
-        }
-    }
+    state.diagnostics = report.diagnostics.clone().into_iter().collect();
     let state_json = serde_json::to_string(&state)?;
     let source = Source {
         key: source_key,
@@ -3188,15 +3224,35 @@ fn discover_files(
     provider: Provider,
     files: &mut Vec<SessionFile>,
     report: &mut ScanReport,
-) {
-    if !root.is_dir() {
-        return;
+    should_continue: &dyn Fn() -> bool,
+) -> bool {
+    match fs::metadata(root) {
+        Ok(metadata) if metadata.is_dir() => {}
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return true,
+        result => {
+            diagnostic(
+                report,
+                "discovery",
+                &format!(
+                    "{}: not an accessible directory: {result:?}",
+                    root.display()
+                ),
+            );
+            return false;
+        }
     }
+    let mut complete = true;
     let mut stack = vec![root.to_path_buf()];
     while let Some(directory) = stack.pop() {
+        if !should_continue() {
+            report.cancelled = true;
+            report.pending_count += 1;
+            return false;
+        }
         let entries = match fs::read_dir(&directory) {
             Ok(entries) => entries,
             Err(error) => {
+                complete = false;
                 diagnostic(
                     report,
                     "discovery",
@@ -3206,9 +3262,15 @@ fn discover_files(
             }
         };
         for entry in entries {
+            if !should_continue() {
+                report.cancelled = true;
+                report.pending_count += 1;
+                return false;
+            }
             let entry = match entry {
                 Ok(entry) => entry,
                 Err(error) => {
+                    complete = false;
                     diagnostic(
                         report,
                         "discovery",
@@ -3221,6 +3283,7 @@ fn discover_files(
             let file_type = match entry.file_type() {
                 Ok(file_type) => file_type,
                 Err(error) => {
+                    complete = false;
                     diagnostic(report, "discovery", &format!("{}: {error}", path.display()));
                     continue;
                 }
@@ -3237,6 +3300,7 @@ fn discover_files(
             }
         }
     }
+    complete
 }
 
 fn provider_for_path(path: &Path, config: &SessionConfig) -> Option<Provider> {
@@ -3296,11 +3360,7 @@ fn canonical_or_normalized(path: &Path) -> PathBuf {
             other => normalized.push(other.as_os_str()),
         }
     }
-    normalized
-}
-
-fn file_is_regular(path: &Path) -> bool {
-    fs::symlink_metadata(path).is_ok_and(|metadata| metadata.file_type().is_file())
+    crate::identity::canonical_or_normalized(&normalized)
 }
 
 fn source_path(provider: Provider, path: &Path, config: &SessionConfig) -> String {

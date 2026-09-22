@@ -1125,9 +1125,11 @@ def main():
             probe_threads = ()
             append_after = public_progress(append_status)
             append_coverage = public_coverage(append_status.get('coverage'))
-            append_old_result = reconnect_client.tool(
+            append_old_result, _ = settle(
+                reconnect_client,
                 'search_sessions',
-                {'query': first_marker, 'limit': 10},
+                first_marker,
+                arguments={'limit': 10},
                 timeout=30,
             )
             append_ready = (
@@ -1315,14 +1317,18 @@ def main():
             probe_threads = ()
             changed_after = public_progress(changed_status)
             changed_coverage = public_coverage(changed_status.get('coverage'))
-            changed_old_result = reconnect_client.tool(
+            changed_old_result, _ = settle(
+                reconnect_client,
                 'search_sessions',
-                {'query': changed_old_marker, 'limit': 10},
+                changed_old_marker,
+                arguments={'limit': 10},
                 timeout=30,
             )
-            unaffected_old_result = reconnect_client.tool(
+            unaffected_old_result, _ = settle(
+                reconnect_client,
                 'search_sessions',
-                {'query': source_markers[4], 'limit': 10},
+                source_markers[4],
+                arguments={'limit': 10},
                 timeout=30,
             )
             changed_ready = (

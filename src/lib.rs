@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 pub mod content_cache;
+pub mod coverage;
 pub mod identity;
 pub mod ingest;
 pub mod model;
