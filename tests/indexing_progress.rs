@@ -431,6 +431,7 @@ fn precise_session_append_normalizes_only_the_changed_suffix() {
         }
     });
     let suffix_bytes = serde_json::to_vec(&append_record).expect("encode suffix");
+    let prefix_bytes = fs::metadata(&changed).expect("prefix metadata").len();
     let mut append = OpenOptions::new()
         .append(true)
         .open(&changed)
@@ -459,9 +460,21 @@ fn precise_session_append_normalizes_only_the_changed_suffix() {
     assert_eq!(snapshot.records_processed, 1);
     assert!(snapshot.bytes_hashed_for_verification > 0);
     assert!(snapshot.bytes_read > suffix_bytes.len() as u64);
+    assert_eq!(
+        snapshot.bytes_read,
+        prefix_bytes + 2 * (suffix_bytes.len() as u64 + 1)
+    );
     assert!(
         snapshot.bytes_read.saturating_mul(2) < unrelated_bytes,
         "precise scan read unrelated bytes: {snapshot:?}, unrelated_bytes={unrelated_bytes}"
+    );
+    assert_eq!(
+        snapshot.work.session_hash_bytes,
+        prefix_bytes + 4 * (suffix_bytes.len() as u64 + 1)
+    );
+    assert_eq!(
+        snapshot.work.json_inspection_bytes,
+        suffix_bytes.len() as u64 + 1
     );
     assert!(snapshot.chunks_prepared >= snapshot.chunks_committed);
     assert!(snapshot.chunks_committed > 0);

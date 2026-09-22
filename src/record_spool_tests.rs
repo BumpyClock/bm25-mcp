@@ -193,3 +193,82 @@ fn malformed_spooled_updates_roll_back_chunks_state_and_checkpoint() -> Result<(
     assert!(!path.exists());
     Ok(())
 }
+
+#[test]
+fn byte_ranges_replay_across_spill_reset_and_owner_drop() -> Result<()> {
+    for length in [
+        0,
+        INLINE_BYTES - 1,
+        INLINE_BYTES,
+        INLINE_BYTES + 1,
+        INLINE_BYTES * 3,
+    ] {
+        let progress = ProgressReporter::new();
+        let mut spool = ByteSpool::observed(&progress);
+        let expected: Vec<u8> = (0..length).map(|i| (i % 251) as u8).collect();
+        spool.write_all(&expected)?;
+        let snapshot = spool.range(0, length as u64)?;
+        let path = spool.file.as_ref().map(|file| file.0.clone());
+        assert_eq!(path.is_some(), length > INLINE_BYTES);
+        spool.reset();
+        spool.write_all(b"next record")?;
+        let next = spool.finish()?;
+        let mut actual = Vec::new();
+        snapshot.reader()?.read_to_end(&mut actual)?;
+        assert_eq!(actual, expected);
+        let work = progress.snapshot().work;
+        assert_eq!(
+            work.spool_write_bytes,
+            if path.is_some() { length as u64 } else { 0 }
+        );
+        assert_eq!(work.spool_read_bytes, work.spool_write_bytes);
+        assert!(snapshot.range(1, 0).is_err());
+        assert!(snapshot.range(0, length as u64 + 1).is_err());
+        let mut reader = snapshot.reader()?;
+        drop(snapshot);
+        if let Some(path) = &path {
+            assert!(path.exists());
+        }
+        actual.clear();
+        reader.read_to_end(&mut actual)?;
+        assert_eq!(actual, expected);
+        drop(reader);
+        if let Some(path) = &path {
+            assert!(!path.exists());
+        }
+        actual.clear();
+        next.reader()?.read_to_end(&mut actual)?;
+        assert_eq!(actual, b"next record");
+    }
+    Ok(())
+}
+
+#[test]
+fn spilled_byte_flush_failure_is_a_finalization_error() -> Result<()> {
+    let mut spool = ByteSpool::default();
+    spool.write_all(&vec![0; INLINE_BYTES + 1])?;
+    let path = spool.file.as_ref().unwrap().0.clone();
+    spool.writer.as_mut().unwrap().get_mut().file = File::open(&path)?;
+    spool.write_all(b"buffered")?;
+    assert!(
+        spool
+            .finish()
+            .unwrap_err()
+            .downcast_ref::<FinalizeError>()
+            .is_some()
+    );
+    assert!(!path.exists());
+    Ok(())
+}
+
+#[test]
+fn spilled_byte_reader_open_failure_is_a_finalization_error() -> Result<()> {
+    let mut spool = ByteSpool::default();
+    spool.write_all(&vec![0; INLINE_BYTES + 1])?;
+    let path = spool.file.as_ref().unwrap().0.clone();
+    let bytes = spool.finish()?;
+    fs::remove_file(path)?;
+    let error = bytes.reader().err().expect("missing spool must fail");
+    assert!(error.downcast_ref::<FinalizeError>().is_some());
+    Ok(())
+}

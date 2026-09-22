@@ -69,6 +69,12 @@ pub struct ScratchBatchMetrics {
 /// Aggregate timings and retry/cancellation counts for a run.
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct WorkMetrics {
+    /// Bytes fed into session source/record hashers, counting overlapping work.
+    pub session_hash_bytes: u64,
+    /// Logical file I/O for observed record, raw-byte, and capture spools.
+    /// Excludes SQLite, tokenizer spills, and visible-field deduplication files.
+    pub spool_read_bytes: u64,
+    pub spool_write_bytes: u64,
     pub discovery_ms: u64,
     pub discovery_count: u64,
     pub ownership_ms: u64,
@@ -397,6 +403,14 @@ pub struct ProgressReporter {
     enabled: bool,
 }
 
+impl std::fmt::Debug for ProgressReporter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ProgressReporter")
+            .field("enabled", &self.enabled)
+            .finish_non_exhaustive()
+    }
+}
+
 impl Default for ProgressReporter {
     fn default() -> Self {
         Self::new()
@@ -477,6 +491,19 @@ impl ProgressReporter {
             if read != 0 || hashed_for_verification != 0 {
                 state.touch(now, false);
             }
+        });
+    }
+
+    pub(crate) fn record_session_hash_bytes(&self, bytes: u64) {
+        self.update(|state, _| {
+            state.work.session_hash_bytes = state.work.session_hash_bytes.saturating_add(bytes);
+        });
+    }
+
+    pub(crate) fn record_spool_io(&self, read: u64, written: u64) {
+        self.update(|state, _| {
+            state.work.spool_read_bytes = state.work.spool_read_bytes.saturating_add(read);
+            state.work.spool_write_bytes = state.work.spool_write_bytes.saturating_add(written);
         });
     }
 

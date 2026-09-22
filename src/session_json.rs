@@ -10,15 +10,17 @@
 
 use crate::progress::ProgressReporter;
 use crate::progress::WorkKind;
+use crate::record_spool::{ByteRange, ByteSpool};
 use anyhow::{Context, Result, anyhow, bail};
 use serde::{Deserialize, Serialize};
-use std::fs::{self, File, OpenOptions};
-use std::io::{BufReader, BufWriter, Read, Write};
-use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::{SystemTime, UNIX_EPOCH};
+#[cfg(test)]
+use std::fs::File;
+use std::io::{BufReader, Read, Write};
+#[cfg(test)]
+use std::path::Path;
 
 pub const MAX_FRAGMENT_BYTES: usize = 16 * 1024;
+#[cfg(test)]
 const JSON_READ_BUFFER_BYTES: usize = 64 * 1024;
 const JSON_CANCEL_CHECK_BYTES: u64 = 64 * 1024;
 const MAX_KEY_BYTES: usize = 4096;
@@ -37,104 +39,80 @@ pub struct Fragment {
     pub text: String,
 }
 
-/// A disk-backed sequence of decoded string fragments from one JSON record.
-/// The file is removed when this value is dropped.
+/// Replayable fragments from one record, sharing a bounded capture archive.
+#[derive(Debug)]
 pub struct CaptureFile {
-    path: PathBuf,
+    bytes: ByteRange,
 }
 
-impl std::fmt::Debug for CaptureFile {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter
-            .debug_struct("CaptureFile")
-            .field("path", &self.path)
-            .finish()
+#[derive(Default)]
+pub struct CaptureArchive {
+    spool: CaptureSpool,
+}
+
+impl CaptureArchive {
+    pub fn observed(progress: &ProgressReporter) -> Self {
+        Self {
+            spool: CaptureSpool {
+                bytes: ByteSpool::observed(progress),
+            },
+        }
+    }
+
+    pub fn parse<R: Read>(
+        &mut self,
+        reader: R,
+        visible: bool,
+        should_continue: Option<&dyn Fn() -> bool>,
+        progress: Option<&ProgressReporter>,
+    ) -> Result<(CaptureFile, u64, u64)> {
+        let start = self.spool.bytes.len();
+        let mut parser =
+            JsonParser::new(reader, &mut self.spool, visible, should_continue, progress);
+        let parsed = parser.parse_root();
+        parser.finish()?;
+        parsed?;
+        let end = self.spool.bytes.len();
+        Ok((
+            CaptureFile::from_bytes(self.spool.bytes.range(start, end)?),
+            start,
+            end,
+        ))
+    }
+
+    pub fn finish(self) -> Result<ByteRange> {
+        self.spool.bytes.finish()
     }
 }
 
 impl CaptureFile {
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn parse(record_path: &Path) -> Result<Self> {
-        Self::parse_with_visible_fields(record_path, true, None, None)
-    }
-
-    /// Parse a record while retaining only metadata fields needed for
-    /// ownership and routing. Visible message/tool payloads are still
-    /// validated lexically, but their strings and structured scalar values
-    /// are not spooled during an inspection pass.
-    #[allow(dead_code)]
-    pub fn parse_metadata(record_path: &Path) -> Result<Self> {
-        Self::parse_with_visible_fields(record_path, false, None, None)
-    }
-
-    #[allow(dead_code)]
-    pub fn parse_controlled(
-        record_path: &Path,
-        should_continue: &dyn Fn() -> bool,
-    ) -> Result<Self> {
-        Self::parse_with_visible_fields(record_path, true, Some(should_continue), None)
-    }
-
-    pub fn parse_controlled_with_progress(
-        record_path: &Path,
-        should_continue: &dyn Fn() -> bool,
-        progress: &ProgressReporter,
-    ) -> Result<Self> {
-        Self::parse_with_visible_fields(record_path, true, Some(should_continue), Some(progress))
-    }
-
-    #[allow(dead_code)]
-    pub fn parse_metadata_controlled(
-        record_path: &Path,
-        should_continue: &dyn Fn() -> bool,
-    ) -> Result<Self> {
-        Self::parse_with_visible_fields(record_path, false, Some(should_continue), None)
-    }
-
-    pub fn parse_metadata_controlled_with_progress(
-        record_path: &Path,
-        should_continue: &dyn Fn() -> bool,
-        progress: &ProgressReporter,
-    ) -> Result<Self> {
-        Self::parse_with_visible_fields(record_path, false, Some(should_continue), Some(progress))
-    }
-
-    fn parse_with_visible_fields(
-        record_path: &Path,
-        capture_visible_fields: bool,
-        should_continue: Option<&dyn Fn() -> bool>,
-        progress: Option<&ProgressReporter>,
-    ) -> Result<Self> {
-        let spool = CaptureSpool::new()?;
         let reader = BufReader::with_capacity(JSON_READ_BUFFER_BYTES, File::open(record_path)?);
-        let mut parser = JsonParser::new(
-            reader,
-            spool,
-            capture_visible_fields,
-            should_continue,
-            progress,
-        );
-        parser.parse_root()?;
-        let spool = parser.finish()?;
-        spool.finish()
+        Ok(CaptureArchive::default().parse(reader, true, None, None)?.0)
+    }
+
+    pub fn from_bytes(bytes: ByteRange) -> Self {
+        Self { bytes }
     }
 
     pub fn iter(&self) -> Result<CaptureIter> {
         Ok(CaptureIter {
-            reader: BufReader::with_capacity(JSON_READ_BUFFER_BYTES, File::open(&self.path)?),
+            reader: self.bytes.reader()?,
             done: false,
         })
     }
-}
 
-impl Drop for CaptureFile {
-    fn drop(&mut self) {
-        let _ = fs::remove_file(&self.path);
+    pub fn metadata(&self) -> Result<impl Iterator<Item = Result<Fragment>>> {
+        Ok(self.iter()?.filter(|item| {
+            item.as_ref()
+                .map_or(true, |fragment| metadata_path(&fragment.path))
+        }))
     }
 }
 
 pub struct CaptureIter {
-    reader: BufReader<File>,
+    reader: BufReader<Box<dyn Read>>,
     done: bool,
 }
 
@@ -157,11 +135,18 @@ impl Iterator for CaptureIter {
             return None;
         }
         let mut length = [0_u8; 4];
-        if let Err(error) = self.reader.read_exact(&mut length) {
-            if error.kind() == std::io::ErrorKind::UnexpectedEof {
+        match self.reader.read(&mut length[..1]) {
+            Ok(0) => {
                 self.done = true;
                 return None;
             }
+            Ok(_) => {}
+            Err(error) => {
+                self.done = true;
+                return Some(Err(error.into()));
+            }
+        }
+        if let Err(error) = self.reader.read_exact(&mut length[1..]) {
             self.done = true;
             return Some(Err(error.into()));
         }
@@ -204,46 +189,12 @@ impl Iterator for CaptureIter {
     }
 }
 
+#[derive(Default)]
 struct CaptureSpool {
-    path: Option<PathBuf>,
-    file: Option<BufWriter<File>>,
+    bytes: ByteSpool,
 }
 
 impl CaptureSpool {
-    fn new() -> Result<Self> {
-        static NEXT_ID: AtomicU64 = AtomicU64::new(0);
-        let temp_dir = std::env::temp_dir();
-        for _ in 0..32 {
-            let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
-            let stamp = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_nanos();
-            let path = temp_dir.join(format!(
-                "bm25-mcp-json-capture-{}-{stamp}-{id}.bin",
-                std::process::id()
-            ));
-            let mut options = OpenOptions::new();
-            options.create_new(true).write(true);
-            #[cfg(unix)]
-            {
-                use std::os::unix::fs::OpenOptionsExt;
-                options.mode(0o600);
-            }
-            match options.open(&path) {
-                Ok(file) => {
-                    return Ok(Self {
-                        path: Some(path),
-                        file: Some(BufWriter::new(file)),
-                    });
-                }
-                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
-                Err(error) => return Err(error.into()),
-            }
-        }
-        Err(anyhow!("could not create JSON capture spool"))
-    }
-
     fn push(&mut self, path: &[PathPart], text: &str) -> Result<()> {
         if text.is_empty() {
             return Ok(());
@@ -257,45 +208,19 @@ impl CaptureSpool {
         }
         let path_len = u32::try_from(path_bytes.len()).context("JSON path length overflow")?;
         let text_len = u32::try_from(text.len()).context("JSON fragment length overflow")?;
-        let file = self
-            .file
-            .as_mut()
-            .ok_or_else(|| anyhow!("JSON capture spool already finished"))?;
+        let file = &mut self.bytes;
         file.write_all(&path_len.to_le_bytes())?;
         file.write_all(&path_bytes)?;
         file.write_all(&text_len.to_le_bytes())?;
         file.write_all(text.as_bytes())?;
         Ok(())
     }
-
-    fn finish(mut self) -> Result<CaptureFile> {
-        let mut file = self
-            .file
-            .take()
-            .ok_or_else(|| anyhow!("JSON capture spool already finished"))?;
-        file.flush()?;
-        Ok(CaptureFile {
-            path: self
-                .path
-                .take()
-                .ok_or_else(|| anyhow!("JSON capture spool path missing"))?,
-        })
-    }
-}
-
-impl Drop for CaptureSpool {
-    fn drop(&mut self) {
-        self.file.take();
-        if let Some(path) = self.path.take() {
-            let _ = fs::remove_file(path);
-        }
-    }
 }
 
 struct JsonParser<'a, R> {
     reader: R,
     offset: u64,
-    spool: CaptureSpool,
+    spool: &'a mut CaptureSpool,
     pending: Option<u8>,
     capture_visible_fields: bool,
     should_continue: Option<&'a dyn Fn() -> bool>,
@@ -306,7 +231,7 @@ struct JsonParser<'a, R> {
 impl<'a, R: Read> JsonParser<'a, R> {
     fn new(
         reader: R,
-        spool: CaptureSpool,
+        spool: &'a mut CaptureSpool,
         capture_visible_fields: bool,
         should_continue: Option<&'a dyn Fn() -> bool>,
         progress: Option<&'a ProgressReporter>,
@@ -334,13 +259,13 @@ impl<'a, R: Read> JsonParser<'a, R> {
         Ok(())
     }
 
-    fn finish(self) -> Result<CaptureSpool> {
+    fn finish(self) -> Result<()> {
         if self.bytes_since_check != 0
             && let Some(progress) = self.progress
         {
             progress.record_work_bytes(WorkKind::JsonInspection, self.bytes_since_check);
         }
-        Ok(self.spool)
+        Ok(())
     }
 
     fn parse_value(&mut self, path: &mut Vec<PathPart>, depth: usize) -> Result<()> {
@@ -889,11 +814,7 @@ impl<'a, R: Read> JsonParser<'a, R> {
     }
 
     fn capture_path(&self, path: &[PathPart]) -> bool {
-        should_capture(path)
-            && (self.capture_visible_fields
-                || !path
-                    .iter()
-                    .any(|part| matches!(part, PathPart::Key(key) if is_visible_field_key(key))))
+        should_capture(path) && (self.capture_visible_fields || metadata_path(path))
     }
 
     fn skip_ws(&mut self) -> Result<()> {
@@ -1038,6 +959,12 @@ fn structured_path(path: &[PathPart]) -> bool {
     })
 }
 
+fn metadata_path(path: &[PathPart]) -> bool {
+    !path
+        .iter()
+        .any(|part| matches!(part, PathPart::Key(key) if is_visible_field_key(key)))
+}
+
 fn is_visible_field_key(key: &str) -> bool {
     matches!(
         key,
@@ -1057,6 +984,15 @@ mod tests {
     use super::*;
     use std::io::Write;
     use tempfile::NamedTempFile;
+
+    #[test]
+    fn truncated_capture_header_is_an_error() -> Result<()> {
+        let mut bytes = ByteSpool::default();
+        bytes.write_all(&[1])?;
+        let capture = CaptureFile::from_bytes(bytes.finish()?);
+        assert!(capture.iter()?.next().unwrap().is_err());
+        Ok(())
+    }
 
     #[test]
     fn huge_selected_string_is_fragmented_on_disk() -> Result<()> {

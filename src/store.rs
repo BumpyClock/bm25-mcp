@@ -83,11 +83,10 @@ impl SessionStateReader {
     pub fn get(&self, source: &str, kind: &str, key: &str) -> Result<Option<String>> {
         Ok(self
             .connection
-            .query_row(
+            .prepare_cached(
                 "SELECT value FROM session_state WHERE source_key=?1 AND kind=?2 AND key=?3",
-                params![source, kind, key],
-                |r| r.get(0),
-            )
+            )?
+            .query_row(params![source, kind, key], |r| r.get(0))
             .optional()?)
     }
 }

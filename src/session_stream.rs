@@ -1,18 +1,21 @@
 //! Provider-neutral session-file streaming and durable incremental parsing.
 //!
 //! This module intentionally does not build a `serde_json::Value` for a
-//! record.  Physical records are spooled to disk, selected strings are
-//! decoded by `session_json`, and only bounded chunks enter SQLite.  The
+//! record. Physical records and captures use bounded buffers with disk spill;
+//! selected strings are decoded once by `session_json`. Only bounded chunks
+//! enter SQLite. The
 //! checkpoint is committed in the same transaction as those chunks, so an
 //! incomplete tail or an interrupted append is replayed safely.
 
-use super::session_json::{CaptureFile, Fragment, MAX_FRAGMENT_BYTES, ParseCancelled, PathPart};
+use super::session_json::{
+    CaptureArchive, CaptureFile, Fragment, MAX_FRAGMENT_BYTES, ParseCancelled, PathPart,
+};
 use super::{SESSION_KIND, SessionConfig};
 use crate::identity::IdentityRegistry;
 use crate::ingest::{ProjectIdentity, project_identity};
 use crate::model::{Chunk, ScanReport, Source};
 use crate::progress::{ProgressPhase, ProgressReporter, ScratchBatchMetrics, WorkKind};
-use crate::record_spool::{FinalizeError, RecordSpool, Records};
+use crate::record_spool::{ByteRange, ByteSpool, FinalizeError, RecordSpool, Records};
 use crate::store::{SessionCheckpoint, SessionStateReader, Store};
 use anyhow::{Context, Result, anyhow, bail};
 use rusqlite::OptionalExtension;
@@ -119,10 +122,9 @@ impl BlockTypeIndex {
 
     fn insert(&mut self, path: &str, value: &str) -> Result<()> {
         if let Some(connection) = self.connection.as_ref() {
-            connection.execute(
-                "INSERT OR IGNORE INTO block_types(path,value) VALUES (?1,?2)",
-                rusqlite::params![path, value],
-            )?;
+            connection
+                .prepare_cached("INSERT OR IGNORE INTO block_types(path,value) VALUES (?1,?2)")?
+                .execute(rusqlite::params![path, value])?;
             return Ok(());
         }
         if self.memory.contains_key(path) {
@@ -136,10 +138,8 @@ impl BlockTypeIndex {
         self.connection
             .as_ref()
             .ok_or_else(|| anyhow!("block type index spill did not open"))?
-            .execute(
-                "INSERT OR IGNORE INTO block_types(path,value) VALUES (?1,?2)",
-                rusqlite::params![path, value],
-            )?;
+            .prepare_cached("INSERT OR IGNORE INTO block_types(path,value) VALUES (?1,?2)")?
+            .execute(rusqlite::params![path, value])?;
         Ok(())
     }
 
@@ -151,11 +151,8 @@ impl BlockTypeIndex {
             return Ok(None);
         };
         connection
-            .query_row(
-                "SELECT value FROM block_types WHERE path=?1",
-                [path],
-                |row| row.get(0),
-            )
+            .prepare_cached("SELECT value FROM block_types WHERE path=?1")?
+            .query_row([path], |row| row.get(0))
             .optional()
             .map_err(Into::into)
     }
@@ -167,11 +164,9 @@ impl BlockTypeIndex {
         let Some(connection) = self.connection.as_ref() else {
             return Ok(false);
         };
-        let found: i64 = connection.query_row(
-            "SELECT EXISTS(SELECT 1 FROM block_types WHERE value=?1)",
-            [value],
-            |row| row.get(0),
-        )?;
+        let found: i64 = connection
+            .prepare_cached("SELECT EXISTS(SELECT 1 FROM block_types WHERE value=?1)")?
+            .query_row([value], |row| row.get(0))?;
         Ok(found != 0)
     }
 
@@ -184,10 +179,9 @@ impl BlockTypeIndex {
         {
             let transaction = connection.transaction()?;
             for (path_key, value) in &self.memory {
-                transaction.execute(
-                    "INSERT INTO block_types(path,value) VALUES (?1,?2)",
-                    rusqlite::params![path_key, value],
-                )?;
+                transaction
+                    .prepare_cached("INSERT INTO block_types(path,value) VALUES (?1,?2)")?
+                    .execute(rusqlite::params![path_key, value])?;
             }
             transaction.commit()?;
         }
@@ -207,138 +201,7 @@ impl Drop for BlockTypeIndex {
     }
 }
 
-#[derive(Debug)]
-struct Inspection {
-    version: String,
-    cwds: StringSpool,
-    session_hint: Option<String>,
-    malformed: bool,
-}
-
 const MAX_SUMMARY_METADATA: usize = 4096;
-
-/// A bounded-memory sequence of metadata strings.  CWD fields are needed for
-/// ownership checks but a history can contain an arbitrary number of them;
-/// keeping those values in a private spool avoids turning metadata cardinality
-/// into a process-memory limit.
-struct StringSpool {
-    path: Option<PathBuf>,
-    writer: Option<BufWriter<File>>,
-}
-
-impl std::fmt::Debug for StringSpool {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter
-            .debug_struct("StringSpool")
-            .field("path", &self.path)
-            .finish()
-    }
-}
-
-impl StringSpool {
-    fn new(prefix: &str) -> Result<Self> {
-        static NEXT_ID: AtomicU64 = AtomicU64::new(0);
-        for _ in 0..32 {
-            let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
-            let stamp = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_nanos();
-            let path = std::env::temp_dir().join(format!(
-                "bm25-mcp-session-{prefix}-{}-{stamp}-{id}.bin",
-                std::process::id()
-            ));
-            let mut options = OpenOptions::new();
-            options.create_new(true).write(true);
-            #[cfg(unix)]
-            {
-                use std::os::unix::fs::OpenOptionsExt;
-                options.mode(0o600);
-            }
-            match options.open(&path) {
-                Ok(file) => {
-                    return Ok(Self {
-                        path: Some(path),
-                        writer: Some(BufWriter::new(file)),
-                    });
-                }
-                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
-                Err(error) => return Err(error.into()),
-            }
-        }
-        Err(anyhow!("could not create session metadata spool"))
-    }
-
-    fn push(&mut self, value: &str) -> Result<()> {
-        let bytes = value.as_bytes();
-        let length = u32::try_from(bytes.len()).context("session metadata value too long")?;
-        let writer = self
-            .writer
-            .as_mut()
-            .ok_or_else(|| anyhow!("session metadata spool finished"))?;
-        writer.write_all(&length.to_le_bytes())?;
-        writer.write_all(bytes)?;
-        Ok(())
-    }
-
-    fn iter(&mut self) -> Result<StringSpoolIter> {
-        if let Some(writer) = self.writer.as_mut() {
-            writer.flush()?;
-        }
-        let path = self
-            .path
-            .as_ref()
-            .ok_or_else(|| anyhow!("session metadata spool path missing"))?;
-        Ok(StringSpoolIter {
-            reader: BufReader::new(File::open(path)?),
-            done: false,
-        })
-    }
-}
-
-struct StringSpoolIter {
-    reader: BufReader<File>,
-    done: bool,
-}
-
-impl Iterator for StringSpoolIter {
-    type Item = Result<String>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.done {
-            return None;
-        }
-        let mut length = [0_u8; 4];
-        if let Err(error) = self.reader.read_exact(&mut length) {
-            if error.kind() == std::io::ErrorKind::UnexpectedEof {
-                self.done = true;
-                return None;
-            }
-            self.done = true;
-            return Some(Err(error.into()));
-        }
-        let length = u32::from_le_bytes(length) as usize;
-        if length > MAX_METADATA_VALUE_BYTES {
-            self.done = true;
-            return Some(Err(anyhow!("session metadata value exceeds bound")));
-        }
-        let mut bytes = vec![0_u8; length];
-        if let Err(error) = self.reader.read_exact(&mut bytes) {
-            self.done = true;
-            return Some(Err(error.into()));
-        }
-        Some(String::from_utf8(bytes).map_err(Into::into))
-    }
-}
-
-impl Drop for StringSpool {
-    fn drop(&mut self) {
-        self.writer.take();
-        if let Some(path) = self.path.take() {
-            let _ = fs::remove_file(path);
-        }
-    }
-}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 struct PersistedState {
@@ -365,12 +228,20 @@ struct Parsed {
     state_updates: Records<(String, String, Option<String>)>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 struct RecordRef {
-    path: PathBuf,
+    digest: String,
     start_byte: u64,
     end_byte: u64,
     line: u64,
+}
+
+#[derive(Deserialize, Serialize)]
+struct PreparedRecord {
+    record: RecordRef,
+    capture_start: u64,
+    capture_end: u64,
+    malformed: Option<String>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -455,6 +326,10 @@ pub(super) fn scan_observed(
         .transpose()?;
     invalidate_scope(owner_key, store, config, changes)?;
     let existing = store.sources(owner_key, SESSION_KIND)?;
+    let existing_by_key: HashMap<_, _> = existing
+        .iter()
+        .map(|source| (source.key.as_str(), source))
+        .collect();
     let affected_existing = changes.map(|changes| {
         let candidates = changes
             .iter()
@@ -548,7 +423,7 @@ pub(super) fn scan_observed(
         }
         let relative = source_path(file.provider, &file.path, config);
         let key = source_key(owner_key, &relative);
-        let old = existing.iter().find(|source| source.key == key);
+        let old = existing_by_key.get(key.as_str()).copied();
         let mut source_report = ScanReport::default();
         progress.record_current_source_bytes(0);
         match fs::symlink_metadata(&file.path) {
@@ -834,57 +709,110 @@ fn read_file(
         && previous.owner_key == owner_key
         && previous.registry_revision == registry_revision
         && checkpoint.offset <= before.len
-
     {
         append = true;
         start_offset = checkpoint.offset;
         state = previous;
     }
 
-    progress.set_phase(ProgressPhase::JsonInspection);
-    let inspection_started = Instant::now();
-    let mut inspection = inspect(
-        path,
-        provider,
-        start_offset,
-        if append { state.next_line } else { 1 },
-        report,
-        should_continue,
-        progress,
-    )?;
-    progress.record_work(WorkKind::JsonInspection, inspection_started.elapsed());
     let mut saw_cwd = false;
     // An append tentatively inherits ownership until final prefix validation.
     let mut current_cwd = append;
     let mut known_other_cwd = false;
     let mut unknown_cwd = false;
-    for cwd in inspection.cwds.iter()? {
-        let cwd = cwd?;
-        let owner = if let Some(owner) = cwd_cache.get(&cwd) {
-            owner.clone()
-        } else {
-            progress.set_phase(ProgressPhase::Ownership);
-            let ownership_started = Instant::now();
-            let owner = associate_cwd(
-                &cwd,
-                root,
-                root_identity,
-                root_is_git,
-                registry.as_deref_mut(),
-            )?;
-            progress.record_work(WorkKind::Ownership, ownership_started.elapsed());
-            if cwd_cache.len() >= MAX_CWD_CACHE_ENTRIES {
-                cwd_cache.clear();
+    let mut session_hint = None;
+    let mut archive = CaptureArchive::observed(progress);
+    let mut prepared = RecordSpool::observed(progress)?;
+    progress.set_phase(ProgressPhase::JsonInspection);
+    let inspection_started = Instant::now();
+    let stream = stream_records(
+        path,
+        start_offset,
+        if append { state.next_line } else { 1 },
+        should_continue,
+        progress,
+        |record, bytes| {
+            progress.set_phase(ProgressPhase::JsonInspection);
+            progress.record_record_inspected();
+            // Once any cwd makes acceptance impossible, retain only metadata.
+            let parsed = archive.parse(
+                bytes.reader()?,
+                !known_other_cwd && !unknown_cwd,
+                Some(should_continue),
+                Some(progress),
+            );
+            let (capture, capture_start, capture_end) = match parsed {
+                Err(error) if error.downcast_ref::<ParseCancelled>().is_some() => {
+                    return Err(ScanCancelled.into());
+                }
+                Err(error) if error.downcast_ref::<FinalizeError>().is_some() => return Err(error),
+                Ok(capture) => capture,
+                Err(error) => {
+                    let message = format!("{} line {}: {error}", path.display(), record.line);
+                    diagnostic(report, "malformed_record", &message);
+                    prepared.push(&PreparedRecord {
+                        record: record.clone(),
+                        capture_start: 0,
+                        capture_end: 0,
+                        malformed: Some(truncate(message)),
+                    })?;
+                    return Ok(!known_other_cwd && !unknown_cwd);
+                }
+            };
+            let summary = summarize_fragments(provider, capture.metadata()?)?;
+            if summary.metadata_truncated {
+                diagnostic(
+                    report,
+                    "metadata",
+                    &format!(
+                        "{} line {} metadata fields exceeded bounded summary",
+                        path.display(),
+                        record.line
+                    ),
+                );
             }
-            cwd_cache.insert(cwd.clone(), owner.clone());
-            owner
-        };
-        saw_cwd = true;
-        match owner.as_deref() {
-            Some(owner) if owner == owner_key => current_cwd = true,
-            Some(_) => known_other_cwd = true,
-            None => unknown_cwd = true,
-        }
+            if session_hint.is_none() {
+                session_hint = summary.session_id;
+            }
+            if let Some(cwd) = summary.cwd {
+                let owner = if let Some(owner) = cwd_cache.get(&cwd) {
+                    owner.clone()
+                } else {
+                    progress.set_phase(ProgressPhase::Ownership);
+                    let ownership_started = Instant::now();
+                    let owner = associate_cwd(
+                        &cwd,
+                        root,
+                        root_identity,
+                        root_is_git,
+                        registry.as_deref_mut(),
+                    )?;
+                    progress.record_work(WorkKind::Ownership, ownership_started.elapsed());
+                    if cwd_cache.len() >= MAX_CWD_CACHE_ENTRIES {
+                        cwd_cache.clear();
+                    }
+                    cwd_cache.insert(cwd.clone(), owner.clone());
+                    owner
+                };
+                saw_cwd = true;
+                match owner.as_deref() {
+                    Some(owner) if owner == owner_key => current_cwd = true,
+                    Some(_) => known_other_cwd = true,
+                    None => unknown_cwd = true,
+                }
+            }
+            prepared.push(&PreparedRecord {
+                record: record.clone(),
+                capture_start,
+                capture_end,
+                malformed: None,
+            })?;
+            Ok(!known_other_cwd && !unknown_cwd)
+        },
+    )?;
+    progress.record_work(WorkKind::JsonInspection, inspection_started.elapsed());
+    if stream.pending_tail {
+        report.pending_count = report.pending_count.saturating_add(1);
     }
     if !saw_cwd && !append {
         diagnostic(
@@ -930,82 +858,68 @@ fn read_file(
             progress.record_work(WorkKind::TempFileOps, started.elapsed());
             ids
         },
-        session_id: state.session_id.clone().or(inspection.session_hint.clone()),
+        session_id: state.session_id.clone().or(session_hint),
     };
     let mut chunks = {
         let started = Instant::now();
-        let chunks = RecordSpool::new()?;
+        let chunks = RecordSpool::observed(progress)?;
         progress.record_work(WorkKind::TempFileOps, started.elapsed());
         chunks
     };
     let mut chunk_count = 0_u64;
-    let stream = stream_records(
-        path,
-        start_offset,
-        if append { state.next_line } else { 1 },
-        should_continue,
-        progress,
-        |record| {
-            progress.record_record();
-            let capture = match CaptureFile::parse_controlled_with_progress(
-                &record.path,
-                should_continue,
-                progress,
-            ) {
-                Err(error) if error.downcast_ref::<ParseCancelled>().is_some() => {
+    let archive = archive.finish()?;
+    for item in prepared.finish::<PreparedRecord>()? {
+        if !should_continue() {
+            return Err(ScanCancelled.into());
+        }
+        let item = item?;
+        let record = &item.record;
+        progress.record_record();
+        if let Some(message) = item.malformed {
+            // Preserve the existing inspection and normalization diagnostics.
+            diagnostic(report, "malformed_record", &message);
+            continue;
+        }
+        let capture = CaptureFile::from_bytes(archive.range(item.capture_start, item.capture_end)?);
+        let summary = summarize(provider, &capture)?;
+        let digest = &record.digest;
+        if let Some(event_id) = &summary.event_id {
+            let dedup_key = format!("{event_id}:{digest}");
+            if !parser_state.ids.insert(STATE_KIND_SEEN_EVENT, &dedup_key)? {
+                continue;
+            }
+        }
+        if let Some(session_id) = &summary.session_id {
+            parser_state.session_id = Some(session_id.clone());
+        }
+        let mut appender = SessionChunkAppender::new(&mut chunks, progress);
+        let mut field_deduper = VisibleFieldDeduper::new();
+        {
+            let mut append_item = |item: Normalized| {
+                if !should_continue() {
                     return Err(ScanCancelled.into());
                 }
-                Ok(capture) => capture,
-                Err(error) => {
-                    diagnostic(
-                        report,
-                        "malformed_record",
-                        &format!("{} line {}: {error}", path.display(), record.line),
-                    );
-                    return Ok(());
-                }
+                appender.push(item, record)
             };
-            let summary = summarize(provider, &capture)?;
-            let digest = digest_file(&record.path)?;
-            if let Some(event_id) = &summary.event_id {
-                let dedup_key = format!("{event_id}:{digest}");
-                if !parser_state.ids.insert(STATE_KIND_SEEN_EVENT, &dedup_key)? {
-                    return Ok(());
-                }
-            }
-            if let Some(session_id) = &summary.session_id {
-                parser_state.session_id = Some(session_id.clone());
-            }
-            let mut appender = SessionChunkAppender::new(&mut chunks, progress);
-            let mut field_deduper = VisibleFieldDeduper::new();
-            {
-                let mut append_item = |item: Normalized| {
-                    if !should_continue() {
-                        return Err(ScanCancelled.into());
-                    }
-                    appender.push(item, record)
-                };
-                progress.set_phase(ProgressPhase::Normalization);
-                let normalization_started = Instant::now();
-                let tokenization_started = Instant::now();
-                normalize(
-                    provider,
-                    &capture,
-                    &summary,
-                    &mut parser_state.ids,
-                    &config.own_tool_names,
-                    parser_state.session_id.as_deref(),
-                    &mut |item| field_deduper.push(item, &mut append_item),
-                    report,
-                )?;
-                progress.record_work(WorkKind::Normalization, normalization_started.elapsed());
-                progress.record_work(WorkKind::Tokenization, tokenization_started.elapsed());
-                field_deduper.finish(&mut append_item)?;
-            }
-            chunk_count = chunk_count.saturating_add(appender.finish()?);
-            Ok(())
-        },
-    )?;
+            progress.set_phase(ProgressPhase::Normalization);
+            let normalization_started = Instant::now();
+            let tokenization_started = Instant::now();
+            normalize(
+                provider,
+                &capture,
+                &summary,
+                &mut parser_state.ids,
+                &config.own_tool_names,
+                parser_state.session_id.as_deref(),
+                &mut |item| field_deduper.push(item, &mut append_item),
+                report,
+            )?;
+            progress.record_work(WorkKind::Normalization, normalization_started.elapsed());
+            progress.record_work(WorkKind::Tokenization, tokenization_started.elapsed());
+            field_deduper.finish(&mut append_item)?;
+        }
+        chunk_count = chunk_count.saturating_add(appender.finish()?);
+    }
     if !should_continue() {
         return Err(ScanCancelled.into());
     }
@@ -1019,7 +933,6 @@ fn read_file(
     if before.token != after.token
         || before.len != after.len
         || before.modified != after.modified
-        || stream.version != inspection.version
         || final_suffix != stream.version
         || (!append && final_version != stream.version)
         || (append && previous_prefix_digest != state.prefix_digest)
@@ -1052,77 +965,14 @@ fn read_file(
     }))
 }
 
-fn inspect(
-    path: &Path,
-    provider: Provider,
-    start_offset: u64,
-    start_line: u64,
-    report: &mut ScanReport,
-    should_continue: &dyn Fn() -> bool,
-    progress: &ProgressReporter,
-) -> Result<Inspection> {
-    let mut inspection = Inspection {
-        version: String::new(),
-        cwds: StringSpool::new("cwds")?,
-        session_hint: None,
-        malformed: false,
-    };
-    let stream = stream_records(
-        path,
-        start_offset,
-        start_line,
-        should_continue,
-        progress,
-        |record| {
-            progress.record_record_inspected();
-            let capture = match CaptureFile::parse_metadata_controlled_with_progress(
-                &record.path,
-                should_continue,
-                progress,
-            ) {
-                Err(error) if error.downcast_ref::<ParseCancelled>().is_some() => {
-                    return Err(ScanCancelled.into());
-                }
-                Ok(capture) => capture,
-                Err(error) => {
-                    inspection.malformed = true;
-                    diagnostic(
-                        report,
-                        "malformed_record",
-                        &format!("{} line {}: {error}", path.display(), record.line),
-                    );
-                    return Ok(());
-                }
-            };
-            let summary = summarize(provider, &capture)?;
-            if summary.metadata_truncated {
-                diagnostic(
-                    report,
-                    "metadata",
-                    &format!(
-                        "{} line {} metadata fields exceeded bounded summary",
-                        path.display(),
-                        record.line
-                    ),
-                );
-            }
-            if let Some(cwd) = summary.cwd {
-                inspection.cwds.push(&cwd)?;
-            }
-            if inspection.session_hint.is_none() {
-                inspection.session_hint = summary.session_id;
-            }
-            Ok(())
-        },
-    )?;
-    if stream.pending_tail {
-        report.pending_count = report.pending_count.saturating_add(1);
-    }
-    inspection.version = stream.version;
-    Ok(inspection)
+fn summarize(provider: Provider, capture: &CaptureFile) -> Result<RecordSummary> {
+    summarize_fragments(provider, capture.iter()?)
 }
 
-fn summarize(provider: Provider, capture: &CaptureFile) -> Result<RecordSummary> {
+fn summarize_fragments(
+    provider: Provider,
+    fragments: impl Iterator<Item = Result<Fragment>>,
+) -> Result<RecordSummary> {
     let mut summary = RecordSummary {
         fields: HashMap::new(),
         block_types: BlockTypeIndex::new()?,
@@ -1138,7 +988,7 @@ fn summarize(provider: Provider, capture: &CaptureFile) -> Result<RecordSummary>
         tool_use_id: None,
         metadata_truncated: false,
     };
-    for item in capture.iter()? {
+    for item in fragments {
         let fragment = item?;
         let fragment_key = path_key(&fragment.path);
         let visible = fragment
@@ -1281,8 +1131,6 @@ struct ParseState {
     session_id: Option<String>,
 }
 
-const STATE_ID_TABLE: &str = "session_ids";
-
 /// Exact membership for a source's incremental parser state.  The committed
 /// prefix lives in Store's session_state table and is queried by key; IDs
 /// discovered while parsing the current suffix live in this private SQLite
@@ -1314,9 +1162,7 @@ impl DurableIdSet {
     ) -> Result<Self> {
         let (path, connection) = open_state_scratch()?;
         connection.execute(
-            &format!(
-                "CREATE TABLE {STATE_ID_TABLE}(kind TEXT NOT NULL, key TEXT NOT NULL, value TEXT NOT NULL, PRIMARY KEY(kind,key))"
-            ),
+            "CREATE TABLE session_ids(kind TEXT NOT NULL, key TEXT NOT NULL, value TEXT NOT NULL, PRIMARY KEY(kind,key))",
             [],
         )?;
         Ok(Self {
@@ -1324,7 +1170,7 @@ impl DurableIdSet {
             scratch_path: Some(path),
             connection: Some(connection),
             reader: append.then(|| store.session_state_reader()).transpose()?,
-            updates: Some(RecordSpool::new()?),
+            updates: Some(RecordSpool::observed(progress)?),
             pending_writes: 0,
             batch_started: None,
             lookup_elapsed: Duration::ZERO,
@@ -1349,11 +1195,8 @@ impl DurableIdSet {
             .connection
             .as_ref()
             .ok_or_else(|| anyhow!("session ID scratch database closed"))?
-            .query_row(
-                &format!("SELECT 1 FROM {STATE_ID_TABLE} WHERE kind=?1 AND key=?2"),
-                rusqlite::params![kind, key],
-                |row| row.get(0),
-            )
+            .prepare_cached("SELECT 1 FROM session_ids WHERE kind=?1 AND key=?2")?
+            .query_row(rusqlite::params![kind, key], |row| row.get(0))
             .optional()?;
         if local.is_some() {
             self.lookup_elapsed = self.lookup_elapsed.saturating_add(lookup_started.elapsed());
@@ -1385,10 +1228,8 @@ impl DurableIdSet {
         self.connection
             .as_ref()
             .ok_or_else(|| anyhow!("session ID scratch database closed"))?
-            .execute(
-                &format!("INSERT INTO {STATE_ID_TABLE}(kind,key,value) VALUES (?1,?2,?3)"),
-                rusqlite::params![kind, key, value],
-            )?;
+            .prepare_cached("INSERT INTO session_ids(kind,key,value) VALUES (?1,?2,?3)")?
+            .execute(rusqlite::params![kind, key, value])?;
         self.insert_elapsed = self.insert_elapsed.saturating_add(insert_started.elapsed());
         self.insert_count = self.insert_count.saturating_add(1);
         self.progress
@@ -1415,11 +1256,8 @@ impl DurableIdSet {
             .as_ref()
             .ok_or_else(|| anyhow!("session ID scratch database closed"))?;
         let local: Option<String> = connection
-            .query_row(
-                &format!("SELECT value FROM {STATE_ID_TABLE} WHERE kind=?1 AND key=?2"),
-                rusqlite::params![kind, key],
-                |row| row.get(0),
-            )
+            .prepare_cached("SELECT value FROM session_ids WHERE kind=?1 AND key=?2")?
+            .query_row(rusqlite::params![kind, key], |row| row.get(0))
             .optional()?;
         if local.is_some() {
             return Ok(local);
@@ -2696,17 +2534,15 @@ fn stream_records<F>(
     mut callback: F,
 ) -> Result<StreamResult>
 where
-    F: FnMut(&RecordRef) -> Result<()>,
+    F: FnMut(&RecordRef, &ByteRange) -> Result<bool>,
 {
     let mut input = File::open(path).with_context(|| format!("opening {}", path.display()))?;
     input.seek(SeekFrom::Start(start_offset))?;
-    let mut spool = RecordByteSpool::new()?;
+    let mut spool = ByteSpool::observed(progress);
+    let mut record_hasher = Sha256::new();
+    // The callback can stop record hashing once ownership rules out acceptance.
+    let mut hash_records = true;
     let mut hasher = Sha256::new();
-    if start_offset > 0 {
-        // The caller validates the prefix separately; the suffix stream only
-        // needs a version hash when it is a full scan.  Keeping this branch
-        // explicit prevents accidental hash-of-suffix version identifiers.
-    }
     let mut buffer = [0_u8; 16 * 1024];
     let mut absolute = start_offset;
     let mut record_start = start_offset;
@@ -2723,6 +2559,7 @@ where
         }
         progress.record_source_bytes(count as u64, count as u64);
         hasher.update(&buffer[..count]);
+        progress.record_session_hash_bytes(count as u64);
         let mut segment = 0_usize;
         for (index, byte) in buffer[..count].iter().enumerate() {
             if *byte != b'\n' {
@@ -2730,16 +2567,23 @@ where
             }
             if index + 1 > segment {
                 spool.write_all(&buffer[segment..=index])?;
+                if hash_records {
+                    record_hasher.update(&buffer[segment..=index]);
+                    progress.record_session_hash_bytes((index + 1 - segment) as u64);
+                }
             }
-            spool.flush()?;
             let record = RecordRef {
-                path: spool.path.clone(),
+                digest: if hash_records {
+                    hex_digest(record_hasher.finalize_reset())
+                } else {
+                    String::new()
+                },
                 start_byte: record_start,
                 end_byte: absolute.saturating_add(index as u64).saturating_add(1),
                 line,
             };
-            callback(&record)?;
-            spool.reset()?;
+            hash_records = callback(&record, &spool.range(0, spool.len())?)?;
+            spool.reset();
             record_start = record.end_byte;
             complete_offset = record.end_byte;
             line = line.saturating_add(1);
@@ -2748,6 +2592,10 @@ where
         }
         if segment < count {
             spool.write_all(&buffer[segment..count])?;
+            if hash_records {
+                record_hasher.update(&buffer[segment..count]);
+                progress.record_session_hash_bytes((count - segment) as u64);
+            }
             record_len = record_len.saturating_add((count - segment) as u64);
         }
         absolute = absolute.saturating_add(count as u64);
@@ -2759,79 +2607,6 @@ where
         next_line: line,
         pending_tail,
     })
-}
-
-struct RecordByteSpool {
-    path: PathBuf,
-    file: Option<File>,
-}
-
-impl RecordByteSpool {
-    fn new() -> Result<Self> {
-        static NEXT_ID: AtomicU64 = AtomicU64::new(0);
-        for _ in 0..32 {
-            let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
-            let stamp = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_nanos();
-            let path = std::env::temp_dir().join(format!(
-                "bm25-mcp-session-record-{}-{stamp}-{id}.json",
-                std::process::id()
-            ));
-            let mut options = OpenOptions::new();
-            options.create_new(true).read(true).write(true);
-            #[cfg(unix)]
-            {
-                use std::os::unix::fs::OpenOptionsExt;
-                options.mode(0o600);
-            }
-            match options.open(&path) {
-                Ok(file) => {
-                    return Ok(Self {
-                        path,
-                        file: Some(file),
-                    });
-                }
-                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
-                Err(error) => return Err(error.into()),
-            }
-        }
-        Err(anyhow!("could not create session record spool"))
-    }
-
-    fn write_all(&mut self, bytes: &[u8]) -> Result<()> {
-        self.file
-            .as_mut()
-            .ok_or_else(|| anyhow!("session record spool closed"))?
-            .write_all(bytes)?;
-        Ok(())
-    }
-
-    fn flush(&mut self) -> Result<()> {
-        self.file
-            .as_mut()
-            .ok_or_else(|| anyhow!("session record spool closed"))?
-            .flush()?;
-        Ok(())
-    }
-
-    fn reset(&mut self) -> Result<()> {
-        let file = self
-            .file
-            .as_mut()
-            .ok_or_else(|| anyhow!("session record spool closed"))?;
-        file.set_len(0)?;
-        file.seek(SeekFrom::Start(0))?;
-        Ok(())
-    }
-}
-
-impl Drop for RecordByteSpool {
-    fn drop(&mut self) {
-        self.file.take();
-        let _ = fs::remove_file(&self.path);
-    }
 }
 
 fn file_identity(path: &Path) -> Result<FileIdentityWithLength> {
@@ -2867,20 +2642,6 @@ struct FileIdentityWithLength {
     len: u64,
     token: String,
     modified: u128,
-}
-
-fn digest_file(path: &Path) -> Result<String> {
-    let mut file = File::open(path)?;
-    let mut hasher = Sha256::new();
-    let mut buffer = [0_u8; 16 * 1024];
-    loop {
-        let count = file.read(&mut buffer)?;
-        if count == 0 {
-            break;
-        }
-        hasher.update(&buffer[..count]);
-    }
-    Ok(hex_digest(hasher.finalize()))
 }
 
 fn digest_file_controlled(
@@ -2924,6 +2685,9 @@ fn digest_file_controlled(
             break;
         }
         progress.record_source_bytes(count as u64, count as u64);
+        progress.record_session_hash_bytes(
+            count as u64 + end_offset.saturating_sub(suffix_offset.max(offset)),
+        );
         full_hasher.update(&bytes[start..]);
         if suffix_offset < end_offset {
             let start = suffix_offset.saturating_sub(offset) as usize;
@@ -3840,6 +3604,101 @@ mod tests {
         let checkpoint = store.session_checkpoint(&source.key)?.unwrap();
         assert!(checkpoint.offset > first_checkpoint.offset);
         assert_eq!(checkpoint.offset, fs::metadata(&path)?.len());
+        Ok(())
+    }
+
+    #[test]
+    fn mutation_at_final_validation_discards_captured_records() -> Result<()> {
+        let (project, _home, config, store, owner) = setup();
+        let path = config.codex_home.join("sessions/mutation.jsonl");
+        let history = |text: &str| {
+            [
+            line(serde_json::json!({"type":"session_meta", "payload":{"cwd":project.path(), "id":"mutation"}})),
+            line(serde_json::json!({"type":"response_item", "payload":{"type":"message", "id":"message", "role":"user", "content":[{"type":"text", "text":text}]}})),
+        ].concat()
+        };
+        fs::write(&path, history("beforemutation"))?;
+        let progress = ProgressReporter::new();
+        let mutated = std::cell::Cell::new(false);
+        let keep = || {
+            if progress.snapshot().phase == ProgressPhase::PrefixVerification
+                && !mutated.replace(true)
+            {
+                fs::write(&path, history("aftermutationx")).unwrap();
+            }
+            true
+        };
+        let report = scan_observed(
+            project.path(),
+            &owner,
+            &store,
+            &config,
+            None,
+            &keep,
+            &progress,
+            None,
+        )?;
+        assert_eq!(report.error_count, 0, "{report:?}");
+        assert_eq!(progress.snapshot().work.retries, 1);
+        assert_eq!(progress.snapshot().chunks_committed, 1);
+        assert!(
+            store
+                .search("beforemutation", &session_filter(&owner), 10)?
+                .1
+                .is_empty()
+        );
+        assert_eq!(
+            store
+                .search("aftermutationx", &session_filter(&owner), 10)?
+                .1
+                .len(),
+            1
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn late_session_metadata_and_duplicate_ids_survive_capture_replay() -> Result<()> {
+        for padding in [0, 70_000] {
+            let (project, _home, config, store, owner) = setup();
+            let path = config.codex_home.join("sessions/late-metadata.jsonl");
+            let text = format!("latemetadatamarker {}", "padding ".repeat(padding));
+            let first = format!(
+                "{{\"type\":\"response_item\",\"payload\":{{\"type\":\"message\",\"id\":\"first-id\",\"id\":\"second-id\",\"role\":\"user\",\"content\":[{{\"type\":\"text\",\"text\":{}}}]}}}}\n",
+                serde_json::to_string(&text)?
+            );
+            let metadata = line(
+                serde_json::json!({"type":"session_meta", "payload":{"cwd":project.path(), "id":"late-session"}}),
+            );
+            fs::write(
+                &path,
+                [first.as_bytes(), first.as_bytes(), &metadata].concat(),
+            )?;
+            let progress = ProgressReporter::new();
+            let report = scan_observed(
+                project.path(),
+                &owner,
+                &store,
+                &config,
+                None,
+                &|| true,
+                &progress,
+                None,
+            )?;
+            assert_eq!(report.error_count, 0, "{report:?}");
+            let hits = store
+                .search("latemetadatamarker", &session_filter(&owner), 10)?
+                .1;
+            assert_eq!(hits.len(), 1);
+            assert_eq!(hits[0].chunk.session_id.as_deref(), Some("late-session"));
+            assert_eq!(hits[0].chunk.event_id.as_deref(), Some("first-id"));
+            assert_eq!(hits[0].chunk.start_byte, 0);
+            assert_eq!(hits[0].chunk.end_byte, first.len() as u64);
+            assert_eq!(hits[0].chunk.start_line, 1);
+            let size = fs::metadata(&path)?.len();
+            assert_eq!(progress.snapshot().bytes_read, 2 * size);
+            assert_eq!(progress.snapshot().work.json_inspection_bytes, size);
+        }
         Ok(())
     }
 
