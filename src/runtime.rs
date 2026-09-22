@@ -160,7 +160,7 @@ impl SessionState {
     fn new(registry_path: PathBuf, collection: String) -> Self {
         Self {
             registry_path,
-            reconciliation: Controller::new(collection.clone()),
+            reconciliation: Controller::new(collection),
             progress: ProgressReporter::new(),
             watcher: Mutex::new(None),
         }
@@ -185,7 +185,7 @@ impl RootState {
             collection: collection.clone(),
             lifecycle: Mutex::new(()),
             leases: AtomicUsize::new(0),
-            reconciliation: Controller::new(collection.clone()),
+            reconciliation: Controller::new(collection),
             git_snapshot: Mutex::new(None),
             progress: ProgressReporter::new(),
             sessions,

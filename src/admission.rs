@@ -5,7 +5,7 @@ use crate::{
     query::QueryPlan,
     ranking::{AdmissionEvidence, CandidateCounts},
 };
-use std::{cmp::Ordering, collections::BTreeMap, marker::PhantomData};
+use std::{cmp::Ordering, collections::BTreeMap};
 
 #[derive(Clone, Copy)]
 pub(super) enum Lane {
@@ -16,7 +16,6 @@ pub(super) enum Lane {
     Expansion,
 }
 
-#[derive(Clone)]
 pub(super) struct Candidate {
     pub(super) hit: Hit,
     pub(super) raw_bm25: Option<f32>,
@@ -52,7 +51,6 @@ pub(crate) struct ScorablePool<'snapshot> {
     plan: &'snapshot QueryPlan,
     prepared: Vec<ranking::Prepared>,
     stats: ranking::CorpusStats,
-    snapshot: PhantomData<&'snapshot ()>,
 }
 impl<'snapshot> ScorablePool<'snapshot> {
     pub(crate) fn into_parts(
@@ -299,7 +297,6 @@ impl<'plan> AdmittedPool<'plan> {
             plan,
             prepared,
             stats,
-            snapshot: PhantomData,
         })
     }
 }

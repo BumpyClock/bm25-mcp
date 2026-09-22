@@ -9,6 +9,7 @@ use crate::content_cache::{CachedChunks, ContentCache};
 pub use crate::identity::ProjectIdentity;
 use crate::model::{Chunk, ScanReport, Source};
 use crate::progress::{ProgressPhase, ProgressReporter, WorkKind};
+use crate::record_spool::{FinalizeError, RecordSpool, Records};
 use crate::store::Store;
 use crate::text::StreamingTokenizer;
 use anyhow::{Context, Result, anyhow, ensure};
@@ -16,12 +17,10 @@ use ignore::WalkBuilder;
 use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
 use std::ffi::OsStr;
-use std::fs::{self, File, Metadata, OpenOptions};
-use std::io::{BufRead, BufReader, BufWriter, Read, Write};
+use std::fs::{self, File, Metadata};
+use std::io::{BufReader, Read};
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::{Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Instant, SystemTime};
 
 /// The source kind used by project-file ingestion.
 pub const PROJECT_SOURCE_KIND: &str = "project";
@@ -516,6 +515,7 @@ fn scan_project_observed_inner(
                 seen.insert(key.clone());
                 progress.record_file_completed();
             }
+            Err(error) if error.downcast_ref::<FinalizeError>().is_some() => return Err(error),
             Err(error) => {
                 record_error(&mut source_report, format!("{relative}: {error}"));
                 progress.record_file_completed();
@@ -783,7 +783,7 @@ enum ReadOutcome {
     },
     Included {
         version: String,
-        spool: SpoolChunks,
+        spool: Records<Chunk>,
         chunks: u64,
     },
     Excluded {
@@ -875,8 +875,7 @@ fn read_source_once(
         });
     }
 
-    let spool = ChunkSpool::new()?;
-    let mut spool = spool;
+    let mut spool = RecordSpool::new()?;
     let mut chunker = Chunker {
         progress: Some(progress.clone()),
         ..Chunker::default()
@@ -1279,7 +1278,7 @@ struct Chunker {
 }
 
 impl Chunker {
-    fn push(&mut self, decoded: DecodedChar, spool: &mut ChunkSpool) -> Result<()> {
+    fn push(&mut self, decoded: DecodedChar, spool: &mut RecordSpool) -> Result<()> {
         if decoded.character == '\0' {
             return Err(BinaryContent.into());
         }
@@ -1330,14 +1329,14 @@ impl Chunker {
         Ok(())
     }
 
-    fn finish(&mut self, spool: &mut ChunkSpool) -> Result<()> {
+    fn finish(&mut self, spool: &mut RecordSpool) -> Result<()> {
         self.tokenizer
             .try_finish(&mut |term| self.tokens.push(term))
             .map_err(|error| anyhow!("tokenizer spill: {error}"))?;
         self.flush(spool)
     }
 
-    fn flush(&mut self, spool: &mut ChunkSpool) -> Result<()> {
+    fn flush(&mut self, spool: &mut RecordSpool) -> Result<()> {
         if self.text.is_empty() {
             self.lines = 0;
             return Ok(());
@@ -1362,144 +1361,6 @@ impl Chunker {
         }
         self.lines = 0;
         Ok(())
-    }
-}
-
-struct ChunkSpool {
-    path: Option<PathBuf>,
-    writer: Option<BufWriter<File>>,
-}
-
-impl std::fmt::Debug for ChunkSpool {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter
-            .debug_struct("ChunkSpool")
-            .field("path", &self.path)
-            .finish()
-    }
-}
-
-impl ChunkSpool {
-    fn new() -> Result<Self> {
-        static NEXT_ID: AtomicU64 = AtomicU64::new(0);
-        let temp_dir = std::env::temp_dir();
-        for _ in 0..32 {
-            let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
-            let timestamp = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_nanos();
-            let path = temp_dir.join(format!(
-                "bm25-mcp-spool-{}-{timestamp}-{id}.jsonl",
-                std::process::id()
-            ));
-            let mut options = OpenOptions::new();
-            options.create_new(true).write(true);
-            #[cfg(unix)]
-            {
-                use std::os::unix::fs::OpenOptionsExt;
-                options.mode(0o600);
-            }
-            match options.open(&path) {
-                Ok(file) => {
-                    #[cfg(unix)]
-                    {
-                        use std::os::unix::fs::PermissionsExt;
-                        let _ = fs::set_permissions(&path, fs::Permissions::from_mode(0o600));
-                    }
-                    return Ok(Self {
-                        path: Some(path),
-                        writer: Some(BufWriter::new(file)),
-                    });
-                }
-                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
-                Err(error) => return Err(error.into()),
-            }
-        }
-        Err(anyhow!("could not create a unique ingestion spool"))
-    }
-
-    fn push(&mut self, chunk: &Chunk) -> Result<()> {
-        let writer = self
-            .writer
-            .as_mut()
-            .ok_or_else(|| anyhow!("spool already finished"))?;
-        serde_json::to_writer(&mut *writer, chunk)?;
-        writer.write_all(b"\n")?;
-        Ok(())
-    }
-
-    fn finish(mut self) -> Result<SpoolChunks> {
-        if let Some(mut writer) = self.writer.take() {
-            writer.flush()?;
-        }
-        let path = self
-            .path
-            .take()
-            .ok_or_else(|| anyhow!("spool already finished"))?;
-        let reader = match File::open(&path) {
-            Ok(file) => BufReader::with_capacity(READ_BUFFER_BYTES, file),
-            Err(error) => {
-                let _ = fs::remove_file(&path);
-                return Err(error.into());
-            }
-        };
-        Ok(SpoolChunks {
-            path: Arc::new(path),
-            reader: Some(reader),
-            line: String::new(),
-        })
-    }
-}
-
-impl Drop for ChunkSpool {
-    fn drop(&mut self) {
-        self.writer.take();
-        if let Some(path) = self.path.take() {
-            let _ = fs::remove_file(path);
-        }
-    }
-}
-
-#[derive(Debug)]
-struct SpoolChunks {
-    path: Arc<PathBuf>,
-    reader: Option<BufReader<File>>,
-    line: String,
-}
-
-impl SpoolChunks {
-    fn reopen(&self) -> Result<Self> {
-        let reader = File::open(self.path.as_path())
-            .with_context(|| format!("reopen ingestion spool {}", self.path.display()))?;
-        Ok(Self {
-            path: self.path.clone(),
-            reader: Some(BufReader::with_capacity(READ_BUFFER_BYTES, reader)),
-            line: String::new(),
-        })
-    }
-}
-
-impl Iterator for SpoolChunks {
-    type Item = Result<Chunk>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.line.clear();
-        let reader = self.reader.as_mut()?;
-        match reader.read_line(&mut self.line) {
-            Ok(0) => None,
-            Ok(_) => Some(serde_json::from_str(self.line.trim_end()).map_err(Into::into)),
-            Err(error) => Some(Err(error.into())),
-        }
-    }
-}
-
-impl Drop for SpoolChunks {
-    fn drop(&mut self) {
-        self.reader.take();
-        if Arc::strong_count(&self.path) == 1 {
-            let _ = fs::remove_file(self.path.as_path());
-        }
     }
 }
 
@@ -1568,6 +1429,7 @@ mod tests {
     }
 
     fn store_for(temp: &TempDir) -> Store {
+        use std::sync::atomic::{AtomicU64, Ordering};
         static STORE_ID: AtomicU64 = AtomicU64::new(0);
         let path = std::env::temp_dir().join(format!(
             "bm25-mcp-ingest-test-{}-{}.sqlite3",

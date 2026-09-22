@@ -19,3 +19,4 @@ pub mod query;
 pub mod ranking;
 
 mod reconciliation;
+mod record_spool;

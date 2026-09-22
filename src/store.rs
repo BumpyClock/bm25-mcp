@@ -1683,9 +1683,6 @@ fn hydrate_body_evidence(
 ) -> Result<HashMap<String, ranking::BodyEvidence>> {
     let mut evidence = HashMap::with_capacity(candidates.len());
     for batch in candidates.chunks(BODY_EVIDENCE_BATCH) {
-        if batch.is_empty() {
-            continue;
-        }
         let placeholders = std::iter::repeat_n("?", batch.len())
             .collect::<Vec<_>>()
             .join(",");

@@ -12,6 +12,7 @@ use crate::identity::IdentityRegistry;
 use crate::ingest::{ProjectIdentity, project_identity};
 use crate::model::{Chunk, ScanReport, Source};
 use crate::progress::{ProgressPhase, ProgressReporter, ScratchBatchMetrics, WorkKind};
+use crate::record_spool::{FinalizeError, RecordSpool, Records};
 use crate::store::{SessionCheckpoint, SessionStateReader, Store};
 use anyhow::{Context, Result, anyhow, bail};
 use rusqlite::OptionalExtension;
@@ -357,11 +358,11 @@ struct PersistedState {
 #[derive(Debug)]
 struct Parsed {
     source: Source,
-    chunks: ChunkSpool,
+    chunks: Records<Chunk>,
     chunk_count: u64,
     checkpoint: SessionCheckpoint,
     append: bool,
-    state_updates: StateUpdateSpool,
+    state_updates: Records<(String, String, Option<String>)>,
 }
 
 #[derive(Clone, Debug)]
@@ -609,6 +610,7 @@ pub(super) fn scan_observed(
                 progress.record_file_completed();
                 continue;
             }
+            Err(error) if error.downcast_ref::<FinalizeError>().is_some() => return Err(error),
             Err(error) if error.downcast_ref::<ScanCancelled>().is_some() => {
                 report.pending_count = report
                     .pending_count
@@ -652,14 +654,14 @@ pub(super) fn scan_observed(
             progress.record_cancellation();
             break;
         }
-        let chunks = chunks.into_iter().map(|item| {
+        let chunks = chunks.map(|item| {
             if !should_continue() {
                 Err(ScanCancelled.into())
             } else {
                 item
             }
         });
-        let state_updates = state_updates.into_iter().map(|item| {
+        let state_updates = state_updates.map(|item| {
             if !should_continue() {
                 Err(ScanCancelled.into())
             } else {
@@ -928,7 +930,7 @@ fn read_file(
     };
     let mut chunks = {
         let started = Instant::now();
-        let chunks = ChunkSpool::new()?;
+        let chunks = RecordSpool::new()?;
         progress.record_work(WorkKind::TempFileOps, started.elapsed());
         chunks
     };
@@ -1032,7 +1034,7 @@ fn read_file(
     };
     Ok(Some(Parsed {
         source,
-        chunks,
+        chunks: chunks.finish()?,
         chunk_count,
         checkpoint: SessionCheckpoint {
             offset,
@@ -1284,7 +1286,7 @@ struct DurableIdSet {
     scratch_path: Option<PathBuf>,
     connection: Option<rusqlite::Connection>,
     reader: Option<SessionStateReader>,
-    updates: Option<StateUpdateSpool>,
+    updates: Option<RecordSpool>,
     pending_writes: usize,
     batch_started: Option<Instant>,
     lookup_elapsed: Duration,
@@ -1315,7 +1317,7 @@ impl DurableIdSet {
             scratch_path: Some(path),
             connection: Some(connection),
             reader: append.then(|| store.session_state_reader()).transpose()?,
-            updates: Some(StateUpdateSpool::new()?),
+            updates: Some(RecordSpool::new()?),
             pending_writes: 0,
             batch_started: None,
             lookup_elapsed: Duration::ZERO,
@@ -1392,7 +1394,7 @@ impl DurableIdSet {
         self.updates
             .as_mut()
             .ok_or_else(|| anyhow!("session state update spool finished"))?
-            .push(kind, key, value)?;
+            .push(&(kind, key, Some(value)))?;
         Ok(true)
     }
 
@@ -1423,7 +1425,7 @@ impl DurableIdSet {
             .flatten())
     }
 
-    fn finish(mut self) -> Result<StateUpdateSpool> {
+    fn finish(mut self) -> Result<Records<(String, String, Option<String>)>> {
         if self.pending_writes != 0 {
             self.commit_batch()?;
             self.pending_writes = 0;
@@ -1432,6 +1434,7 @@ impl DurableIdSet {
             .take()
             .ok_or_else(|| anyhow!("session state update spool finished"))?
             .finish()
+            .map_err(Into::into)
     }
 
     fn commit_batch(&mut self) -> Result<()> {
@@ -1542,144 +1545,6 @@ fn open_sqlite_scratch(prefix: &str) -> Result<(PathBuf, rusqlite::Connection)> 
         }
     }
     Err(anyhow!("could not create session state scratch database"))
-}
-
-struct StateUpdateSpool {
-    path: Option<PathBuf>,
-    writer: Option<BufWriter<File>>,
-}
-
-impl std::fmt::Debug for StateUpdateSpool {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter
-            .debug_struct("StateUpdateSpool")
-            .field("path", &self.path)
-            .finish()
-    }
-}
-
-impl StateUpdateSpool {
-    fn new() -> Result<Self> {
-        static NEXT_ID: AtomicU64 = AtomicU64::new(0);
-        for _ in 0..32 {
-            let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
-            let stamp = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_nanos();
-            let path = std::env::temp_dir().join(format!(
-                "bm25-mcp-session-updates-{}-{stamp}-{id}.jsonl",
-                std::process::id()
-            ));
-            let mut options = OpenOptions::new();
-            options.create_new(true).write(true);
-            #[cfg(unix)]
-            {
-                use std::os::unix::fs::OpenOptionsExt;
-                options.mode(0o600);
-            }
-            match options.open(&path) {
-                Ok(file) => {
-                    return Ok(Self {
-                        path: Some(path),
-                        writer: Some(BufWriter::new(file)),
-                    });
-                }
-                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
-                Err(error) => return Err(error.into()),
-            }
-        }
-        Err(anyhow!("could not create session state update spool"))
-    }
-
-    fn push(&mut self, kind: &str, key: &str, value: &str) -> Result<()> {
-        let writer = self
-            .writer
-            .as_mut()
-            .ok_or_else(|| anyhow!("session state update spool finished"))?;
-        serde_json::to_writer(&mut *writer, &(kind, key, Some(value)))?;
-        writer.write_all(b"\n")?;
-        Ok(())
-    }
-
-    fn finish(mut self) -> Result<Self> {
-        if let Some(writer) = self.writer.as_mut() {
-            writer.flush()?;
-        }
-        Ok(self)
-    }
-}
-
-impl IntoIterator for StateUpdateSpool {
-    type Item = Result<(String, String, Option<String>)>;
-    type IntoIter = StateUpdateIter;
-
-    fn into_iter(mut self) -> Self::IntoIter {
-        let path = self.path.take().expect("state update spool path");
-        let flush_error = self
-            .writer
-            .take()
-            .and_then(|mut writer| writer.flush().err())
-            .map(anyhow::Error::from);
-        let (reader, open_error) = if flush_error.is_some() {
-            (None, None)
-        } else {
-            match File::open(&path) {
-                Ok(file) => (Some(BufReader::new(file)), None),
-                Err(error) => (None, Some(anyhow::Error::from(error))),
-            }
-        };
-        StateUpdateIter {
-            path: path.clone(),
-            initial_error: flush_error.or(open_error),
-            reader,
-            line: String::new(),
-        }
-    }
-}
-
-struct StateUpdateIter {
-    path: PathBuf,
-    initial_error: Option<anyhow::Error>,
-    reader: Option<BufReader<File>>,
-    line: String,
-}
-
-impl Iterator for StateUpdateIter {
-    type Item = Result<(String, String, Option<String>)>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        use std::io::BufRead;
-        if let Some(error) = self.initial_error.take() {
-            return Some(Err(error));
-        }
-        let reader = self.reader.as_mut()?;
-        self.line.clear();
-        match reader.read_line(&mut self.line) {
-            Ok(0) => {
-                self.reader = None;
-                None
-            }
-            Ok(_) => Some(serde_json::from_str(self.line.trim_end()).map_err(Into::into)),
-            Err(error) => Some(Err(error.into())),
-        }
-    }
-}
-
-impl Drop for StateUpdateSpool {
-    fn drop(&mut self) {
-        self.writer.take();
-        if let Some(path) = self.path.take() {
-            let _ = fs::remove_file(path);
-        }
-    }
-}
-
-impl Drop for StateUpdateIter {
-    fn drop(&mut self) {
-        self.reader.take();
-        let _ = fs::remove_file(&self.path);
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -2683,7 +2548,7 @@ fn emit_text_with_id(
 }
 
 struct SessionChunkAppender<'a> {
-    output: &'a mut ChunkSpool,
+    output: &'a mut RecordSpool,
     progress: ProgressReporter,
     record: Option<RecordRef>,
     active_key: Option<String>,
@@ -2695,7 +2560,7 @@ struct SessionChunkAppender<'a> {
 }
 
 impl<'a> SessionChunkAppender<'a> {
-    fn new(output: &'a mut ChunkSpool, progress: &ProgressReporter) -> Self {
+    fn new(output: &'a mut RecordSpool, progress: &ProgressReporter) -> Self {
         Self {
             output,
             progress: progress.clone(),
@@ -2812,145 +2677,6 @@ fn make_chunk(
         timestamp: normalized.timestamp.clone(),
         role: normalized.role.clone(),
         tool: normalized.tool.clone(),
-    }
-}
-
-struct ChunkSpool {
-    path: Option<PathBuf>,
-    writer: Option<BufWriter<File>>,
-}
-
-impl std::fmt::Debug for ChunkSpool {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter
-            .debug_struct("ChunkSpool")
-            .field("path", &self.path)
-            .finish()
-    }
-}
-
-impl ChunkSpool {
-    fn new() -> Result<Self> {
-        static NEXT_ID: AtomicU64 = AtomicU64::new(0);
-        for _ in 0..32 {
-            let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
-            let stamp = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_nanos();
-            let path = std::env::temp_dir().join(format!(
-                "bm25-mcp-session-chunks-{}-{stamp}-{id}.jsonl",
-                std::process::id()
-            ));
-            let mut options = OpenOptions::new();
-            options.create_new(true).write(true);
-            #[cfg(unix)]
-            {
-                use std::os::unix::fs::OpenOptionsExt;
-                options.mode(0o600);
-            }
-            match options.open(&path) {
-                Ok(file) => {
-                    return Ok(Self {
-                        path: Some(path),
-                        writer: Some(BufWriter::new(file)),
-                    });
-                }
-                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
-                Err(error) => return Err(error.into()),
-            }
-        }
-        Err(anyhow!("could not create session chunk spool"))
-    }
-
-    fn push(&mut self, chunk: &Chunk) -> Result<()> {
-        let writer = self
-            .writer
-            .as_mut()
-            .ok_or_else(|| anyhow!("chunk spool finished"))?;
-        serde_json::to_writer(&mut *writer, chunk)?;
-        writer.write_all(b"\n")?;
-        Ok(())
-    }
-}
-
-impl IntoIterator for ChunkSpool {
-    type Item = Result<Chunk>;
-    type IntoIter = ChunkIter;
-
-    fn into_iter(mut self) -> Self::IntoIter {
-        let path = self.path.take().expect("chunk spool path");
-        let flush_error = self
-            .writer
-            .take()
-            .and_then(|mut writer| writer.flush().err())
-            .map(anyhow::Error::from);
-        let (reader, open_error) = if flush_error.is_some() {
-            (None, None)
-        } else {
-            match File::open(&path) {
-                Ok(file) => (Some(BufReader::new(file)), None),
-                Err(error) => (None, Some(anyhow::Error::from(error))),
-            }
-        };
-        ChunkIter {
-            path,
-            initial_error: flush_error.or(open_error),
-            reader,
-            line: String::new(),
-        }
-    }
-}
-
-struct ChunkIter {
-    path: PathBuf,
-    initial_error: Option<anyhow::Error>,
-    reader: Option<BufReader<File>>,
-    line: String,
-}
-
-impl Iterator for ChunkIter {
-    type Item = Result<Chunk>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if let Some(error) = self.initial_error.take() {
-            return Some(Err(error));
-        }
-        let reader = self.reader.as_mut()?;
-        self.line.clear();
-        let mut bytes = Vec::new();
-        let mut byte = [0_u8; 1];
-        loop {
-            match reader.read(&mut byte) {
-                Ok(0) => {
-                    self.reader = None;
-                    if bytes.is_empty() {
-                        return None;
-                    }
-                    break;
-                }
-                Ok(_) if byte[0] == b'\n' => break,
-                Ok(_) => bytes.push(byte[0]),
-                Err(error) => return Some(Err(error.into())),
-            }
-        }
-        Some(serde_json::from_slice(&bytes).map_err(Into::into))
-    }
-}
-
-impl Drop for ChunkSpool {
-    fn drop(&mut self) {
-        self.writer.take();
-        if let Some(path) = self.path.take() {
-            let _ = fs::remove_file(path);
-        }
-    }
-}
-
-impl Drop for ChunkIter {
-    fn drop(&mut self) {
-        self.reader.take();
-        let _ = fs::remove_file(&self.path);
     }
 }
 

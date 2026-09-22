@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Share temporary record ownership across project chunks, session chunks, and
+  parser-state updates; preserve replay and clean up after the final reader.
+  Temporary-record flush/open failures now abort reconciliation before source
+  transactions and leave the collection pending for retry.
 - Consolidate collection reconciliation, source-outcome publication, and read
   validation under one controller; retain committed source repairs when later
   work is cancelled and qualify reads across publication boundaries.

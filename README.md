@@ -96,6 +96,13 @@ matching parser checkpoint commit atomically; interrupted suffix work resumes
 from the last durable checkpoint. Progress visibility does not permit
 unverified partial data to become searchable.
 
+Prepared project chunks, session chunks, and parser-state updates are finalized
+before their source transaction starts. A temporary-record flush or reader-open
+failure aborts the scan: indexing progress reports `failed`, and collection
+coverage remains pending for retry. Earlier source commits remain durable;
+the failing source publishes no new chunks or checkpoint. Read or decode
+failures during the transaction roll back that source's changes together.
+
 ### Collection coverage
 
 Coverage describes current source outcomes, not the work in the latest progress

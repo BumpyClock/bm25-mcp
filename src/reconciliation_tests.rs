@@ -526,3 +526,172 @@ fn cancellation_after_repair_retains_committed_outcome_and_unvisited_errors() {
     assert_eq!(coverage.pending_changes, None);
     assert_eq!(fixture.hits("repairedmarker"), 1);
 }
+
+#[test]
+fn project_spool_finalization_failure_aborts_before_commit_and_retries() {
+    use crate::record_spool::{
+        FinalizeError,
+        testing::{Failure, fail_next_finish},
+    };
+    for failure in [Failure::Flush, Failure::Open] {
+        let fixture = Fixture::new();
+        let original_sources = fixture
+            .store
+            .sources(&fixture.controller.collection, "project")
+            .unwrap();
+        let changed = fixture.root.join("a.txt");
+        fs::write(&changed, "replacementmarker").unwrap();
+        fixture
+            .controller
+            .observe(Scope::Sources(HashSet::from([changed])), false);
+        let progress = ProgressReporter::new();
+        let _fault = fail_next_finish::<Chunk>(failure);
+        let error = fixture.scan(&|| true, &progress).unwrap_err();
+        assert!(error.downcast_ref::<FinalizeError>().is_some(), "{error:#}");
+        assert_eq!(
+            progress.snapshot().phase,
+            crate::progress::ProgressPhase::Failed
+        );
+        assert_eq!(progress.snapshot().chunks_committed, 0);
+        assert_eq!(progress.snapshot().work.durable_txn_count, 0);
+        assert_eq!(fixture.controller.snapshot().coverage.pending_changes, None);
+        assert!(fixture.controller.needs_work());
+        let sources = fixture
+            .store
+            .sources(&fixture.controller.collection, "project")
+            .unwrap();
+        assert_eq!(sources.len(), original_sources.len());
+        for source in sources {
+            assert_eq!(
+                source.version,
+                original_sources
+                    .iter()
+                    .find(|old| old.key == source.key)
+                    .unwrap()
+                    .version
+            );
+        }
+        assert_eq!(fixture.hits("replacementmarker"), 0);
+        assert_eq!(fixture.hits("unaffectedmarker"), 1);
+        assert!(fixture.scan(&|| true, &ProgressReporter::new()).unwrap());
+        assert_eq!(fixture.controller.snapshot().status, "ready");
+        assert_eq!(fixture.hits("replacementmarker"), 1);
+    }
+}
+
+#[test]
+fn session_spool_finalization_failure_preserves_checkpoint_and_retries() {
+    use crate::{
+        record_spool::{
+            FinalizeError,
+            testing::{Failure, fail_next_finish},
+        },
+        sessions::SessionConfig,
+    };
+    use std::io::Write;
+    for state_updates in [false, true] {
+        for failure in [Failure::Flush, Failure::Open] {
+            let dir = tempfile::tempdir().unwrap();
+            let root = dir.path().join("project");
+            fs::create_dir(&root).unwrap();
+            let config = SessionConfig {
+                codex_home: dir.path().join("codex"),
+                claude_config_dir: dir.path().join("claude"),
+                copilot_home: dir.path().join("copilot"),
+                own_tool_names: vec![],
+                identity_registry_path: None,
+            };
+            fs::create_dir_all(config.codex_home.join("sessions")).unwrap();
+            let path = config.codex_home.join("sessions/events.jsonl");
+            let message = |id: &str, text: &str| {
+                serde_json::json!({
+                    "type": "response_item",
+                    "payload": {"type": "message", "id": id, "role": "assistant",
+                        "content": [{"type": "text", "text": text}]}
+                })
+            };
+            fs::write(&path, format!("{}\n{}\n",
+                serde_json::json!({"type": "session_meta", "payload": {"cwd": root, "id": "session"}}),
+                message("original", "originalmarker"),
+            )).unwrap();
+            let store = Store::open(&dir.path().join("index.sqlite3")).unwrap();
+            let controller =
+                Controller::new(crate::ingest::project_identity(&root).unwrap().owner_key);
+            let scan = |progress: &ProgressReporter| {
+                controller
+                    .begin()
+                    .unwrap()
+                    .sessions(&root, &store, &config, &|| true, progress)
+            };
+            assert!(scan(&ProgressReporter::new()).unwrap());
+            let source = store
+                .sources(&controller.collection, "session")
+                .unwrap()
+                .pop()
+                .unwrap();
+            let checkpoint = store.session_checkpoint(&source.key).unwrap().unwrap();
+            let mut append = fs::OpenOptions::new().append(true).open(&path).unwrap();
+            writeln!(append, "{}", message("replacement", "replacementmarker")).unwrap();
+            drop(append);
+            controller.observe(Scope::Sources(HashSet::from([path])), false);
+            let _fault = if state_updates {
+                fail_next_finish::<(String, String, Option<String>)>(failure)
+            } else {
+                fail_next_finish::<Chunk>(failure)
+            };
+            let progress = ProgressReporter::new();
+            let error = scan(&progress).unwrap_err();
+            assert!(error.downcast_ref::<FinalizeError>().is_some(), "{error:#}");
+            assert_eq!(
+                progress.snapshot().phase,
+                crate::progress::ProgressPhase::Failed
+            );
+            assert_eq!(progress.snapshot().chunks_committed, 0);
+            assert_eq!(progress.snapshot().work.durable_txn_count, 0);
+            assert_eq!(
+                store.session_checkpoint(&source.key).unwrap(),
+                Some(checkpoint.clone())
+            );
+            assert_eq!(
+                store.sources(&controller.collection, "session").unwrap()[0].version,
+                source.version
+            );
+            assert_eq!(controller.snapshot().coverage.pending_changes, None);
+            assert!(controller.needs_work());
+            let filter = SearchFilter {
+                collection: controller.collection.clone(),
+                kind: "session".into(),
+                ..Default::default()
+            };
+            assert!(
+                store
+                    .search("replacementmarker", &filter, 10)
+                    .unwrap()
+                    .1
+                    .is_empty()
+            );
+            assert!(scan(&ProgressReporter::new()).unwrap());
+            assert_eq!(controller.snapshot().status, "ready");
+            assert_eq!(
+                store
+                    .search("replacementmarker", &filter, 10)
+                    .unwrap()
+                    .1
+                    .len(),
+                1
+            );
+            assert_eq!(
+                store.search("originalmarker", &filter, 10).unwrap().1.len(),
+                1
+            );
+            assert!(
+                store
+                    .session_checkpoint(&source.key)
+                    .unwrap()
+                    .unwrap()
+                    .offset
+                    > checkpoint.offset
+            );
+        }
+    }
+}

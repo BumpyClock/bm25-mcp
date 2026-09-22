@@ -126,3 +126,37 @@ Two publication changes are intentional and separate from ranking policy:
 
 These changes do not publish unverified content, alter ranking, change the MCP
 schema, or require a database/checkpoint migration.
+
+## Temporary record ownership
+
+The private `record_spool` module owns temporary JSONL records for project
+chunks, session chunks, and session parser-state updates. `RecordSpool` accepts
+borrowed serializable records; consuming `finish` flushes and closes the writer
+and opens a typed `Records` reader. Readers retain one record buffer and can
+reopen an independent cursor for project content-cache replay. A shared path
+owner attempts removal after the final reader closes, including early exits;
+it also cleans up abandoned writers and failed finalization. Files are created
+exclusively with private Unix permissions. Cleanup is best-effort on normal
+drop, not a process-crash recovery mechanism.
+
+Finalization returns a distinct `FinalizeError`. Both scanners propagate this
+error as a failed run before entering the source transaction, rather than
+recording it as one source's rejection and continuing. The controller retains
+unfinished work for retry, and progress reports `Failed` without advancing
+committed chunk counts. Previously committed source outcomes remain published.
+Read/decode errors encountered after finalization still flow through the store's
+iterator contract and roll back chunks, parser-state updates, and checkpoint
+changes in the existing transaction.
+
+This intentionally standardizes failure timing and classification. Project
+finalization and session state-update flush failures previously used source
+error handling; session reader-open and chunk flush failures were deferred into
+transaction iteration. Raw-byte spools, SQLite scratch state, content-cache
+storage, and cancellation classification retain their existing ownership.
+
+Tests exercise the spool interface with real temporary files, independent
+replay, partial consumption, simultaneous reader drops, malformed records, and
+flush/open faults. Scanner/controller regressions verify failure before commit,
+preserved source versions and checkpoints, pending coverage, and successful
+retry for all three consumers. Store integration verifies atomic rollback when
+a spooled parser-state record cannot be decoded.
