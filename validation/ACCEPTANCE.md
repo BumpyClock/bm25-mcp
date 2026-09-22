@@ -54,3 +54,85 @@ On Windows run `./scripts/validate-windows.ps1 -Project C:\path\to\project` from
 A real `codex exec --sandbox read-only --ephemeral --json` run in neutron loaded its project-local `.codex/config.toml` and passed project search, Copilot history search (five matches), and context retrieval (six events). The initial run exposed status precedence that mislabeled active reconciliation as `degraded`; active indexing now returns a successful `building` or `refreshing` response with separate diagnostics. Strict uncertain-source suppression remains in place. All 66 tests and Clippy with warnings and unsafe code denied passed after the fix.
 
 [Sanitized CLI evidence](codex-cli-smoke.json) records the updated build hash. Session coverage was still refreshing, so the integration check establishes verified partial results rather than complete indexing. The performance table above remains evidence for its explicitly recorded earlier build.
+
+## Indexing observability and incremental reconciliation follow-up
+
+Synthetic macOS arm64 measurements on 2026-09-22 used isolated project and
+provider directories, not personal histories. The earlier real-corpus results
+above remain specific to their recorded builds.
+
+The matched cold-session comparison used one 3,837,563-byte source containing
+1,000 complete events, three alternating trials per release binary, and the
+same deadline-bounded sentinel-search observation policy for both binaries.
+The new status resource was sampled separately because the baseline did not
+support it. Indexed counts and content fingerprints matched.
+
+| Build | Median cold import | Range |
+| --- | ---: | ---: |
+| Baseline `8b6956e196b83f926a13635b392330e2d0118a986e468bec15e3b13cbe79fc21` | 1.641 s | 1.581-1.672 s |
+| Observed `4420957667ed6a76dc33795e4845359d37914faf4e1b1adcb66f55585330d0e6` | 1.273 s | 1.263-1.345 s |
+
+This is approximately 22% lower median time for the combined change on this
+fixture, not an isolated scratch-batching speedup or a real-corpus guarantee.
+The observed import performed 1,000 scratch-state writes in two committed
+scratch transactions and one durable index transaction. A separate exact
+counter regression covers the batch boundary: 1,025 writes require three
+scratch transactions with the 512-write batch limit.
+
+Subsequent instrumentation corrections freeze elapsed time at terminal scan
+states and separate scratch database-call timings from open-transaction
+lifetime. The wall-clock comparison above does not depend on those internal
+timing fields; it remains evidence for the exact hashes listed, not a rerun of
+the later instrumentation revision.
+
+| Scenario | Observed work and correctness |
+| --- | --- |
+| Unchanged history after reconnect | Prefix verification remained visible; zero records normalized and zero chunks prepared or newly committed. Existing content remained available after verification. |
+| Small append | Two complete new records produced two chunks; the old prefix remained searchable. A 792-byte append required 7,677,502 source bytes read, approximately 9,694 times the changed bytes. |
+| One changed source among eight | Exactly one source and two physical records were processed. The replacement used 4,276 source bytes read for 1,069 changed bytes; the old target disappeared, the new target appeared, and an unaffected source remained present. |
+| Cancellation and recovery | Scan/checkpoint regressions cover discarded preparation, atomic chunk/checkpoint publication, and reopening from the durable checkpoint. Progress alone does not make data searchable. |
+| Slow evaluation family | Synthetic harness tests observe already-flushed query/project records while later work is blocked or fails; timeout tests reject reuse of a closed protocol connection. |
+
+The shipped disposable integration fixture also exercises a 4 MiB,
+1,000-record session corpus, an 8 MiB physical session record, project edits,
+and branch transitions. A run of build
+`5b8824f8b819cc8bdc9160d46fb34c9947742ed982c84e0505e928bb64015a2a`
+reported 73,662,464 bytes peak sampled owner RSS for the 8,356,112-byte
+physical-record case, below the 512 MiB soft target. That sample is not a hard
+memory limit or a bound for arbitrary corpora.
+
+```sh
+python3 scripts/exercise-updates.py --binary target/release/bm25-mcp \
+  --huge-session-mib 8 --synthetic-session-records 1000 --synthetic-session-mib 4
+python3 -m unittest discover -s scripts -p 'test_*.py'
+```
+
+It records first observed progress, the first exact sentinel returned by an
+independent search probe, reconciliation time, ingestion search latency, and
+source-read/changed-byte ratios. Probe sampling is capped at four searches per
+second. Per-run counters are not subtracted across run boundaries; sampled
+multi-run totals are explicitly lower bounds. A sentinel's first search result
+is an observation of that sentinel, not the exact instant of the first
+arbitrary chunk commit. The core `first_commit_ms` reports the transaction
+boundary separately.
+
+The initial live run timed out before its first scenario and was not reproduced
+on subsequent runs; it is not treated as a pass or attributed to an established
+root cause. A separate later harness error confused related BM25 hits with an
+exact sentinel match and was corrected before these assertions passed.
+
+Full prefix verification remains a measured cost. Temporary spooling remains
+proportional to inspected content; these checks do not establish a hard
+temporary-storage quota. Hidden resumable staging, early unverified
+publication, and further speculative optimizations were not introduced.
+Windows execution remains unverified.
+
+Final publication gates passed with release
+`1d9a74182fefae9a5043a4caf568d8d4170172540f8934ca456c3e4d4792440e`:
+154 Rust tests, 27 Python tests, root-package formatting, all-target Clippy with
+warnings and unsafe code denied, and the strict disposable integration command
+above. Cold, unchanged-reconnect, append, and changed-one session assertions all
+passed. Append and replacement each processed exactly one source and two
+physical records. Watcher regressions cover one-sided renames, forced full
+scans, ignored project files, and deleted directories whose names end in
+`.jsonl`.

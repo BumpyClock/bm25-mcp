@@ -1,5 +1,6 @@
 use serde_json::{Value, json};
 use std::{
+    collections::HashMap,
     io::{BufRead, BufReader, Write},
     process::{Child, ChildStdin, ChildStdout, Command, Stdio},
     thread,
@@ -37,6 +38,10 @@ impl Client {
         };
         let init=client.rpc("initialize",json!({"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"integration","version":"1"}}));
         assert_eq!(init["result"]["serverInfo"]["name"], "bm25-mcp");
+        assert_eq!(
+            init["result"]["capabilities"]["resources"]["subscribe"],
+            Value::Null
+        );
         writeln!(
             client.input,
             "{}",
@@ -75,6 +80,74 @@ impl Client {
         assert_ne!(value["result"]["isError"], true, "{value}");
         value["result"]["structuredContent"].clone()
     }
+    fn search_sessions(&mut self, query: &str) -> Value {
+        let value = self.rpc(
+            "tools/call",
+            json!({"name":"search_sessions","arguments":{"query":query}}),
+        );
+        assert_ne!(value["result"]["isError"], true, "{value}");
+        value["result"]["structuredContent"].clone()
+    }
+    fn status(&mut self) -> Value {
+        let value = self.rpc("resources/read", json!({"uri":"bm25://indexing/status"}));
+        assert!(
+            value["result"]["contents"][0]["text"].is_string(),
+            "{value}"
+        );
+        serde_json::from_str(value["result"]["contents"][0]["text"].as_str().unwrap()).unwrap()
+    }
+    fn until_status(&mut self, predicate: impl Fn(&Value) -> bool) -> Value {
+        let deadline = Instant::now() + Duration::from_secs(15);
+        loop {
+            let value = self.status();
+            if predicate(&value) {
+                return value;
+            }
+            assert!(
+                Instant::now() < deadline,
+                "status did not converge: {value}"
+            );
+            thread::sleep(Duration::from_millis(50));
+        }
+    }
+    fn pipeline(&mut self, requests: &[(&str, Value)]) -> Vec<(u64, Value)> {
+        let mut ids = Vec::with_capacity(requests.len());
+        for (method, params) in requests {
+            self.id += 1;
+            let id = self.id;
+            ids.push(id);
+            writeln!(
+                self.input,
+                "{}",
+                json!({"jsonrpc":"2.0","id":id,"method":method,"params":params})
+            )
+            .unwrap();
+        }
+        self.input.flush().unwrap();
+
+        let mut pending = ids
+            .iter()
+            .copied()
+            .collect::<std::collections::HashSet<_>>();
+        let mut responses = HashMap::with_capacity(ids.len());
+        while !pending.is_empty() {
+            let mut line = String::new();
+            assert!(
+                self.output.read_line(&mut line).unwrap() > 0,
+                "server exited"
+            );
+            let value: Value = serde_json::from_str(&line).unwrap();
+            let Some(id) = value["id"].as_u64() else {
+                continue;
+            };
+            if pending.remove(&id) {
+                responses.insert(id, value);
+            }
+        }
+        ids.into_iter()
+            .map(|id| (id, responses.remove(&id).unwrap()))
+            .collect()
+    }
     fn until(&mut self, query: &str, predicate: impl Fn(&Value) -> bool) -> Value {
         let deadline = Instant::now() + Duration::from_secs(15);
         loop {
@@ -108,6 +181,31 @@ fn mcp_search_refresh_and_multiple_clients() {
     let mut one = Client::start(&root, &dir.path().join("cache"), &dir.path().join("homes"));
     let tools = one.rpc("tools/list", json!({}));
     assert_eq!(tools["result"]["tools"].as_array().unwrap().len(), 2);
+    let resources = one.rpc("resources/list", json!({}));
+    assert_eq!(
+        resources["result"]["resources"].as_array().unwrap().len(),
+        1
+    );
+    assert_eq!(
+        resources["result"]["resources"][0]["uri"],
+        "bm25://indexing/status"
+    );
+    assert_eq!(
+        resources["result"]["resources"][0]["mimeType"],
+        "application/json"
+    );
+    let initial_status = one.status();
+    assert!(initial_status["project"]["progress"].is_object());
+    assert!(initial_status["sessions"]["progress"].is_object());
+    assert!(
+        initial_status["project"]["coverage"]["pending_changes"].is_null()
+            || initial_status["project"]["coverage"]["pending_changes"].is_number()
+    );
+    let status_text = initial_status.to_string();
+    assert!(!status_text.contains(root.to_string_lossy().as_ref()));
+    assert!(!status_text.contains("excludedqvx"));
+    let unknown = one.rpc("resources/read", json!({"uri":"file:///not-forwarded"}));
+    assert!(unknown["error"]["code"].is_number(), "{unknown}");
     let found = one.until("lexicalneedleqvx", |v| {
         v["results"].as_array().is_some_and(|a| !a.is_empty())
     });
@@ -129,6 +227,131 @@ fn mcp_search_refresh_and_multiple_clients() {
         json!({"name":"search_project","arguments":{"query":"x","limit":0}}),
     );
     assert_eq!(invalid["result"]["isError"], true);
+}
+
+#[test]
+fn post_ready_ignored_project_sources_stay_excluded() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().join("project");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join(".gitignore"), ".env\n").unwrap();
+    std::fs::write(root.join("main.rs"), "post_ready_baseline_marker").unwrap();
+    let mut client = Client::start(&root, &dir.path().join("cache"), &dir.path().join("homes"));
+    client.until("post_ready_baseline_marker", |value| {
+        value["status"] == "ready"
+    });
+
+    let mut baseline = client.status();
+    for marker in ["postreadycreateqvx", "postreadymodifyqvx"] {
+        std::fs::write(root.join(".env"), marker).unwrap();
+        let previous = baseline["project"]["coverage"]["reconciled_at"].clone();
+        baseline = client.until_status(|value| {
+            value["project"]["status"] == "ready"
+                && value["project"]["coverage"]["reconciled_at"] != previous
+        });
+        assert_eq!(client.search(marker)["results"], json!([]));
+    }
+}
+
+#[test]
+fn deleting_a_jsonl_named_session_directory_falls_back_safely() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().join("project");
+    let homes = dir.path().join("homes");
+    let nested = homes.join("codex/sessions/folder.jsonl");
+    std::fs::create_dir_all(&nested).unwrap();
+    std::fs::write(
+        nested.join("child.jsonl"),
+        format!(
+            "{}\n{}\n",
+            json!({"type":"session_meta","payload":{"id":"nested","cwd":root}}),
+            json!({"type":"response_item","payload":{"type":"message","id":"nested-event","role":"user","content":[{"type":"input_text","text":"nested_delete_marker_qvx"}]}})
+        ),
+    )
+    .unwrap();
+    std::fs::create_dir_all(&root).unwrap();
+    let mut client = Client::start(&root, &dir.path().join("cache"), &homes);
+    let deadline = Instant::now() + Duration::from_secs(15);
+    loop {
+        let result = client.search_sessions("nested_delete_marker_qvx");
+        if !result["results"]
+            .as_array()
+            .is_none_or(|results| results.is_empty())
+        {
+            break;
+        }
+        assert!(Instant::now() < deadline, "nested session did not index");
+        thread::sleep(Duration::from_millis(50));
+    }
+    std::fs::remove_dir_all(&nested).unwrap();
+    let _ = client.until_status(|value| {
+        value["sessions"]["status"] == "ready"
+            && value["sessions"]["coverage"]["pending_changes"] == 0
+    });
+    let deadline = Instant::now() + Duration::from_secs(15);
+    loop {
+        if client.search_sessions("nested_delete_marker_qvx")["results"] == json!([]) {
+            break;
+        }
+        assert!(Instant::now() < deadline, "deleted nested session remained");
+        thread::sleep(Duration::from_millis(50));
+    }
+}
+
+#[test]
+fn status_resource_can_be_pipelined_behind_a_search_request() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().join("project");
+    std::fs::create_dir(&root).unwrap();
+    std::fs::write(root.join("small.txt"), "pipeline_small_marker").unwrap();
+    let mut client = Client::start(&root, &dir.path().join("cache"), &dir.path().join("homes"));
+    client.until("pipeline_small_marker", |value| value["status"] == "ready");
+
+    std::fs::write(
+        root.join("large.txt"),
+        format!("pipeline_large_marker {}", "padding ".repeat(500_000)),
+    )
+    .unwrap();
+    let refresh_deadline = Instant::now() + Duration::from_secs(15);
+    loop {
+        let status = client.status();
+        if status["project"]["status"] == "refreshing"
+            && status["project"]["progress"]["bytes_read"]
+                .as_u64()
+                .unwrap_or(0)
+                > 0
+        {
+            break;
+        }
+        assert!(Instant::now() < refresh_deadline, "refresh did not start");
+        thread::sleep(Duration::from_millis(20));
+    }
+
+    let responses = client.pipeline(&[
+        (
+            "tools/call",
+            json!({"name":"search_project","arguments":{"query":"pipeline_large_marker"}}),
+        ),
+        ("resources/read", json!({"uri":"bm25://indexing/status"})),
+    ]);
+    assert_eq!(responses.len(), 2);
+    let status = responses
+        .iter()
+        .find(|(_, value)| value["result"]["contents"][0]["text"].is_string())
+        .map(|(_, value)| {
+            serde_json::from_str::<Value>(value["result"]["contents"][0]["text"].as_str().unwrap())
+                .unwrap()
+        })
+        .expect("pipelined status response");
+    assert!(
+        status["project"]["progress"]["bytes_read"]
+            .as_u64()
+            .unwrap_or(0)
+            > 0
+    );
+    assert!(responses.iter().any(|(_, value)| {
+        value["result"]["structuredContent"].is_object() || value["result"]["isError"] == true
+    }));
 }
 
 #[test]

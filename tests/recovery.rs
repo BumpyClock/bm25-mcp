@@ -90,6 +90,16 @@ impl Client {
     fn search_sessions(&mut self, query: &str) -> Value {
         self.tool("search_sessions", json!({"query": query, "limit": 10}))
     }
+
+    fn status(&mut self) -> Value {
+        let response = self.rpc("resources/read", json!({"uri": "bm25://indexing/status"}));
+        assert!(
+            response["result"]["contents"][0]["text"].is_string(),
+            "{response}"
+        );
+        serde_json::from_str(response["result"]["contents"][0]["text"].as_str().unwrap())
+            .expect("status JSON")
+    }
 }
 
 impl Drop for Client {
@@ -206,6 +216,9 @@ fn restarted_owner_recovers_persisted_index_after_offline_edit() {
 
     fs::write(&source, "recoverynewuniquebeta").expect("offline source edit");
     let mut second = Client::start(&root, &cache, &homes);
+    let status = second.status();
+    assert!(status["project"]["progress"].is_object());
+    assert!(!status.to_string().contains(root.to_string_lossy().as_ref()));
     wait_for("recovered offline edit", || {
         let items = result_items(&second.search_project("recoverynewuniquebeta"));
         (!items.is_empty()).then_some(())

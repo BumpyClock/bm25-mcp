@@ -11,6 +11,7 @@ use super::{SESSION_KIND, SessionConfig};
 use crate::identity::IdentityRegistry;
 use crate::ingest::{ProjectIdentity, project_identity};
 use crate::model::{Chunk, ScanReport, Source};
+use crate::progress::{ProgressPhase, ProgressReporter, ScratchBatchMetrics, WorkKind};
 use crate::store::{SessionCheckpoint, SessionStateReader, Store};
 use anyhow::{Context, Result, anyhow, bail};
 use rusqlite::OptionalExtension;
@@ -22,7 +23,7 @@ use std::io::{BufReader, BufWriter, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 const MAX_CHUNK_BYTES: usize = 16 * 1024;
 const MAX_REPORTED_ERRORS: usize = 64;
@@ -31,6 +32,7 @@ const MAX_METADATA_VALUE_BYTES: usize = 4096;
 const MAX_BLOCK_TYPES_IN_MEMORY: usize = 256;
 const MAX_CWD_CACHE_ENTRIES: usize = 4096;
 const MAX_INLINE_DEDUP_BYTES: usize = 64 * 1024;
+const SCRATCH_BATCH_WRITES: usize = 512;
 // The normalized session payload includes exact same-event visible-field
 // suppression.  Bump this whenever the emitted chunk semantics change so an
 // existing checkpoint cannot append new rows to a prefix built by an older
@@ -380,16 +382,64 @@ struct StreamResult {
     pending_tail: bool,
 }
 
-/// Reconcile all discovered provider files. Source files are invalidated by
-/// the caller's collection lifecycle; this function also invalidates the
-/// existing membership before walking so a canceled pass cannot serve stale
-/// session rows.
+/// Invalidate the source keys represented by a precise provider-file change
+/// set, or the whole collection for an ambiguous/full reconciliation.
+pub(super) fn invalidate_scope(
+    owner_key: &str,
+    store: &Store,
+    config: &SessionConfig,
+    changes: Option<&HashSet<PathBuf>>,
+) -> Result<()> {
+    let Some(changes) = changes else {
+        return store.invalidate_collection(owner_key, SESSION_KIND);
+    };
+    let candidates = changes
+        .iter()
+        .map(|path| canonical_or_normalized(path))
+        .collect::<HashSet<_>>();
+    if candidates.is_empty() {
+        return Ok(());
+    }
+    for source in store.sources(owner_key, SESSION_KIND)? {
+        let Some(path) = source_absolute_path(&source.path, config) else {
+            continue;
+        };
+        if candidates.contains(&path) {
+            store.invalidate_source(&source.key)?;
+        }
+    }
+    Ok(())
+}
+
+/// Compatibility entry point used by the existing session unit tests.
+#[allow(dead_code)]
 pub(super) fn scan(
     root: &Path,
     owner_key: &str,
     store: &Store,
     config: &SessionConfig,
     should_continue: &dyn Fn() -> bool,
+) -> Result<ScanReport> {
+    scan_observed(
+        root,
+        owner_key,
+        store,
+        config,
+        None,
+        should_continue,
+        &ProgressReporter::noop(),
+    )
+}
+
+/// Reconcile provider files while publishing bounded progress.
+pub(super) fn scan_observed(
+    root: &Path,
+    owner_key: &str,
+    store: &Store,
+    config: &SessionConfig,
+    changes: Option<&HashSet<PathBuf>>,
+    should_continue: &dyn Fn() -> bool,
+    progress: &ProgressReporter,
 ) -> Result<ScanReport> {
     super::validate_own_tool_names_env()?;
     let root = fs::canonicalize(root)
@@ -401,39 +451,73 @@ pub(super) fn scan(
         .as_deref()
         .map(IdentityRegistry::open)
         .transpose()?;
+    invalidate_scope(owner_key, store, config, changes)?;
     let existing = store.sources(owner_key, SESSION_KIND)?;
-    for source in &existing {
-        store.invalidate_source(&source.key)?;
-    }
+    let affected_existing = changes.map(|changes| {
+        let candidates = changes
+            .iter()
+            .map(|path| canonical_or_normalized(path))
+            .collect::<HashSet<_>>();
+        existing
+            .iter()
+            .filter(|source| {
+                source_absolute_path(&source.path, config)
+                    .is_some_and(|path| candidates.contains(&path))
+            })
+            .map(|source| source.key.clone())
+            .collect::<HashSet<_>>()
+    });
 
     let mut report = ScanReport::default();
+    progress.set_phase(ProgressPhase::Discovery);
+    let discovery_started = Instant::now();
     let mut files = Vec::new();
-    discover_files(
-        &config.codex_home.join("sessions"),
-        Provider::Codex,
-        &mut files,
-        &mut report,
-    );
-    discover_files(
-        &config.codex_home.join("archived_sessions"),
-        Provider::Codex,
-        &mut files,
-        &mut report,
-    );
-    discover_files(
-        &config.claude_config_dir.join("projects"),
-        Provider::Claude,
-        &mut files,
-        &mut report,
-    );
-    discover_files(
-        &config.copilot_home.join("session-state"),
-        Provider::Copilot,
-        &mut files,
-        &mut report,
-    );
+    if let Some(changes) = changes {
+        for path in changes {
+            if let Some(provider) = provider_for_path(path, config) {
+                files.push(SessionFile {
+                    path: canonical_or_normalized(path),
+                    provider,
+                });
+            } else {
+                report.excluded_count = report.excluded_count.saturating_add(1);
+                diagnostic(
+                    &mut report,
+                    "ambiguous_change",
+                    "changed path is not a provider file",
+                );
+            }
+        }
+    } else {
+        discover_files(
+            &config.codex_home.join("sessions"),
+            Provider::Codex,
+            &mut files,
+            &mut report,
+        );
+        discover_files(
+            &config.codex_home.join("archived_sessions"),
+            Provider::Codex,
+            &mut files,
+            &mut report,
+        );
+        discover_files(
+            &config.claude_config_dir.join("projects"),
+            Provider::Claude,
+            &mut files,
+            &mut report,
+        );
+        discover_files(
+            &config.copilot_home.join("session-state"),
+            Provider::Copilot,
+            &mut files,
+            &mut report,
+        );
+    }
     let mut unique = HashSet::new();
     files.retain(|file| unique.insert(file.path.clone()));
+    progress.record_work(WorkKind::Discovery, discovery_started.elapsed());
+    progress.record_discovered(files.len() as u64);
 
     let mut seen_sources = HashSet::new();
     let mut cwd_cache = HashMap::<String, Option<String>>::new();
@@ -444,11 +528,21 @@ pub(super) fn scan(
                 .pending_count
                 .saturating_add((files.len() - index) as u64);
             cancelled = true;
+            progress.record_cancellation();
             break;
         }
         let relative = source_path(file.provider, &file.path, config);
         let key = source_key(owner_key, &relative);
         let old = existing.iter().find(|source| source.key == key);
+        progress.record_current_source_bytes(0);
+        if !file_is_regular(&file.path) {
+            if let Some(old) = old {
+                store.remove_source(&old.key)?;
+            }
+            seen_sources.insert(key.clone());
+            progress.record_file_completed();
+            continue;
+        }
         let checkpoint = store.session_checkpoint(&key)?;
         let parsed = match read_file_with_retries(
             &file.path,
@@ -465,10 +559,16 @@ pub(super) fn scan(
             &mut report,
             &mut cwd_cache,
             should_continue,
+            progress,
         ) {
             Ok(Some(parsed)) => parsed,
             Ok(None) => {
                 report.excluded_count = report.excluded_count.saturating_add(1);
+                if let Some(old) = old {
+                    store.remove_source(&old.key)?;
+                }
+                seen_sources.insert(key.clone());
+                progress.record_file_completed();
                 continue;
             }
             Err(error) if error.downcast_ref::<ScanCancelled>().is_some() => {
@@ -476,6 +576,7 @@ pub(super) fn scan(
                     .pending_count
                     .saturating_add((files.len() - index) as u64);
                 cancelled = true;
+                progress.record_cancellation();
                 break;
             }
             Err(error) => {
@@ -484,12 +585,18 @@ pub(super) fn scan(
                     "source_read",
                     &format!("{}: {error}", file.path.display()),
                 );
+                if let Some(old) = old {
+                    store.remove_source(&old.key)?;
+                }
+                seen_sources.insert(key.clone());
+                progress.record_file_completed();
                 continue;
             }
         };
         seen_sources.insert(key);
+        let prepared_chunk_count = parsed.chunk_count;
         report.sources = report.sources.saturating_add(1);
-        report.chunks = report.chunks.saturating_add(parsed.chunk_count);
+        report.chunks = report.chunks.saturating_add(prepared_chunk_count);
         let Parsed {
             source,
             chunks,
@@ -503,6 +610,7 @@ pub(super) fn scan(
                 .pending_count
                 .saturating_add((files.len() - index) as u64);
             cancelled = true;
+            progress.record_cancellation();
             break;
         }
         let chunks = chunks.into_iter().map(|item| {
@@ -519,8 +627,10 @@ pub(super) fn scan(
                 item
             }
         });
+        let commit_started = Instant::now();
         let commit = if append {
             if let Some(old) = old {
+                progress.set_phase(ProgressPhase::DurableTransaction);
                 store.append_session_with_state(
                     &source,
                     &old.version,
@@ -529,9 +639,11 @@ pub(super) fn scan(
                     state_updates,
                 )
             } else {
+                progress.set_phase(ProgressPhase::DurableTransaction);
                 store.replace_session_with_state(&source, chunks, &checkpoint, state_updates)
             }
         } else {
+            progress.set_phase(ProgressPhase::DurableTransaction);
             store.replace_session_with_state(&source, chunks, &checkpoint, state_updates)
         };
         if let Err(error) = commit {
@@ -540,16 +652,25 @@ pub(super) fn scan(
                     .pending_count
                     .saturating_add((files.len() - index) as u64);
                 cancelled = true;
+                progress.record_cancellation();
                 break;
             }
             return Err(error);
         }
+        progress.record_work(WorkKind::DurableTxn, commit_started.elapsed());
+        progress.record_committed_chunks(prepared_chunk_count);
+        progress.record_file_completed();
     }
 
     if !cancelled {
-        for source in existing {
-            if !seen_sources.contains(&source.key) {
+        for source in &existing {
+            if affected_existing
+                .as_ref()
+                .is_none_or(|keys| keys.contains(&source.key))
+                && !seen_sources.contains(&source.key)
+            {
                 store.remove_source(&source.key)?;
+                progress.record_file_completed();
             }
         }
     }
@@ -573,9 +694,13 @@ fn read_file_with_retries(
     report: &mut ScanReport,
     cwd_cache: &mut HashMap<String, Option<String>>,
     should_continue: &dyn Fn() -> bool,
+    progress: &ProgressReporter,
 ) -> Result<Option<Parsed>> {
     let mut last = None;
     for attempt in 0..3 {
+        if attempt != 0 {
+            progress.record_retry();
+        }
         match read_file(
             path,
             provider,
@@ -591,6 +716,7 @@ fn read_file_with_retries(
             report,
             cwd_cache,
             should_continue,
+            progress,
         ) {
             Ok(value) => return Ok(value),
             Err(error) if error.to_string().contains("unstable_source") && attempt < 2 => {
@@ -618,6 +744,7 @@ fn read_file(
     report: &mut ScanReport,
     cwd_cache: &mut HashMap<String, Option<String>>,
     should_continue: &dyn Fn() -> bool,
+    progress: &ProgressReporter,
 ) -> Result<Option<Parsed>> {
     let before = file_identity(path)?;
     let identity = before.token.clone();
@@ -645,13 +772,21 @@ fn read_file(
         && previous.owner_key == owner_key
         && previous.registry_revision == registry_revision
         && checkpoint.offset <= before.len
-        && hash_prefix(path, checkpoint.offset, should_continue)? == previous.prefix_digest
+        && {
+            progress.set_phase(ProgressPhase::PrefixVerification);
+            let started = Instant::now();
+            let result = hash_prefix(path, checkpoint.offset, should_continue, progress)?;
+            progress.record_work(WorkKind::PrefixVerification, started.elapsed());
+            result == previous.prefix_digest
+        }
     {
         append = true;
         start_offset = checkpoint.offset;
         state = previous;
     }
 
+    progress.set_phase(ProgressPhase::JsonInspection);
+    let inspection_started = Instant::now();
     let mut inspection = inspect(
         path,
         provider,
@@ -659,7 +794,9 @@ fn read_file(
         if append { state.next_line } else { 1 },
         report,
         should_continue,
+        progress,
     )?;
+    progress.record_work(WorkKind::JsonInspection, inspection_started.elapsed());
     let mut saw_cwd = false;
     // A previously committed source has already passed ownership checks. An
     // append suffix without another cwd inherits that verified ownership.
@@ -671,6 +808,8 @@ fn read_file(
         let owner = if let Some(owner) = cwd_cache.get(&cwd) {
             owner.clone()
         } else {
+            progress.set_phase(ProgressPhase::Ownership);
+            let ownership_started = Instant::now();
             let owner = associate_cwd(
                 &cwd,
                 root,
@@ -678,6 +817,7 @@ fn read_file(
                 root_is_git,
                 registry.as_deref_mut(),
             )?;
+            progress.record_work(WorkKind::Ownership, ownership_started.elapsed());
             if cwd_cache.len() >= MAX_CWD_CACHE_ENTRIES {
                 cwd_cache.clear();
             }
@@ -729,18 +869,34 @@ fn read_file(
     let diagnostics_before_file = report.diagnostics.clone();
 
     let mut parser_state = ParseState {
-        ids: DurableIdSet::new(&source_key, append, store)?,
+        ids: {
+            let started = Instant::now();
+            let ids = DurableIdSet::new(&source_key, append, store, progress)?;
+            progress.record_work(WorkKind::TempFileOps, started.elapsed());
+            ids
+        },
         session_id: state.session_id.clone().or(inspection.session_hint.clone()),
     };
-    let mut chunks = ChunkSpool::new()?;
+    let mut chunks = {
+        let started = Instant::now();
+        let chunks = ChunkSpool::new()?;
+        progress.record_work(WorkKind::TempFileOps, started.elapsed());
+        chunks
+    };
     let mut chunk_count = 0_u64;
     let stream = stream_records(
         path,
         start_offset,
         if append { state.next_line } else { 1 },
         should_continue,
+        progress,
         |record| {
-            let capture = match CaptureFile::parse_controlled(&record.path, should_continue) {
+            progress.record_record();
+            let capture = match CaptureFile::parse_controlled_with_progress(
+                &record.path,
+                should_continue,
+                progress,
+            ) {
                 Err(error) if error.downcast_ref::<ParseCancelled>().is_some() => {
                     return Err(ScanCancelled.into());
                 }
@@ -765,7 +921,7 @@ fn read_file(
             if let Some(session_id) = &summary.session_id {
                 parser_state.session_id = Some(session_id.clone());
             }
-            let mut appender = SessionChunkAppender::new(&mut chunks);
+            let mut appender = SessionChunkAppender::new(&mut chunks, progress);
             let mut field_deduper = VisibleFieldDeduper::new();
             {
                 let mut append_item = |item: Normalized| {
@@ -774,6 +930,9 @@ fn read_file(
                     }
                     appender.push(item, record)
                 };
+                progress.set_phase(ProgressPhase::Normalization);
+                let normalization_started = Instant::now();
+                let tokenization_started = Instant::now();
                 normalize(
                     provider,
                     &capture,
@@ -784,6 +943,8 @@ fn read_file(
                     &mut |item| field_deduper.push(item, &mut append_item),
                     report,
                 )?;
+                progress.record_work(WorkKind::Normalization, normalization_started.elapsed());
+                progress.record_work(WorkKind::Tokenization, tokenization_started.elapsed());
                 field_deduper.finish(&mut append_item)?;
             }
             chunk_count = chunk_count.saturating_add(appender.finish()?);
@@ -795,7 +956,7 @@ fn read_file(
     }
     let offset = stream.complete_offset;
     let (final_version, final_suffix, prefix_digest, previous_prefix_digest) =
-        digest_file_controlled(path, start_offset, offset, should_continue)?;
+        digest_file_controlled(path, start_offset, offset, should_continue, progress)?;
     let after = file_identity(path)?;
     if before.token != after.token
         || before.len != after.len
@@ -849,6 +1010,7 @@ fn inspect(
     start_line: u64,
     report: &mut ScanReport,
     should_continue: &dyn Fn() -> bool,
+    progress: &ProgressReporter,
 ) -> Result<Inspection> {
     let mut inspection = Inspection {
         version: String::new(),
@@ -856,42 +1018,54 @@ fn inspect(
         session_hint: None,
         malformed: false,
     };
-    let stream = stream_records(path, start_offset, start_line, should_continue, |record| {
-        let capture = match CaptureFile::parse_metadata_controlled(&record.path, should_continue) {
-            Err(error) if error.downcast_ref::<ParseCancelled>().is_some() => {
-                return Err(ScanCancelled.into());
-            }
-            Ok(capture) => capture,
-            Err(error) => {
-                inspection.malformed = true;
+    let stream = stream_records(
+        path,
+        start_offset,
+        start_line,
+        should_continue,
+        progress,
+        |record| {
+            progress.record_record_inspected();
+            let capture = match CaptureFile::parse_metadata_controlled_with_progress(
+                &record.path,
+                should_continue,
+                progress,
+            ) {
+                Err(error) if error.downcast_ref::<ParseCancelled>().is_some() => {
+                    return Err(ScanCancelled.into());
+                }
+                Ok(capture) => capture,
+                Err(error) => {
+                    inspection.malformed = true;
+                    diagnostic(
+                        report,
+                        "malformed_record",
+                        &format!("{} line {}: {error}", path.display(), record.line),
+                    );
+                    return Ok(());
+                }
+            };
+            let summary = summarize(provider, &capture)?;
+            if summary.metadata_truncated {
                 diagnostic(
                     report,
-                    "malformed_record",
-                    &format!("{} line {}: {error}", path.display(), record.line),
+                    "metadata",
+                    &format!(
+                        "{} line {} metadata fields exceeded bounded summary",
+                        path.display(),
+                        record.line
+                    ),
                 );
-                return Ok(());
             }
-        };
-        let summary = summarize(provider, &capture)?;
-        if summary.metadata_truncated {
-            diagnostic(
-                report,
-                "metadata",
-                &format!(
-                    "{} line {} metadata fields exceeded bounded summary",
-                    path.display(),
-                    record.line
-                ),
-            );
-        }
-        if let Some(cwd) = summary.cwd {
-            inspection.cwds.push(&cwd)?;
-        }
-        if inspection.session_hint.is_none() {
-            inspection.session_hint = summary.session_id;
-        }
-        Ok(())
-    })?;
+            if let Some(cwd) = summary.cwd {
+                inspection.cwds.push(&cwd)?;
+            }
+            if inspection.session_hint.is_none() {
+                inspection.session_hint = summary.session_id;
+            }
+            Ok(())
+        },
+    )?;
     if stream.pending_tail {
         report.pending_count = report.pending_count.saturating_add(1);
     }
@@ -1071,10 +1245,24 @@ struct DurableIdSet {
     connection: Option<rusqlite::Connection>,
     reader: Option<SessionStateReader>,
     updates: Option<StateUpdateSpool>,
+    pending_writes: usize,
+    batch_started: Option<Instant>,
+    lookup_elapsed: Duration,
+    lookup_count: u64,
+    begin_elapsed: Duration,
+    begin_count: u64,
+    insert_elapsed: Duration,
+    insert_count: u64,
+    progress: ProgressReporter,
 }
 
 impl DurableIdSet {
-    fn new(source_key: &str, append: bool, store: &Store) -> Result<Self> {
+    fn new(
+        source_key: &str,
+        append: bool,
+        store: &Store,
+        progress: &ProgressReporter,
+    ) -> Result<Self> {
         let (path, connection) = open_state_scratch()?;
         connection.execute(
             &format!(
@@ -1088,6 +1276,15 @@ impl DurableIdSet {
             connection: Some(connection),
             reader: append.then(|| store.session_state_reader()).transpose()?,
             updates: Some(StateUpdateSpool::new()?),
+            pending_writes: 0,
+            batch_started: None,
+            lookup_elapsed: Duration::ZERO,
+            lookup_count: 0,
+            begin_elapsed: Duration::ZERO,
+            begin_count: 0,
+            insert_elapsed: Duration::ZERO,
+            insert_count: 0,
+            progress: progress.clone(),
         })
     }
 
@@ -1098,11 +1295,11 @@ impl DurableIdSet {
     }
 
     fn insert_value(&mut self, kind: &str, key: &str, value: &str) -> Result<bool> {
-        let connection = self
+        let lookup_started = Instant::now();
+        let local: Option<i64> = self
             .connection
             .as_ref()
-            .ok_or_else(|| anyhow!("session ID scratch database closed"))?;
-        let local: Option<i64> = connection
+            .ok_or_else(|| anyhow!("session ID scratch database closed"))?
             .query_row(
                 &format!("SELECT 1 FROM {STATE_ID_TABLE} WHERE kind=?1 AND key=?2"),
                 rusqlite::params![kind, key],
@@ -1110,22 +1307,48 @@ impl DurableIdSet {
             )
             .optional()?;
         if local.is_some() {
+            self.lookup_elapsed = self.lookup_elapsed.saturating_add(lookup_started.elapsed());
+            self.lookup_count = self.lookup_count.saturating_add(1);
             return Ok(false);
         }
-        if self
+        let committed = self
             .reader
             .as_ref()
             .map(|reader| reader.get(&self.source_key, kind, key))
             .transpose()?
-            .flatten()
-            .is_some()
-        {
+            .flatten();
+        self.lookup_elapsed = self.lookup_elapsed.saturating_add(lookup_started.elapsed());
+        self.lookup_count = self.lookup_count.saturating_add(1);
+        if committed.is_some() {
             return Ok(false);
         }
-        connection.execute(
-            &format!("INSERT INTO {STATE_ID_TABLE}(kind,key,value) VALUES (?1,?2,?3)"),
-            rusqlite::params![kind, key, value],
-        )?;
+        if self.pending_writes == 0 {
+            let begin_started = Instant::now();
+            self.connection
+                .as_ref()
+                .ok_or_else(|| anyhow!("session ID scratch database closed"))?
+                .execute_batch("BEGIN IMMEDIATE")?;
+            self.begin_elapsed = self.begin_elapsed.saturating_add(begin_started.elapsed());
+            self.begin_count = self.begin_count.saturating_add(1);
+            self.batch_started = Some(Instant::now());
+        }
+        let insert_started = Instant::now();
+        self.connection
+            .as_ref()
+            .ok_or_else(|| anyhow!("session ID scratch database closed"))?
+            .execute(
+                &format!("INSERT INTO {STATE_ID_TABLE}(kind,key,value) VALUES (?1,?2,?3)"),
+                rusqlite::params![kind, key, value],
+            )?;
+        self.insert_elapsed = self.insert_elapsed.saturating_add(insert_started.elapsed());
+        self.insert_count = self.insert_count.saturating_add(1);
+        self.progress
+            .record_scratch_state_write((kind.len() + key.len() + value.len()) as u64);
+        self.pending_writes = self.pending_writes.saturating_add(1);
+        if self.pending_writes >= SCRATCH_BATCH_WRITES {
+            self.commit_batch()?;
+            self.pending_writes = 0;
+        }
         self.updates
             .as_mut()
             .ok_or_else(|| anyhow!("session state update spool finished"))?
@@ -1161,10 +1384,45 @@ impl DurableIdSet {
     }
 
     fn finish(mut self) -> Result<StateUpdateSpool> {
+        if self.pending_writes != 0 {
+            self.commit_batch()?;
+            self.pending_writes = 0;
+        }
         self.updates
             .take()
             .ok_or_else(|| anyhow!("session state update spool finished"))?
             .finish()
+    }
+
+    fn commit_batch(&mut self) -> Result<()> {
+        let commit_started = Instant::now();
+        self.connection
+            .as_ref()
+            .ok_or_else(|| anyhow!("session ID scratch database closed"))?
+            .execute_batch("COMMIT")?;
+        let transaction_lifetime = self
+            .batch_started
+            .take()
+            .map(|started| started.elapsed())
+            .unwrap_or_default();
+        self.progress.record_scratch_batch(ScratchBatchMetrics {
+            lookup: self.lookup_elapsed,
+            lookup_count: self.lookup_count,
+            begin: self.begin_elapsed,
+            begin_count: self.begin_count,
+            insert: self.insert_elapsed,
+            insert_count: self.insert_count,
+            commit: commit_started.elapsed(),
+            transaction_lifetime,
+        });
+        self.progress.record_scratch_state_transaction();
+        self.lookup_elapsed = Duration::ZERO;
+        self.lookup_count = 0;
+        self.begin_elapsed = Duration::ZERO;
+        self.begin_count = 0;
+        self.insert_elapsed = Duration::ZERO;
+        self.insert_count = 0;
+        Ok(())
     }
 }
 
@@ -2386,6 +2644,7 @@ fn emit_text_with_id(
 
 struct SessionChunkAppender<'a> {
     output: &'a mut ChunkSpool,
+    progress: ProgressReporter,
     record: Option<RecordRef>,
     active_key: Option<String>,
     active: Option<Normalized>,
@@ -2396,9 +2655,10 @@ struct SessionChunkAppender<'a> {
 }
 
 impl<'a> SessionChunkAppender<'a> {
-    fn new(output: &'a mut ChunkSpool) -> Self {
+    fn new(output: &'a mut ChunkSpool, progress: &ProgressReporter) -> Self {
         Self {
             output,
+            progress: progress.clone(),
             record: None,
             active_key: None,
             active: None,
@@ -2410,6 +2670,8 @@ impl<'a> SessionChunkAppender<'a> {
     }
 
     fn push(&mut self, normalized: Normalized, record: &RecordRef) -> Result<()> {
+        self.progress
+            .record_work_bytes(WorkKind::Tokenization, normalized.text.len() as u64);
         let standalone = normalized.logical_id.is_none();
         if standalone || self.active_key.as_deref() != normalized.logical_id.as_deref() {
             self.finish_active()?;
@@ -2476,6 +2738,9 @@ impl<'a> SessionChunkAppender<'a> {
         let tokens = (!self.tokens.is_empty()).then(|| std::mem::take(&mut self.tokens));
         let chunk = make_chunk(&self.text, tokens, normalized, record);
         self.output.push(&chunk)?;
+        self.progress
+            .record_work_bytes(WorkKind::TempFileOps, chunk.text.len() as u64);
+        self.progress.record_prepared_chunks(1);
         self.text.clear();
         self.count = self.count.saturating_add(1);
         Ok(())
@@ -2654,6 +2919,7 @@ fn stream_records<F>(
     start_offset: u64,
     start_line: u64,
     should_continue: &dyn Fn() -> bool,
+    progress: &ProgressReporter,
     mut callback: F,
 ) -> Result<StreamResult>
 where
@@ -2682,6 +2948,7 @@ where
         if count == 0 {
             break;
         }
+        progress.record_source_bytes(count as u64, count as u64);
         hasher.update(&buffer[..count]);
         let mut segment = 0_usize;
         for (index, byte) in buffer[..count].iter().enumerate() {
@@ -2829,7 +3096,12 @@ struct FileIdentityWithLength {
     modified: u128,
 }
 
-fn hash_prefix(path: &Path, offset: u64, should_continue: &dyn Fn() -> bool) -> Result<String> {
+fn hash_prefix(
+    path: &Path,
+    offset: u64,
+    should_continue: &dyn Fn() -> bool,
+    progress: &ProgressReporter,
+) -> Result<String> {
     let mut file = File::open(path)?;
     let mut remaining = offset;
     let mut hasher = Sha256::new();
@@ -2844,6 +3116,7 @@ fn hash_prefix(path: &Path, offset: u64, should_continue: &dyn Fn() -> bool) -> 
             bail!("session prefix shorter than checkpoint")
         }
         hasher.update(&buffer[..count]);
+        progress.record_source_bytes(count as u64, count as u64);
         remaining -= count as u64;
     }
     Ok(hex_digest(hasher.finalize()))
@@ -2868,6 +3141,7 @@ fn digest_file_controlled(
     suffix_offset: u64,
     checkpoint_offset: u64,
     should_continue: &dyn Fn() -> bool,
+    progress: &ProgressReporter,
 ) -> Result<(String, String, String, String)> {
     let mut file = File::open(path)?;
     let mut full_hasher = Sha256::new();
@@ -2885,6 +3159,7 @@ fn digest_file_controlled(
             break;
         }
         let bytes = &buffer[..count];
+        progress.record_source_bytes(count as u64, count as u64);
         full_hasher.update(bytes);
         if suffix_offset < offset.saturating_add(count as u64) {
             let start = suffix_offset.saturating_sub(offset) as usize;
@@ -2964,6 +3239,70 @@ fn discover_files(
     }
 }
 
+fn provider_for_path(path: &Path, config: &SessionConfig) -> Option<Provider> {
+    let path = canonical_or_normalized(path);
+    let discoverable = path
+        .extension()
+        .is_some_and(|extension| extension == "jsonl")
+        || path.file_name().is_some_and(|name| name == "events.jsonl");
+    if !discoverable {
+        return None;
+    }
+    let codex_sessions = canonical_or_normalized(&config.codex_home.join("sessions"));
+    let codex_archived = canonical_or_normalized(&config.codex_home.join("archived_sessions"));
+    let claude_projects = canonical_or_normalized(&config.claude_config_dir.join("projects"));
+    let copilot_sessions = canonical_or_normalized(&config.copilot_home.join("session-state"));
+    if path.starts_with(codex_sessions) || path.starts_with(codex_archived) {
+        Some(Provider::Codex)
+    } else if path.starts_with(claude_projects) {
+        Some(Provider::Claude)
+    } else if path.starts_with(copilot_sessions) {
+        Some(Provider::Copilot)
+    } else {
+        None
+    }
+}
+
+fn source_absolute_path(source: &str, config: &SessionConfig) -> Option<PathBuf> {
+    let (provider, relative) = source.split_once(':')?;
+    let base = match provider {
+        "codex" => &config.codex_home,
+        "claude" => &config.claude_config_dir,
+        "copilot" => &config.copilot_home,
+        _ => return None,
+    };
+    Some(canonical_or_normalized(&base.join(relative)))
+}
+
+fn canonical_or_normalized(path: &Path) -> PathBuf {
+    if let Ok(path) = fs::canonicalize(path) {
+        return path;
+    }
+    let absolute = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        std::env::current_dir()
+            .unwrap_or_else(|_| PathBuf::from("."))
+            .join(path)
+    };
+    let mut normalized = PathBuf::new();
+    for component in absolute.components() {
+        use std::path::Component;
+        match component {
+            Component::CurDir => {}
+            Component::ParentDir => {
+                normalized.pop();
+            }
+            other => normalized.push(other.as_os_str()),
+        }
+    }
+    normalized
+}
+
+fn file_is_regular(path: &Path) -> bool {
+    fs::symlink_metadata(path).is_ok_and(|metadata| metadata.file_type().is_file())
+}
+
 fn source_path(provider: Provider, path: &Path, config: &SessionConfig) -> String {
     let base = match provider {
         Provider::Codex => &config.codex_home,
@@ -2973,6 +3312,14 @@ fn source_path(provider: Provider, path: &Path, config: &SessionConfig) -> Strin
     let relative = path
         .strip_prefix(base)
         .map(|value| value.to_string_lossy().replace('\\', "/"))
+        .or_else(|_| {
+            let canonical_path = canonical_or_normalized(path);
+            let canonical_base = canonical_or_normalized(base);
+            canonical_path
+                .strip_prefix(&canonical_base)
+                .map(|value| value.to_string_lossy().replace('\\', "/"))
+                .map_err(|_| ())
+        })
         .unwrap_or_else(|_| path.to_string_lossy().replace('\\', "/"));
     format!("{}:{relative}", provider.name())
 }

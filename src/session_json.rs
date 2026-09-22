@@ -8,6 +8,8 @@
 //! private file.  Unknown values are skipped lexically, so their size does not
 //! affect the process heap.
 
+use crate::progress::ProgressReporter;
+use crate::progress::WorkKind;
 use anyhow::{Context, Result, anyhow, bail};
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File, OpenOptions};
@@ -53,7 +55,7 @@ impl std::fmt::Debug for CaptureFile {
 impl CaptureFile {
     #[allow(dead_code)]
     pub fn parse(record_path: &Path) -> Result<Self> {
-        Self::parse_with_visible_fields(record_path, true, None)
+        Self::parse_with_visible_fields(record_path, true, None, None)
     }
 
     /// Parse a record while retaining only metadata fields needed for
@@ -62,31 +64,56 @@ impl CaptureFile {
     /// are not spooled during an inspection pass.
     #[allow(dead_code)]
     pub fn parse_metadata(record_path: &Path) -> Result<Self> {
-        Self::parse_with_visible_fields(record_path, false, None)
+        Self::parse_with_visible_fields(record_path, false, None, None)
     }
 
+    #[allow(dead_code)]
     pub fn parse_controlled(
         record_path: &Path,
         should_continue: &dyn Fn() -> bool,
     ) -> Result<Self> {
-        Self::parse_with_visible_fields(record_path, true, Some(should_continue))
+        Self::parse_with_visible_fields(record_path, true, Some(should_continue), None)
     }
 
+    pub fn parse_controlled_with_progress(
+        record_path: &Path,
+        should_continue: &dyn Fn() -> bool,
+        progress: &ProgressReporter,
+    ) -> Result<Self> {
+        Self::parse_with_visible_fields(record_path, true, Some(should_continue), Some(progress))
+    }
+
+    #[allow(dead_code)]
     pub fn parse_metadata_controlled(
         record_path: &Path,
         should_continue: &dyn Fn() -> bool,
     ) -> Result<Self> {
-        Self::parse_with_visible_fields(record_path, false, Some(should_continue))
+        Self::parse_with_visible_fields(record_path, false, Some(should_continue), None)
+    }
+
+    pub fn parse_metadata_controlled_with_progress(
+        record_path: &Path,
+        should_continue: &dyn Fn() -> bool,
+        progress: &ProgressReporter,
+    ) -> Result<Self> {
+        Self::parse_with_visible_fields(record_path, false, Some(should_continue), Some(progress))
     }
 
     fn parse_with_visible_fields(
         record_path: &Path,
         capture_visible_fields: bool,
         should_continue: Option<&dyn Fn() -> bool>,
+        progress: Option<&ProgressReporter>,
     ) -> Result<Self> {
         let spool = CaptureSpool::new()?;
         let reader = BufReader::with_capacity(JSON_READ_BUFFER_BYTES, File::open(record_path)?);
-        let mut parser = JsonParser::new(reader, spool, capture_visible_fields, should_continue);
+        let mut parser = JsonParser::new(
+            reader,
+            spool,
+            capture_visible_fields,
+            should_continue,
+            progress,
+        );
         parser.parse_root()?;
         let spool = parser.finish()?;
         spool.finish()
@@ -272,6 +299,7 @@ struct JsonParser<'a, R> {
     pending: Option<u8>,
     capture_visible_fields: bool,
     should_continue: Option<&'a dyn Fn() -> bool>,
+    progress: Option<&'a ProgressReporter>,
     bytes_since_check: u64,
 }
 
@@ -281,6 +309,7 @@ impl<'a, R: Read> JsonParser<'a, R> {
         spool: CaptureSpool,
         capture_visible_fields: bool,
         should_continue: Option<&'a dyn Fn() -> bool>,
+        progress: Option<&'a ProgressReporter>,
     ) -> Self {
         Self {
             reader,
@@ -289,6 +318,7 @@ impl<'a, R: Read> JsonParser<'a, R> {
             pending: None,
             capture_visible_fields,
             should_continue,
+            progress,
             bytes_since_check: 0,
         }
     }
@@ -305,6 +335,11 @@ impl<'a, R: Read> JsonParser<'a, R> {
     }
 
     fn finish(self) -> Result<CaptureSpool> {
+        if self.bytes_since_check != 0
+            && let Some(progress) = self.progress
+        {
+            progress.record_work_bytes(WorkKind::JsonInspection, self.bytes_since_check);
+        }
         Ok(self.spool)
     }
 
@@ -912,6 +947,9 @@ impl<'a, R: Read> JsonParser<'a, R> {
             self.offset = self.offset.saturating_add(1);
             self.bytes_since_check = self.bytes_since_check.saturating_add(count as u64);
             if self.bytes_since_check >= JSON_CANCEL_CHECK_BYTES {
+                if let Some(progress) = self.progress {
+                    progress.record_work_bytes(WorkKind::JsonInspection, self.bytes_since_check);
+                }
                 self.bytes_since_check = 0;
                 if self.should_continue.is_some_and(|check| !check()) {
                     return Err(anyhow!(ParseCancelled));

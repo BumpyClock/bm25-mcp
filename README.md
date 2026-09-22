@@ -28,6 +28,10 @@ Example MCP client configuration:
 
 The executable uses stdio for MCP. A shared local owner process handles indexing while clients are attached. Its database and private connection metadata live in the operating system cache directory under `bm25-mcp`; `--cache-dir` selects another local location. Keep the cache outside indexed projects. The last client disconnect stops indexing; the owner exits after a short idle grace period. Broken connections are detected by heartbeat/read timeouts, and reconnecting clients trigger reconciliation of offline changes.
 
+After replacing the executable, close all MCP clients attached to the same
+repository, allow the owner to exit, and reconnect. Replacing the file does not
+upgrade an already-running shared owner.
+
 Project edits are coalesced and reconciled asynchronously. Changed or uncertain sources are suppressed until verified; unaffected verified results can remain available with partial-coverage status. Git and ignore-file changes trigger membership reconciliation. A bounded content cache reuses previously decoded and tokenized content when returning to a branch. Session imports yield when project edits need indexing.
 
 ## Tools
@@ -50,6 +54,47 @@ chunk boundary.
 Responses include generation, coverage, verification timestamps, and `building`, `ready`, `refreshing`, or `degraded` status. Ongoing indexing is a successful tool response with `building` or `refreshing` status, even when separate coverage diagnostics exist; `degraded` describes a completed reconciliation with coverage issues. Reconciliation can return partial or empty results; check coverage before treating absence as definitive. Date filtering uses inclusive `after` and exclusive `before`; undated session events do not satisfy date filters. Excerpt budgets count serialized UTF-8 bytes, not model tokens. Search excerpts are compact contiguous windows of at most 640 UTF-8 bytes, centered on a query match. Each hit reports `excerpt_byte_offset` within its full decoded indexed chunk and `excerpt_truncated`; the original chunk/event source bounds are preserved. Response-level `truncated` reports further trimming to satisfy the response budget. Session context expansion retains its existing pagination and larger text windows.
 
 Project search excludes ignored files (including ignored tracked files), binary content, and symlinks. Text is streamed in bounded chunks, with no default source-size cutoff. UTF-8 and BOM-marked UTF-16 are supported. Unsupported encodings are reported.
+
+## Indexing progress
+
+Read the MCP resource `bm25://indexing/status` with `resources/read` to observe
+indexing without running a ranked search. It returns JSON in `contents[0].text`
+with separate `project` and `sessions` objects, each containing `status`,
+`coverage`, and `progress`. The resource uses a separate owner connection and
+does not acquire an index query permit. The two search tools are unchanged;
+progress is never printed as ad hoc lines into MCP stdout.
+
+Progress distinguishes discovered and completed files, processed records,
+source bytes read, bytes hashed for verification, chunks prepared, and chunks
+committed. It also reports the current phase, the current source's processed
+bytes, and the last actual progress timestamp. Counters belong to a scan run;
+repeated reads and retries count work again. Verification reads are included
+in source bytes read, not additional unique bytes. Prepared chunks can be
+discarded after cancellation or a failed safety check. Committed chunks advance
+only after the index transaction succeeds; revalidating existing chunks is not
+a new commit.
+
+Poll roughly once per second. Bounded phase-transition history preserves short
+phases between observations; polling does not advance the last actual progress
+timestamp. Work metrics separate discovery, ownership, verification, JSON
+processing, temporary-file operations, tokenization, scratch-state writes,
+and durable transactions. Some timings are nested and must not be summed as
+exclusive wall time. Operation counts distinguish scratch writes from committed
+scratch transactions; scratch writes are batched in groups of at most 512.
+Scratch lookup, begin, insert, and commit call timings are separate from the
+time a batch transaction stays open between records.
+`work.json_inspection_bytes` tracks actual parser input separately from source
+reads, including progress within one large physical JSON record. The resource
+omits source paths, transcript text, and raw error messages.
+
+Unambiguous session-file events reconcile only the affected sources. Other
+verified sources remain searchable during those updates. Directory, overflow,
+identity-registry, topology, and uncertain events fall back to conservative
+full reconciliation. Session appends still validate the required prefix and
+ownership conditions before publishing complete new records. Chunks and their
+matching parser checkpoint commit atomically; interrupted suffix work resumes
+from the last durable checkpoint. Progress visibility does not permit
+unverified partial data to become searchable.
 
 ## Development
 
@@ -110,7 +155,34 @@ Run `cargo fmt --package bm25-mcp -- --check`, `cargo test --locked --all-target
 
 The oracle tests compare both cached and disk-backed rankings with a fresh upstream `BM25Builder` index after updates and compaction. Recovery tests exercise interrupted transactions, stale endpoints, concurrent client startup, owner replacement, offline edits, and worktree isolation.
 
-`scripts/acceptance.py --project /path/to/project` measures 1,000 requests with one and four clients, including project queries, provider-filtered session queries, and context when matches exist. Add `--snapshot-sessions` to freeze actual histories in a private temporary directory for repeatable warm measurements; the copies are removed afterward. `scripts/exercise-updates.py` creates a disposable Git repository for ordinary edits, branch transitions, and huge-text checks. `scripts/check-pressure.py` compares normal and forced-pressure owners while four clients read during an edit. These scripts do not change the selected real project or export its indexed contents. Optional `--cache-dir` on the acceptance script retains the derived index between runs.
+`scripts/acceptance.py --project /path/to/project` measures 1,000 requests with one and four clients, including project queries, provider-filtered session queries, and context when matches exist. Provider homes are isolated by default. Add `--snapshot-sessions` to explicitly copy actual histories into private temporary homes for repeatable warm measurements; the copies are removed afterward. `scripts/exercise-updates.py` creates a disposable Git repository for ordinary edits, branch transitions, and huge-text checks. `scripts/check-pressure.py` compares normal and forced-pressure owners while four clients read during an edit. These scripts do not change the selected real project or export its indexed contents. Optional `--cache-dir` on the acceptance script retains the derived index between runs.
+
+Evaluation readiness waits use the status resource rather than repeated ranked
+searches. Each RPC has a wall-time deadline, including blocked protocol I/O;
+a timed-out connection is closed rather than reused. A readiness wait performs
+one final requested search after reconciliation. Separate ingestion probes
+measure search latency and first searchable results without conflating them
+with readiness observation.
+
+Sibling evaluation writes and flushes each completed progress, coverage, query,
+and project record independently. A slow or failed later worktree therefore does
+not hide earlier results from its repository family. Public JSONL uses opaque
+labels and aggregate fields; raw queries, source paths, transcripts, and
+responses remain in the private evaluation workspace.
+
+Run bounded synthetic session checks without reading personal histories:
+
+```sh
+python3 scripts/exercise-updates.py --binary target/release/bm25-mcp \
+  --huge-session-mib 8 --synthetic-session-records 1000 --synthetic-session-mib 4
+python3 -m unittest discover -s scripts -p 'test_*.py'
+```
+
+The ingestion probe measures time to first observed progress, first marker
+returned by a search, total reconciliation, and p50/p95 search latency. It
+reports source bytes read and verification bytes alongside bytes changed;
+these are distinct from unique input size. Missing observations remain null.
+Synthetic results do not establish performance for a real history collection.
 
 On Windows, run `./scripts/validate-windows.ps1`; pass `-Project C:\path\to\project` to include real-corpus and update measurements using Python's `py -3` launcher. Actual Windows execution remains a user-owned acceptance gate; macOS results do not establish Windows behavior.
 

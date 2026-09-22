@@ -1,6 +1,7 @@
 use crate::{
     ingest,
     model::ScanReport,
+    progress::ProgressReporter,
     store::Store,
     tools::{self, Coverage},
 };
@@ -144,6 +145,9 @@ impl OwnerClient {
     pub fn heartbeat(&mut self) -> Result<()> {
         self.call("__ping", json!({})).map(|_| ())
     }
+    pub fn status(&mut self) -> Result<Value> {
+        self.call("__status", json!({}))
+    }
 }
 
 struct SessionState {
@@ -152,7 +156,10 @@ struct SessionState {
     epoch: AtomicU64,
     scanned: AtomicU64,
     safe_epoch: AtomicU64,
+    changed_paths: Mutex<Option<HashSet<PathBuf>>>,
+    force_full: AtomicBool,
     coverage: Mutex<Coverage>,
+    progress: ProgressReporter,
     watcher: Mutex<Option<notify::RecommendedWatcher>>,
     watch_error: Mutex<Option<String>>,
 }
@@ -164,7 +171,10 @@ impl SessionState {
             epoch: AtomicU64::new(1),
             scanned: AtomicU64::new(0),
             safe_epoch: AtomicU64::new(0),
+            changed_paths: Mutex::new(None),
+            force_full: AtomicBool::new(false),
             coverage: Mutex::new(Coverage::default()),
+            progress: ProgressReporter::new(),
             watcher: Mutex::new(None),
             watch_error: Mutex::new(None),
         }
@@ -183,6 +193,7 @@ struct RootState {
     git_pending: AtomicBool,
     git_snapshot: Mutex<Option<crate::git_changes::Snapshot>>,
     coverage: Mutex<Coverage>,
+    progress: ProgressReporter,
     sessions: Arc<SessionState>,
     watcher: Mutex<Option<notify::RecommendedWatcher>>,
     watch_error: Mutex<Option<String>>,
@@ -201,6 +212,7 @@ impl RootState {
             git_pending: AtomicBool::new(false),
             git_snapshot: Mutex::new(None),
             coverage: Mutex::new(Coverage::default()),
+            progress: ProgressReporter::new(),
             sessions,
             watcher: Mutex::new(None),
             watch_error: Mutex::new(None),
@@ -218,6 +230,16 @@ impl RootState {
                         Ok(event) if matches!(event.kind, notify::EventKind::Access(_)) => return,
                         Ok(event) if !event.need_rescan() && !event.paths.is_empty() => {
                             let mut relevant = false;
+                            if !project_event_is_precise(&event, &state.root) {
+                                *pending = None;
+                            }
+                            if matches!(
+                                event.kind,
+                                notify::EventKind::Create(notify::event::CreateKind::Folder)
+                                    | notify::EventKind::Remove(notify::event::RemoveKind::Folder)
+                            ) {
+                                *pending = None;
+                            }
                             for path in event.paths {
                                 let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
                                 let external_ignore = watched_ignores.contains(&path);
@@ -230,7 +252,9 @@ impl RootState {
                                     continue;
                                 }
                                 relevant = true;
-                                if metadata && matches!(name, "HEAD" | "index") {
+                                if path.is_dir() {
+                                    *pending = None;
+                                } else if metadata && matches!(name, "HEAD" | "index") {
                                     state.git_pending.store(true, Ordering::SeqCst);
                                 } else if metadata || matches!(name, ".gitignore" | ".ignore") {
                                     *pending = None;
@@ -272,17 +296,39 @@ impl RootState {
         *self.watcher.lock().unwrap() = Some(watcher);
         let mut session_watcher = self.sessions.watcher.lock().unwrap();
         let weak = Arc::downgrade(&self.sessions);
+        let config = crate::sessions::SessionConfig::default();
+        let provider_roots = [
+            normalize_watch_path(&config.codex_home),
+            normalize_watch_path(&config.claude_config_dir),
+            normalize_watch_path(&config.copilot_home),
+        ];
+        let registry_path = normalize_watch_path(&self.sessions.registry_path);
         let mut watcher =
             notify::recommended_watcher(move |result: notify::Result<notify::Event>| {
-                if let Some(state) = weak.upgrade()
-                    && result.map_or(true, |event| {
-                        !matches!(event.kind, notify::EventKind::Access(_))
-                    })
-                {
-                    state.epoch.fetch_add(1, Ordering::SeqCst);
+                let Some(state) = weak.upgrade() else {
+                    return;
+                };
+                let scope = match result {
+                    Ok(event) if matches!(event.kind, notify::EventKind::Access(_)) => return,
+                    Ok(event) if is_registry_auxiliary_event(&event, &registry_path) => return,
+                    Ok(event) if is_owner_cache_directory_event(&event, &registry_path) => return,
+                    Ok(event) => session_event_scope(&event, &provider_roots, &registry_path),
+                    Err(_) => None,
+                };
+                let mut pending = state.changed_paths.lock().unwrap();
+                match scope {
+                    Some(changed) => {
+                        if let Some(paths) = pending.as_mut() {
+                            paths.extend(changed);
+                            if paths.len() > 1024 {
+                                *pending = None;
+                            }
+                        }
+                    }
+                    None => *pending = None,
                 }
+                state.epoch.fetch_add(1, Ordering::SeqCst);
             })?;
-        let config = crate::sessions::SessionConfig::default();
         for path in [
             &config.codex_home,
             &config.claude_config_dir,
@@ -298,6 +344,237 @@ impl RootState {
         *session_watcher = Some(watcher);
         Ok(())
     }
+}
+
+fn project_rename_is_precise(event: &notify::Event, root: &Path) -> bool {
+    let notify::EventKind::Modify(notify::event::ModifyKind::Name(mode)) = event.kind else {
+        return true;
+    };
+    matches!(mode, notify::event::RenameMode::Both)
+        && event.paths.len() == 2
+        && event.paths.iter().any(|path| path.is_file())
+        && event.paths.iter().all(|path| {
+            path.starts_with(root)
+                && !path.is_dir()
+                && !path.components().any(|part| part.as_os_str() == ".git")
+        })
+}
+
+fn project_event_is_precise(event: &notify::Event, root: &Path) -> bool {
+    if !project_rename_is_precise(event, root) {
+        return false;
+    }
+    for path in &event.paths {
+        if !path.starts_with(root) || path.components().any(|part| part.as_os_str() == ".git") {
+            continue;
+        }
+        match event.kind {
+            notify::EventKind::Create(
+                notify::event::CreateKind::Any | notify::event::CreateKind::File,
+            )
+            | notify::EventKind::Modify(
+                notify::event::ModifyKind::Any
+                | notify::event::ModifyKind::Data(_)
+                | notify::event::ModifyKind::Metadata(_),
+            ) if !path.is_file() => return false,
+            notify::EventKind::Remove(notify::event::RemoveKind::Any) if !path.is_file() => {
+                return false;
+            }
+            _ => {}
+        }
+    }
+    true
+}
+
+fn is_registry_auxiliary_event(event: &notify::Event, registry_path: &Path) -> bool {
+    if event.paths.is_empty() {
+        return false;
+    }
+    let lock_path = registry_path.with_extension("json.lock");
+    let temp_prefix = registry_path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .map(|name| format!(".{name}-tmp-"));
+    event.paths.iter().all(|path| {
+        let path = normalize_watch_path(path);
+        path == lock_path
+            || temp_prefix.as_ref().is_some_and(|prefix| {
+                path.file_name()
+                    .and_then(|name| name.to_str())
+                    .is_some_and(|name| name.starts_with(prefix))
+            })
+    })
+}
+
+fn is_owner_cache_directory_event(event: &notify::Event, registry_path: &Path) -> bool {
+    let Some(parent) = registry_path.parent() else {
+        return false;
+    };
+    let directory_event = matches!(
+        event.kind,
+        notify::EventKind::Create(notify::event::CreateKind::Folder)
+            | notify::EventKind::Modify(notify::event::ModifyKind::Metadata(_))
+            | notify::EventKind::Remove(notify::event::RemoveKind::Folder)
+    );
+    directory_event
+        && !event.paths.is_empty()
+        && event.paths.iter().all(|path| {
+            let path = normalize_watch_path(path);
+            path.parent() == Some(parent)
+                && path != registry_path
+                && path
+                    .file_name()
+                    .and_then(|name| name.to_str())
+                    .is_some_and(|name| {
+                        name.len() == 64 && name.bytes().all(|byte| byte.is_ascii_hexdigit())
+                    })
+        })
+}
+
+fn session_event_scope(
+    event: &notify::Event,
+    provider_roots: &[PathBuf],
+    registry_path: &Path,
+) -> Option<HashSet<PathBuf>> {
+    if event.need_rescan() || event.paths.is_empty() {
+        return None;
+    }
+    let registry_parent = registry_path.parent();
+    let normalized_paths = event
+        .paths
+        .iter()
+        .map(|path| (path, normalize_watch_path(path)))
+        .collect::<Vec<_>>();
+    if normalized_paths.iter().any(|(_, path)| {
+        path == registry_path
+            || registry_parent.is_some_and(|parent| path == parent)
+            || path.starts_with(registry_path)
+    }) {
+        return None;
+    }
+    let precise_rename = matches!(
+        event.kind,
+        notify::EventKind::Modify(notify::event::ModifyKind::Name(
+            notify::event::RenameMode::Both
+        ))
+    ) && event.paths.len() == 2
+        && normalized_paths
+            .iter()
+            .any(|(original, path)| original.is_file() || path.is_file());
+    if matches!(
+        event.kind,
+        notify::EventKind::Modify(notify::event::ModifyKind::Name(_))
+    ) && !precise_rename
+    {
+        return None;
+    }
+    let mut paths = HashSet::new();
+    for (original, path) in normalized_paths {
+        let provider_file = provider_roots
+            .iter()
+            .any(|root| path.starts_with(root) && path.as_path() != root.as_path())
+            && path
+                .extension()
+                .is_some_and(|extension| extension == "jsonl");
+        if !provider_file || original.is_dir() || path.is_dir() {
+            return None;
+        }
+        let existing_file = original.is_file() || path.is_file();
+        let precise = match event.kind {
+            notify::EventKind::Create(
+                notify::event::CreateKind::Any | notify::event::CreateKind::File,
+            )
+            | notify::EventKind::Modify(
+                notify::event::ModifyKind::Any
+                | notify::event::ModifyKind::Data(_)
+                | notify::event::ModifyKind::Metadata(_),
+            ) => existing_file,
+            notify::EventKind::Modify(notify::event::ModifyKind::Name(
+                notify::event::RenameMode::Both,
+            )) => precise_rename,
+            notify::EventKind::Remove(notify::event::RemoveKind::File) => true,
+            notify::EventKind::Remove(notify::event::RemoveKind::Any) => existing_file,
+            _ => false,
+        };
+        if !precise {
+            return None;
+        }
+        paths.insert(path);
+    }
+    Some(paths)
+}
+
+fn normalize_watch_path(path: &Path) -> PathBuf {
+    if let Ok(path) = fs::canonicalize(path) {
+        return path;
+    }
+    let mut suffix = Vec::new();
+    let mut probe = path.to_path_buf();
+    while !probe.exists() {
+        let Some(name) = probe.file_name() else {
+            break;
+        };
+        suffix.push(name.to_os_string());
+        if !probe.pop() {
+            break;
+        }
+    }
+    if let Ok(mut canonical) = fs::canonicalize(&probe) {
+        for component in suffix.iter().rev() {
+            canonical.push(component);
+        }
+        return canonical;
+    }
+    let absolute = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        std::env::current_dir()
+            .unwrap_or_else(|_| PathBuf::from("."))
+            .join(path)
+    };
+    let mut normalized = PathBuf::new();
+    for component in absolute.components() {
+        use std::path::Component;
+        match component {
+            Component::CurDir => {}
+            Component::ParentDir => {
+                normalized.pop();
+            }
+            component => normalized.push(component.as_os_str()),
+        }
+    }
+    normalized
+}
+
+fn merge_pending_scope(
+    pending: &Mutex<Option<HashSet<PathBuf>>>,
+    consumed: Option<&HashSet<PathBuf>>,
+) {
+    let mut pending = pending.lock().unwrap();
+    let Some(consumed) = consumed else {
+        *pending = None;
+        return;
+    };
+    let Some(paths) = pending.as_mut() else {
+        return;
+    };
+    paths.extend(consumed.iter().cloned());
+    if paths.len() > 1024 {
+        *pending = None;
+    }
+}
+
+fn take_pending_scope(
+    pending: &Mutex<Option<HashSet<PathBuf>>>,
+    force_full: bool,
+) -> Option<HashSet<PathBuf>> {
+    let mut pending = pending.lock().unwrap();
+    if force_full {
+        *pending = None;
+    }
+    let consumed = pending.take();
+    *pending = Some(HashSet::new());
+    if force_full { None } else { consumed }
 }
 
 fn git_path(root: &Path, args: &[&str]) -> Option<PathBuf> {
@@ -432,6 +709,8 @@ pub fn run_owner(root: &Path, cache: &Path) -> Result<()> {
             let force = last_full.elapsed() > Duration::from_secs(30);
             if force {
                 last_full = Instant::now();
+                *worker_sessions.changed_paths.lock().unwrap() = None;
+                worker_sessions.force_full.store(true, Ordering::SeqCst);
                 worker_sessions.epoch.fetch_add(1, Ordering::SeqCst);
             }
             for state in states {
@@ -444,7 +723,7 @@ pub fn run_owner(root: &Path, cache: &Path) -> Result<()> {
                 }
                 let epoch = state.epoch.load(Ordering::SeqCst);
                 if epoch != state.scanned.load(Ordering::SeqCst) {
-                    let mut paths = state.changed_paths.lock().unwrap().replace(HashSet::new());
+                    let mut paths = take_pending_scope(&state.changed_paths, force);
                     if state.git_pending.swap(false, Ordering::SeqCst) && paths.is_some() {
                         let next = crate::git_changes::Snapshot::capture(&state.root);
                         let git_paths =
@@ -468,41 +747,31 @@ pub fn run_owner(root: &Path, cache: &Path) -> Result<()> {
                         !worker_stop.load(Ordering::SeqCst)
                             && state.leases.load(Ordering::SeqCst) > 0
                     };
-                    let invalidation = if paths.is_none() {
-                        worker_store
-                            .invalidate_collection(&state.collection, ingest::PROJECT_SOURCE_KIND)
-                    } else {
-                        worker_store
-                            .sources(&state.collection, ingest::PROJECT_SOURCE_KIND)
-                            .and_then(|sources| {
-                                for source in sources {
-                                    if paths.as_ref().is_some_and(|paths| {
-                                        paths
-                                            .iter()
-                                            .any(|p| state.root.join(&source.path).starts_with(p))
-                                    }) {
-                                        worker_store.invalidate_source(&source.key)?;
-                                    }
-                                }
-                                Ok(())
-                            })
-                    };
+                    let full_scan = paths.is_none();
+                    let invalidation = ingest::invalidate_project_scope(
+                        &state.root,
+                        &worker_store,
+                        &state.collection,
+                        paths.as_ref(),
+                    );
                     if invalidation.is_ok() {
+                        // Unaffected verified sources remain searchable while
+                        // the observed scanner rebuilds this invalidated scope.
                         state.safe_epoch.store(epoch, Ordering::SeqCst);
                     }
-                    let full_scan = paths.is_none();
                     let result = invalidation.and_then(|()| {
-                        ingest::scan_project_controlled_with_cache(
+                        ingest::scan_project_observed(
                             &state.root,
                             &worker_store,
                             &state.collection,
                             paths.as_ref(),
                             &should_continue,
                             content_cache.as_mut(),
+                            &state.progress,
                         )
                     });
                     let completed = result.as_ref().is_ok_and(|report| !report.cancelled);
-                    if state.epoch.load(Ordering::SeqCst) == epoch && result.is_ok() {
+                    if state.epoch.load(Ordering::SeqCst) == epoch && completed {
                         let git_after = crate::git_changes::Snapshot::capture(&state.root);
                         if state.epoch.load(Ordering::SeqCst) == epoch
                             && git_before
@@ -540,7 +809,10 @@ pub fn run_owner(root: &Path, cache: &Path) -> Result<()> {
                     if completed && state.safe_epoch.load(Ordering::SeqCst) == epoch {
                         state.scanned.store(epoch, Ordering::SeqCst);
                     } else {
-                        *state.changed_paths.lock().unwrap() = None;
+                        state
+                            .safe_epoch
+                            .store(state.scanned.load(Ordering::SeqCst), Ordering::SeqCst);
+                        merge_pending_scope(&state.changed_paths, paths.as_ref());
                     }
                 }
             }
@@ -579,30 +851,43 @@ pub fn run_owner(root: &Path, cache: &Path) -> Result<()> {
                         })
                 };
                 if epoch != session_state.scanned.load(Ordering::SeqCst) && can_continue() {
+                    let force_full = session_state.force_full.swap(false, Ordering::SeqCst);
+                    let paths = take_pending_scope(&session_state.changed_paths, force_full);
                     session_state.in_flight.store(true, Ordering::SeqCst);
-                    let invalidation = session_store.invalidate_collection(&owner_key, "session");
+                    let invalidation = crate::sessions::invalidate_session_scope(
+                        &owner_key,
+                        &session_store,
+                        &session_config,
+                        paths.as_ref(),
+                    );
                     if invalidation.is_ok() {
                         session_state.safe_epoch.store(epoch, Ordering::SeqCst);
                     }
                     let result = invalidation.and_then(|()| {
-                        crate::sessions::scan_sessions_controlled(
+                        crate::sessions::scan_sessions_observed(
                             &state.root,
                             &owner_key,
                             &session_store,
                             &session_config,
+                            paths.as_ref(),
                             &can_continue,
+                            &session_state.progress,
                         )
                     });
                     let completed = result.as_ref().is_ok_and(|report| !report.cancelled);
-                    if can_continue() {
-                        *session_state.coverage.lock().unwrap() =
-                            with_watch_error(coverage(result), &session_state.watch_error);
-                        if completed
-                            && session_state.epoch.load(Ordering::SeqCst) == epoch
-                            && session_state.safe_epoch.load(Ordering::SeqCst) == epoch
-                        {
-                            session_state.scanned.store(epoch, Ordering::SeqCst);
-                        }
+                    *session_state.coverage.lock().unwrap() =
+                        with_watch_error(coverage(result), &session_state.watch_error);
+                    if completed
+                        && session_state.epoch.load(Ordering::SeqCst) == epoch
+                        && session_state.safe_epoch.load(Ordering::SeqCst) == epoch
+                    {
+                        session_state.scanned.store(epoch, Ordering::SeqCst);
+                    } else {
+                        session_state.safe_epoch.store(
+                            session_state.scanned.load(Ordering::SeqCst),
+                            Ordering::SeqCst,
+                        );
+                        merge_pending_scope(&session_state.changed_paths, paths.as_ref());
                     }
                     session_state.in_flight.store(false, Ordering::SeqCst);
                 }
@@ -706,6 +991,7 @@ fn serve_connection(
         let _lifecycle = state.lifecycle.lock().unwrap();
         if state.leases.fetch_add(1, Ordering::SeqCst) == 0 {
             *state.changed_paths.lock().unwrap() = None;
+            *state.sessions.changed_paths.lock().unwrap() = None;
             state.sessions.epoch.fetch_add(1, Ordering::SeqCst);
             state.epoch.fetch_add(1, Ordering::SeqCst);
             if let Err(error) = state.watch() {
@@ -733,6 +1019,13 @@ fn serve_connection(
         let request: Request = read_json(&mut reader)?;
         if request.name == "__ping" {
             write_json(reader.get_mut(), &json!({"result":{}}))?;
+            continue;
+        }
+        if request.name == "__status" {
+            write_json(
+                reader.get_mut(),
+                &json!({"result":status_snapshot(&state, memory, sessions)}),
+            )?;
             continue;
         }
         let sessions = request.name == "search_sessions";
@@ -822,6 +1115,34 @@ fn search_status(ready: bool, coverage: &Coverage) -> &'static str {
     }
 }
 
+fn status_snapshot(state: &RootState, memory: &MemoryState, sessions: &SessionState) -> Value {
+    let project_ready = state.epoch.load(Ordering::SeqCst) == state.scanned.load(Ordering::SeqCst);
+    let session_ready =
+        sessions.epoch.load(Ordering::SeqCst) == sessions.scanned.load(Ordering::SeqCst);
+    let mut project_coverage = state.coverage.lock().unwrap().clone();
+    let mut session_coverage = sessions.coverage.lock().unwrap().clone();
+    project_coverage.memory = Some(memory.snapshot());
+    session_coverage.memory = Some(memory.snapshot());
+    if !project_ready {
+        project_coverage.pending_changes = None;
+    }
+    if !session_ready {
+        session_coverage.pending_changes = None;
+    }
+    json!({
+        "project": {
+            "status": search_status(project_ready, &project_coverage),
+            "coverage": tools::public_coverage_value(&project_coverage),
+            "progress": state.progress.snapshot(),
+        },
+        "sessions": {
+            "status": search_status(session_ready, &session_coverage),
+            "coverage": tools::public_coverage_value(&session_coverage),
+            "progress": sessions.progress.snapshot(),
+        },
+    })
+}
+
 fn coverage(result: Result<ScanReport>) -> Coverage {
     match result {
         Ok(report) => Coverage {
@@ -905,5 +1226,142 @@ mod tests {
         assert_eq!(search_status(true, &coverage), "degraded");
         coverage.pending_changes = Some(1);
         assert_eq!(search_status(true, &coverage), "refreshing");
+    }
+
+    #[test]
+    fn rename_routing_requires_both_endpoints() {
+        let root = Path::new("/project");
+        let provider_roots = [PathBuf::from("/provider")];
+        let registry = Path::new("/cache/registry.json");
+        for mode in [
+            notify::event::RenameMode::From,
+            notify::event::RenameMode::To,
+            notify::event::RenameMode::Any,
+            notify::event::RenameMode::Other,
+        ] {
+            let event = notify::Event {
+                kind: notify::EventKind::Modify(notify::event::ModifyKind::Name(mode)),
+                paths: vec![PathBuf::from("/provider/sessions/source.jsonl")],
+                attrs: Default::default(),
+            };
+            assert!(!project_rename_is_precise(&event, root));
+            assert!(session_event_scope(&event, &provider_roots, registry).is_none());
+        }
+
+        let project_temp = tempfile::tempdir().unwrap();
+        let project_root = project_temp.path();
+        std::fs::write(project_root.join("new.jsonl"), "new").unwrap();
+        let event = notify::Event {
+            kind: notify::EventKind::Modify(notify::event::ModifyKind::Name(
+                notify::event::RenameMode::Both,
+            )),
+            paths: vec![
+                project_root.join("old.jsonl"),
+                project_root.join("new.jsonl"),
+            ],
+            attrs: Default::default(),
+        };
+        assert!(project_rename_is_precise(&event, project_root));
+        let session_temp = tempfile::tempdir().unwrap();
+        let session_provider = session_temp.path().join("provider/sessions");
+        std::fs::create_dir_all(&session_provider).unwrap();
+        std::fs::write(session_provider.join("new.jsonl"), "new").unwrap();
+        let session_provider_roots = [normalize_watch_path(&session_temp.path().join("provider"))];
+        let session_registry = session_temp.path().join("registry.json");
+        let session_event = notify::Event {
+            kind: event.kind,
+            paths: vec![
+                session_provider.join("old.jsonl"),
+                session_provider.join("new.jsonl"),
+            ],
+            attrs: Default::default(),
+        };
+        let session_scope =
+            session_event_scope(&session_event, &session_provider_roots, &session_registry);
+        assert!(session_scope.is_some(), "{session_event:?}");
+        assert_eq!(session_scope.unwrap().len(), 2);
+
+        let deleted = notify::Event {
+            kind: notify::EventKind::Remove(notify::event::RemoveKind::Any),
+            paths: vec![PathBuf::from("/provider/sessions/deleted.jsonl")],
+            attrs: Default::default(),
+        };
+        assert!(session_event_scope(&deleted, &provider_roots, registry).is_none());
+        let removed_file = notify::Event {
+            kind: notify::EventKind::Remove(notify::event::RemoveKind::File),
+            paths: vec![PathBuf::from("/provider/sessions/deleted.jsonl")],
+            attrs: Default::default(),
+        };
+        assert_eq!(
+            session_event_scope(&removed_file, &provider_roots, registry)
+                .unwrap()
+                .len(),
+            1
+        );
+        let temp = tempfile::tempdir().unwrap();
+        let provider = temp.path().join("provider/sessions");
+        std::fs::create_dir_all(provider.join("folder.jsonl")).unwrap();
+        std::fs::write(provider.join("folder.jsonl/child.jsonl"), "child").unwrap();
+        let registry = temp.path().join("registry.json");
+        let directory_event = notify::Event {
+            kind: notify::EventKind::Remove(notify::event::RemoveKind::Any),
+            paths: vec![provider.join("folder.jsonl")],
+            attrs: Default::default(),
+        };
+        assert!(
+            session_event_scope(
+                &directory_event,
+                &[normalize_watch_path(&temp.path().join("provider"))],
+                &registry,
+            )
+            .is_none()
+        );
+        let ambiguous = notify::Event {
+            kind: notify::EventKind::Modify(notify::event::ModifyKind::Any),
+            paths: vec![PathBuf::from("/provider/sessions/missing.jsonl")],
+            attrs: Default::default(),
+        };
+        assert!(session_event_scope(&ambiguous, &provider_roots, &registry).is_none());
+        let project_ambiguous = notify::Event {
+            kind: ambiguous.kind,
+            paths: vec![PathBuf::from("/project/missing.rs")],
+            attrs: Default::default(),
+        };
+        assert!(!project_event_is_precise(&project_ambiguous, root));
+    }
+
+    #[test]
+    fn forced_scope_discards_pending_candidates() {
+        let pending = Mutex::new(Some(HashSet::from([PathBuf::from("/source.jsonl")])));
+        assert!(take_pending_scope(&pending, true).is_none());
+        assert!(
+            pending
+                .lock()
+                .unwrap()
+                .as_ref()
+                .is_some_and(HashSet::is_empty)
+        );
+    }
+
+    #[test]
+    fn registry_lock_and_temp_events_do_not_trigger_session_reconcile() {
+        let registry = Path::new("/cache/identity-registry.json");
+        for path in [
+            "/cache/identity-registry.json.lock",
+            "/cache/.identity-registry.json-tmp-123-456-0",
+        ] {
+            let event = notify::Event {
+                kind: notify::EventKind::Create(notify::event::CreateKind::File),
+                paths: vec![PathBuf::from(path)],
+                attrs: Default::default(),
+            };
+            assert!(is_registry_auxiliary_event(&event, registry));
+        }
+        let event = notify::Event {
+            kind: notify::EventKind::Create(notify::event::CreateKind::File),
+            paths: vec![registry.to_path_buf()],
+            attrs: Default::default(),
+        };
+        assert!(!is_registry_auxiliary_event(&event, registry));
     }
 }

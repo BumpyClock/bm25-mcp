@@ -1,7 +1,7 @@
 use bm25_mcp::{
     model::{Chunk, SearchFilter, Source},
     store::Store,
-    tools::{Coverage, dispatch},
+    tools::{Coverage, dispatch, public_coverage_value},
 };
 use serde_json::{Value, json};
 
@@ -36,6 +36,25 @@ fn search(store: &Store, args: Value) -> Value {
         true,
     )
     .unwrap()
+}
+
+#[test]
+fn public_coverage_omits_raw_errors_and_unknown_diagnostic_names() {
+    let mut coverage = Coverage::default();
+    coverage
+        .errors
+        .push("/private/project/secret-marker".into());
+    coverage
+        .diagnostics
+        .insert("provider:/private/project/secret-marker".into(), 2);
+    coverage.diagnostics.insert("unsupported_record".into(), 3);
+
+    let value = public_coverage_value(&coverage);
+    let text = value.to_string();
+    assert!(!text.contains("secret-marker"));
+    assert!(value.get("errors").is_none());
+    assert_eq!(value["diagnostics"]["unsupported_record"], 3);
+    assert_eq!(value["diagnostics"]["other"], 2);
 }
 
 #[test]

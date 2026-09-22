@@ -5,7 +5,10 @@
 //! records and parser state on disk so a provider's large history cannot turn
 //! into an unbounded process allocation.
 
+use crate::progress::{ProgressPhase, ProgressReporter};
+use crate::store::Store;
 use anyhow::{Context, Result, anyhow};
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 #[path = "session_json.rs"]
@@ -103,7 +106,15 @@ pub fn scan_sessions(
     store: &crate::store::Store,
     config: &SessionConfig,
 ) -> Result<crate::model::ScanReport> {
-    session_stream::scan(root, owner_key, store, config, &|| true)
+    scan_sessions_observed(
+        root,
+        owner_key,
+        store,
+        config,
+        None,
+        &|| true,
+        &ProgressReporter::noop(),
+    )
 }
 
 /// Reconcile sessions while allowing the owner to stop between records/files.
@@ -116,7 +127,59 @@ pub fn scan_sessions_controlled(
     config: &SessionConfig,
     should_continue: &dyn Fn() -> bool,
 ) -> Result<crate::model::ScanReport> {
-    session_stream::scan(root, owner_key, store, config, should_continue)
+    scan_sessions_observed(
+        root,
+        owner_key,
+        store,
+        config,
+        None,
+        should_continue,
+        &ProgressReporter::noop(),
+    )
+}
+
+/// Invalidate only the session sources represented by an exact set of
+/// canonical provider-file paths. `None` is the conservative full fallback
+/// used for registry, topology, overflow, or otherwise ambiguous events.
+pub fn invalidate_session_scope(
+    owner_key: &str,
+    store: &Store,
+    config: &SessionConfig,
+    changes: Option<&HashSet<PathBuf>>,
+) -> Result<()> {
+    session_stream::invalidate_scope(owner_key, store, config, changes)
+}
+
+/// Reconcile sessions while publishing bounded progress snapshots.
+pub fn scan_sessions_observed(
+    root: &Path,
+    owner_key: &str,
+    store: &Store,
+    config: &SessionConfig,
+    changes: Option<&HashSet<PathBuf>>,
+    should_continue: &dyn Fn() -> bool,
+    progress: &ProgressReporter,
+) -> Result<crate::model::ScanReport> {
+    progress.begin_run();
+    let result = session_stream::scan_observed(
+        root,
+        owner_key,
+        store,
+        config,
+        changes,
+        should_continue,
+        progress,
+    );
+    match &result {
+        Ok(report) if report.cancelled => progress.finish_run(ProgressPhase::Cancelled),
+        Ok(_) => progress.finish_run(ProgressPhase::Complete),
+        Err(error) if error.to_string().contains("session scan cancelled") => {
+            progress.record_cancellation();
+            progress.finish_run(ProgressPhase::Cancelled);
+        }
+        Err(_) => progress.finish_run(ProgressPhase::Failed),
+    }
+    result
 }
 
 #[cfg(test)]

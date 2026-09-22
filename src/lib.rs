@@ -4,6 +4,7 @@ pub mod content_cache;
 pub mod identity;
 pub mod ingest;
 pub mod model;
+pub mod progress;
 pub mod sessions;
 pub mod store;
 pub mod text;

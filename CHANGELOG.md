@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Expose path-free indexing progress through an MCP status resource, with
+  separate prepared and committed chunk counts and phase/work measurements.
+- Flush completed evaluation records immediately and replace ranked readiness
+  polling with lightweight status reads and deadline-bounded requests.
+- Batch temporary parser-state writes and reconcile precise session-file
+  changes without reparsing unrelated histories, retaining conservative
+  ownership verification and atomic chunk/checkpoint publication.
+
 - Protect bounded meaningful-query admission when discarded stopwords saturate
   the raw candidate pool; preserve canonical terms, original evidence, and the
   existing six-additional-retrieval and 200-candidate limits.

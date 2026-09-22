@@ -8,6 +8,7 @@
 use crate::content_cache::{CachedChunks, ContentCache};
 pub use crate::identity::ProjectIdentity;
 use crate::model::{Chunk, ScanReport, Source};
+use crate::progress::{ProgressPhase, ProgressReporter, WorkKind};
 use crate::store::Store;
 use crate::text::StreamingTokenizer;
 use anyhow::{Context, Result, anyhow, ensure};
@@ -20,7 +21,7 @@ use std::io::{BufRead, BufReader, BufWriter, Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 /// The source kind used by project-file ingestion.
 pub const PROJECT_SOURCE_KIND: &str = "project";
@@ -41,6 +42,34 @@ pub fn project_identity(root: &Path) -> Result<ProjectIdentity> {
     crate::identity::resolve_project(root)
 }
 
+/// Invalidate the project sources represented by an exact set of canonical
+/// paths, or the whole collection for a full/ambiguous reconciliation.
+///
+/// The observed scanner repeats this operation idempotently so direct callers
+/// cannot publish a changed source without first suppressing its old rows.
+pub fn invalidate_project_scope(
+    root: &Path,
+    store: &Store,
+    collection: &str,
+    changes: Option<&HashSet<PathBuf>>,
+) -> Result<()> {
+    let root = fs::canonicalize(root)
+        .with_context(|| format!("canonicalizing project root {}", root.display()))?;
+    let Some(changes) = changes else {
+        return store.invalidate_collection(collection, PROJECT_SOURCE_KIND);
+    };
+    let candidates = changes
+        .iter()
+        .map(|path| canonical_or_normalized(&resolve_project_candidate(&root, path)))
+        .collect::<HashSet<_>>();
+    for source in store.sources(collection, PROJECT_SOURCE_KIND)? {
+        if candidates.contains(&canonical_or_normalized(&root.join(&source.path))) {
+            store.invalidate_source(&source.key)?;
+        }
+    }
+    Ok(())
+}
+
 /// Reconcile eligible project files into `store`.
 ///
 /// The walker applies nested `.gitignore` rules to tracked and untracked files
@@ -49,7 +78,15 @@ pub fn project_identity(root: &Path) -> Result<ProjectIdentity> {
 /// reconciliation; unchanged sources are verified and changed sources are
 /// replaced transactionally by the store.
 pub fn scan_project(root: &Path, store: &Store, collection: &str) -> Result<ScanReport> {
-    scan_project_controlled(root, store, collection, None, &|| true)
+    scan_project_observed(
+        root,
+        store,
+        collection,
+        None,
+        &|| true,
+        None,
+        &ProgressReporter::noop(),
+    )
 }
 
 /// Reconcile project files while reusing verified, tokenized chunks from a
@@ -61,7 +98,15 @@ pub fn scan_project_with_cache(
     collection: &str,
     cache: &mut ContentCache,
 ) -> Result<ScanReport> {
-    scan_project_controlled_with_cache(root, store, collection, None, &|| true, Some(cache))
+    scan_project_observed(
+        root,
+        store,
+        collection,
+        None,
+        &|| true,
+        Some(cache),
+        &ProgressReporter::noop(),
+    )
 }
 
 /// Reconcile watcher candidates while retaining verified, unaffected sources.
@@ -72,7 +117,15 @@ pub fn scan_project_changes(
     collection: &str,
     paths: &HashSet<PathBuf>,
 ) -> Result<ScanReport> {
-    scan_project_controlled(root, store, collection, Some(paths), &|| true)
+    scan_project_observed(
+        root,
+        store,
+        collection,
+        Some(paths),
+        &|| true,
+        None,
+        &ProgressReporter::noop(),
+    )
 }
 
 pub fn scan_project_controlled(
@@ -82,7 +135,15 @@ pub fn scan_project_controlled(
     changes: Option<&HashSet<PathBuf>>,
     should_continue: &dyn Fn() -> bool,
 ) -> Result<ScanReport> {
-    scan_project_controlled_with_cache(root, store, collection, changes, should_continue, None)
+    scan_project_observed(
+        root,
+        store,
+        collection,
+        changes,
+        should_continue,
+        None,
+        &ProgressReporter::noop(),
+    )
 }
 
 /// Controlled project reconciliation with an optional bounded content cache.
@@ -92,7 +153,63 @@ pub fn scan_project_controlled_with_cache(
     collection: &str,
     changes: Option<&HashSet<PathBuf>>,
     should_continue: &dyn Fn() -> bool,
+    cache: Option<&mut ContentCache>,
+) -> Result<ScanReport> {
+    scan_project_observed(
+        root,
+        store,
+        collection,
+        changes,
+        should_continue,
+        cache,
+        &ProgressReporter::noop(),
+    )
+}
+
+/// Reconcile project sources while publishing bounded, path-free progress.
+///
+/// `changes` is an exact set of source-file candidates. `None` retains the
+/// conservative full-reconcile behavior used for topology or watcher
+/// uncertainty; a precise set never invalidates or walks unrelated sources.
+pub fn scan_project_observed(
+    root: &Path,
+    store: &Store,
+    collection: &str,
+    changes: Option<&HashSet<PathBuf>>,
+    should_continue: &dyn Fn() -> bool,
+    cache: Option<&mut ContentCache>,
+    progress: &ProgressReporter,
+) -> Result<ScanReport> {
+    progress.begin_run();
+    let result = scan_project_observed_inner(
+        root,
+        store,
+        collection,
+        changes,
+        should_continue,
+        cache,
+        progress,
+    );
+    match &result {
+        Ok(report) if report.cancelled => progress.finish_run(ProgressPhase::Cancelled),
+        Ok(_) => progress.finish_run(ProgressPhase::Complete),
+        Err(error) if error.to_string().contains("indexing_cancelled") => {
+            progress.record_cancellation();
+            progress.finish_run(ProgressPhase::Cancelled);
+        }
+        Err(_) => progress.finish_run(ProgressPhase::Failed),
+    }
+    result
+}
+
+fn scan_project_observed_inner(
+    root: &Path,
+    store: &Store,
+    collection: &str,
+    changes: Option<&HashSet<PathBuf>>,
+    should_continue: &dyn Fn() -> bool,
     mut cache: Option<&mut ContentCache>,
+    progress: &ProgressReporter,
 ) -> Result<ScanReport> {
     let root = fs::canonicalize(root)
         .with_context(|| format!("canonicalizing project root {}", root.display()))?;
@@ -105,96 +222,95 @@ pub fn scan_project_controlled_with_cache(
         ));
     }
 
-    let affected = |path: &Path| {
-        changes.is_none_or(|paths| paths.iter().any(|candidate| path.starts_with(candidate)))
-    };
-    let existing = store
+    let all_existing = store
         .sources(collection, PROJECT_SOURCE_KIND)
-        .context("listing existing project sources")?
-        .into_iter()
-        .filter(|source| affected(&root.join(&source.path)))
+        .context("listing existing project sources")?;
+    let precise_paths = changes.map(|paths| {
+        paths
+            .iter()
+            .map(|path| canonical_or_normalized(&resolve_project_candidate(&root, path)))
+            .collect::<HashSet<_>>()
+    });
+    invalidate_project_scope(&root, store, collection, changes)?;
+    let existing = all_existing
+        .iter()
+        .filter(|source| {
+            precise_paths.as_ref().is_none_or(|paths| {
+                paths.contains(&canonical_or_normalized(&root.join(&source.path)))
+            })
+        })
+        .cloned()
         .collect::<Vec<_>>();
     let existing_versions: HashMap<_, _> = existing
         .iter()
         .map(|source| (source.key.as_str(), source.version.as_str()))
         .collect();
-    for source in &existing {
-        // Suppressing stale passages is part of reconciliation.  A source is
-        // made searchable again only after its bytes are verified below.
-        store
-            .invalidate_source(&source.key)
-            .with_context(|| format!("invalidating source {}", source.key))?;
-    }
-
     let mut report = ScanReport::default();
     let mut seen = HashSet::new();
-    let mut walk_failed = false;
-    let require_git_rules = project_identity(&root)
-        .map(|identity| identity.kind == crate::identity::RootKind::GitWorktree)
-        .unwrap_or(false);
+    let mut candidate_walk_failed = false;
+    let precise_candidates = if let Some(paths) = precise_paths.as_ref() {
+        let mut candidates = HashSet::new();
+        for path in paths {
+            if !path.starts_with(&root) {
+                report.excluded_count = report.excluded_count.saturating_add(1);
+                bump_diagnostic(&mut report, "outside_root");
+                continue;
+            }
+            match fs::symlink_metadata(path) {
+                Ok(metadata) if metadata.file_type().is_file() => {
+                    candidates.insert(path.clone());
+                }
+                Ok(metadata) if metadata.file_type().is_symlink() => {
+                    report.excluded_count = report.excluded_count.saturating_add(1);
+                    bump_diagnostic(&mut report, "symlink_excluded");
+                }
+                Ok(_) => {
+                    report.excluded_count = report.excluded_count.saturating_add(1);
+                    bump_diagnostic(&mut report, "non_file_change");
+                }
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                    // Preserve deleted candidates so the final reconciliation
+                    // removes their old source membership.
+                    candidates.insert(path.clone());
+                }
+                Err(error) => {
+                    candidate_walk_failed = true;
+                    record_error(&mut report, format!("reading changed path: {error}"));
+                }
+            }
+        }
+        Some(candidates)
+    } else {
+        None
+    };
+    let (files, mut walk_failed) = discover_project_files(
+        &root,
+        precise_candidates.as_ref(),
+        should_continue,
+        &mut report,
+        progress,
+    )?;
+    walk_failed |= candidate_walk_failed;
+    progress.record_discovered(files.len() as u64);
 
-    let walker = WalkBuilder::new(&root)
-        .hidden(false)
-        .git_global(true)
-        .git_ignore(true)
-        .git_exclude(true)
-        // The ignore crate needs `require_git(true)` to parse a linked
-        // worktree's `.git` file and follow its common-dir `info/exclude`.
-        // Plain roots retain ordinary/global ignore behavior without Git
-        // metadata requirements.
-        .require_git(require_git_rules)
-        .parents(true)
-        .follow_links(false)
-        .build();
-
-    for entry in walker {
+    for path in &files {
         ensure!(should_continue(), "indexing_cancelled");
-        let entry = match entry {
-            Ok(entry) => entry,
-            Err(error) => {
-                walk_failed = true;
-                record_error(&mut report, format!("walking project: {error}"));
-                continue;
-            }
-        };
-        let path = entry.path();
         if is_git_metadata_path(path, &root) {
-            if path.is_file() {
-                report.excluded_count = report.excluded_count.saturating_add(1);
-                bump_diagnostic(&mut report, "git_metadata_excluded");
-            }
             continue;
         }
-        let file_type = match entry.file_type() {
-            Some(file_type) => file_type,
-            None => {
-                report.excluded_count = report.excluded_count.saturating_add(1);
-                continue;
-            }
-        };
-        if !file_type.is_file() {
-            // `follow_links(false)` ensures a symlink is never treated as an
-            // in-root file, even when it points to a regular file.
-            if file_type.is_symlink() {
-                report.excluded_count = report.excluded_count.saturating_add(1);
-                bump_diagnostic(&mut report, "symlink_excluded");
-            }
-            continue;
-        }
-
         let relative = match path.strip_prefix(&root) {
             Ok(relative) if !relative.as_os_str().is_empty() => normalize_relative(relative),
             _ => continue,
         };
-        if !affected(path) {
-            continue;
-        }
         let key = source_key(collection, &relative);
+        progress.record_current_source_bytes(0);
+        progress.set_phase(ProgressPhase::Normalization);
         match read_source(
             path,
             existing_versions.get(key.as_str()).copied(),
             should_continue,
             cache.as_deref_mut(),
+            progress,
         ) {
             Ok(ReadOutcome::Unchanged { version }) => {
                 seen.insert(key.clone());
@@ -211,6 +327,7 @@ pub fn scan_project_controlled_with_cache(
                 report.sources = report.sources.saturating_add(1);
                 report.chunks = report.chunks.saturating_add(chunk_count);
                 bump_diagnostic(&mut report, "unchanged_index_reuse");
+                progress.record_file_completed();
             }
             Ok(ReadOutcome::Cached {
                 version,
@@ -227,11 +344,13 @@ pub fn scan_project_controlled_with_cache(
                     kind: PROJECT_SOURCE_KIND.to_owned(),
                 };
                 report.chunks = report.chunks.saturating_add(chunk_count);
+                progress.record_prepared_chunks(chunk_count);
                 if existing_versions.get(key.as_str()).copied() == Some(source.version.as_str()) {
                     store
                         .mark_source_verified(&key)
                         .with_context(|| format!("verifying unchanged source {}", source.path))?;
                 } else {
+                    let commit_started = Instant::now();
                     store
                         .replace_source(
                             &source,
@@ -241,8 +360,11 @@ pub fn scan_project_controlled_with_cache(
                             }),
                         )
                         .with_context(|| format!("replacing source {}", source.path))?;
+                    progress.record_work(WorkKind::DurableTxn, commit_started.elapsed());
+                    progress.record_committed_chunks(chunk_count);
                 }
                 report.sources = report.sources.saturating_add(1);
+                progress.record_file_completed();
             }
             Ok(ReadOutcome::Included {
                 version,
@@ -268,6 +390,7 @@ pub fn scan_project_controlled_with_cache(
                         .mark_source_verified(&key)
                         .with_context(|| format!("verifying unchanged source {}", source.path))?;
                 } else {
+                    let commit_started = Instant::now();
                     store
                         .replace_source(
                             &source,
@@ -277,18 +400,23 @@ pub fn scan_project_controlled_with_cache(
                             }),
                         )
                         .with_context(|| format!("replacing source {}", source.path))?;
+                    progress.record_work(WorkKind::DurableTxn, commit_started.elapsed());
+                    progress.record_committed_chunks(chunks);
                 }
                 if let (Some(content_cache), Some(cache_copy)) = (cache.as_deref_mut(), cache_copy)
                 {
                     // SQLite is authoritative. A full cache volume or a
                     // transient cache-file failure must not turn a committed
                     // source replacement into a failed reconciliation.
+                    let cache_started = Instant::now();
                     if let Err(error) = content_cache.put(&version, cache_copy) {
                         bump_diagnostic(&mut report, "content_cache_write_error");
                         record_error(&mut report, format!("content cache: {error}"));
                     }
+                    progress.record_work(WorkKind::TempFileOps, cache_started.elapsed());
                 }
                 report.sources = report.sources.saturating_add(1);
+                progress.record_file_completed();
             }
             Ok(ReadOutcome::Excluded { reason }) => {
                 // An ineligible replacement must remove its old searchable
@@ -305,27 +433,145 @@ pub fn scan_project_controlled_with_cache(
                 if reason != "binary content" {
                     record_error(&mut report, format!("excluded {relative}: {reason}"));
                 }
+                if let Some(source) = existing.iter().find(|source| source.key == key) {
+                    store.remove_source(&source.key)?;
+                }
+                seen.insert(key.clone());
+                progress.record_file_completed();
             }
             Err(error) => {
                 record_error(&mut report, format!("{relative}: {error}"));
+                progress.record_file_completed();
             }
         }
     }
 
-    // If traversal itself failed, retaining the unknown source is safer than
-    // interpreting an incomplete walk as a deletion.  Files that were seen as
-    // binary/unsupported still intentionally remain absent from `seen`.
+    // A precise change set only reconciles the requested source keys. A full
+    // walk may remove missing sources once traversal completed successfully.
     if !walk_failed {
         for source in &existing {
             if !seen.contains(&source.key) {
                 store
                     .remove_source(&source.key)
                     .with_context(|| format!("removing stale source {}", source.key))?;
+                progress.record_file_completed();
             }
         }
     }
 
     Ok(report)
+}
+
+fn discover_project_files(
+    root: &Path,
+    candidates: Option<&HashSet<PathBuf>>,
+    should_continue: &dyn Fn() -> bool,
+    report: &mut ScanReport,
+    progress: &ProgressReporter,
+) -> Result<(Vec<PathBuf>, bool)> {
+    let require_git_rules = project_identity(root)
+        .map(|identity| identity.kind == crate::identity::RootKind::GitWorktree)
+        .unwrap_or(false);
+    let mut builder = WalkBuilder::new(root);
+    builder
+        .hidden(false)
+        .git_global(true)
+        .git_ignore(true)
+        .git_exclude(true)
+        // The ignore crate needs `require_git(true)` to parse a linked
+        // worktree's `.git` file and follow its common-dir `info/exclude`.
+        // Plain roots retain ordinary/global ignore behavior without Git
+        // metadata requirements.
+        .require_git(require_git_rules)
+        .parents(true)
+        .follow_links(false);
+    if let Some(candidates) = candidates {
+        let candidates = candidates.clone();
+        builder.filter_entry(move |entry| {
+            let entry_path = canonical_or_normalized(entry.path());
+            candidates
+                .iter()
+                .any(|candidate| candidate == &entry_path || candidate.starts_with(&entry_path))
+        });
+    }
+
+    let discovery_started = Instant::now();
+    let mut files = Vec::new();
+    let mut walk_failed = false;
+    for entry in builder.build() {
+        ensure!(should_continue(), "indexing_cancelled");
+        let entry = match entry {
+            Ok(entry) => entry,
+            Err(error) => {
+                walk_failed = true;
+                record_error(report, format!("walking project: {error}"));
+                continue;
+            }
+        };
+        let path = entry.path();
+        if is_git_metadata_path(path, root) {
+            if path.is_file() {
+                report.excluded_count = report.excluded_count.saturating_add(1);
+                bump_diagnostic(report, "git_metadata_excluded");
+            }
+            continue;
+        }
+        let file_type = match entry.file_type() {
+            Some(file_type) => file_type,
+            None => {
+                report.excluded_count = report.excluded_count.saturating_add(1);
+                continue;
+            }
+        };
+        if !file_type.is_file() {
+            if file_type.is_symlink() {
+                report.excluded_count = report.excluded_count.saturating_add(1);
+                bump_diagnostic(report, "symlink_excluded");
+            }
+            continue;
+        }
+        if let Some(candidates) = candidates
+            && !candidates.contains(&canonical_or_normalized(path))
+        {
+            continue;
+        }
+        files.push(path.to_path_buf());
+    }
+    progress.record_work(WorkKind::Discovery, discovery_started.elapsed());
+    Ok((files, walk_failed))
+}
+
+fn canonical_or_normalized(path: &Path) -> PathBuf {
+    if let Ok(path) = fs::canonicalize(path) {
+        return path;
+    }
+    let absolute = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        std::env::current_dir()
+            .unwrap_or_else(|_| PathBuf::from("."))
+            .join(path)
+    };
+    let mut normalized = PathBuf::new();
+    for component in absolute.components() {
+        use std::path::Component;
+        match component {
+            Component::CurDir => {}
+            Component::ParentDir => {
+                normalized.pop();
+            }
+            other => normalized.push(other.as_os_str()),
+        }
+    }
+    normalized
+}
+
+fn resolve_project_candidate(root: &Path, path: &Path) -> PathBuf {
+    if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        root.join(path)
+    }
 }
 
 /// A stable source key derived from a collection and normalized relative path.
@@ -413,10 +659,20 @@ fn read_source(
     known_version: Option<&str>,
     should_continue: &dyn Fn() -> bool,
     mut cache: Option<&mut ContentCache>,
+    progress: &ProgressReporter,
 ) -> Result<ReadOutcome> {
     let mut last_error = None;
-    for _attempt in 0..MAX_RETRIES {
-        match read_source_once(path, known_version, should_continue, cache.as_deref_mut()) {
+    for attempt in 0..MAX_RETRIES {
+        if attempt != 0 {
+            progress.record_retry();
+        }
+        match read_source_once(
+            path,
+            known_version,
+            should_continue,
+            cache.as_deref_mut(),
+            progress,
+        ) {
             Ok(outcome) => return Ok(outcome),
             Err(error) if error.downcast_ref::<UnstableRead>().is_some() => {
                 last_error = Some(error);
@@ -443,9 +699,11 @@ fn read_source_once(
     known_version: Option<&str>,
     should_continue: &dyn Fn() -> bool,
     cache: Option<&mut ContentCache>,
+    progress: &ProgressReporter,
 ) -> Result<ReadOutcome> {
     let before = file_fingerprint(path)?;
-    let version = raw_digest(path, should_continue)?;
+    progress.set_phase(ProgressPhase::PrefixVerification);
+    let version = raw_digest(path, should_continue, progress)?;
     if before != file_fingerprint(path)? {
         return Err(UnstableRead.into());
     }
@@ -482,7 +740,10 @@ fn read_source_once(
 
     let spool = ChunkSpool::new()?;
     let mut spool = spool;
-    let mut chunker = Chunker::default();
+    let mut chunker = Chunker {
+        progress: Some(progress.clone()),
+        ..Chunker::default()
+    };
     let mut reader = BufReader::with_capacity(READ_BUFFER_BYTES, file);
     let mut prefix = Vec::with_capacity(3);
     let mut prefix_buf = [0u8; 3];
@@ -491,12 +752,15 @@ fn read_source_once(
         if count == 0 {
             break;
         }
+        progress.record_source_bytes(count as u64, 0);
         prefix.extend_from_slice(&prefix_buf[..count]);
     }
 
     let (encoding, bom_len) = detect_encoding(&prefix);
+    progress.set_phase(ProgressPhase::Tokenization);
     let mut decoder = Decoder::new(encoding);
     let mut process = |bytes: &[u8], offset: u64| -> std::result::Result<(), DecodeIssue> {
+        progress.record_work_bytes(WorkKind::Tokenization, bytes.len() as u64);
         decoder.feed(bytes, offset, &mut |character| {
             chunker.push(character, &mut spool)
         })
@@ -528,6 +792,7 @@ fn read_source_once(
             }
             return Err(anyhow!(issue.message));
         }
+        progress.record_source_bytes(count as u64, 0);
         offset = offset.saturating_add(count as u64);
     }
     if let Err(issue) = decoder.finish(&mut |character| chunker.push(character, &mut spool)) {
@@ -551,7 +816,11 @@ fn read_source_once(
     })
 }
 
-fn raw_digest(path: &Path, should_continue: &dyn Fn() -> bool) -> Result<String> {
+fn raw_digest(
+    path: &Path,
+    should_continue: &dyn Fn() -> bool,
+    progress: &ProgressReporter,
+) -> Result<String> {
     let file = File::open(path).with_context(|| format!("opening {}", path.display()))?;
     let mut reader = BufReader::with_capacity(READ_BUFFER_BYTES, file);
     let mut digest = Sha256::new();
@@ -563,6 +832,7 @@ fn raw_digest(path: &Path, should_continue: &dyn Fn() -> bool) -> Result<String>
             break;
         }
         digest.update(&buffer[..count]);
+        progress.record_source_bytes(count as u64, count as u64);
     }
     Ok(hex_digest(digest.finalize()))
 }
@@ -868,6 +1138,7 @@ struct Chunker {
     current_line: u64,
     lines: u64,
     chunks: u64,
+    progress: Option<ProgressReporter>,
 }
 
 impl Chunker {
@@ -945,7 +1216,13 @@ impl Chunker {
             ..Chunk::default()
         };
         spool.push(&chunk)?;
+        if let Some(progress) = &self.progress {
+            progress.record_work_bytes(WorkKind::TempFileOps, chunk.text.len() as u64);
+        }
         self.chunks = self.chunks.saturating_add(1);
+        if let Some(progress) = &self.progress {
+            progress.record_prepared_chunks(1);
+        }
         self.lines = 0;
         Ok(())
     }

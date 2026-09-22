@@ -2,6 +2,7 @@ use crate::{model::SearchFilter, store::Store};
 use anyhow::{Result, bail, ensure};
 use serde::Deserialize;
 use serde_json::{Value, json};
+use std::collections::BTreeMap;
 
 /// Search responses keep each hit useful without allowing one large chunk to
 /// crowd every other result out of the response budget. This is a byte limit
@@ -26,7 +27,7 @@ struct Arguments {
     cursor: Option<String>,
 }
 
-#[derive(Clone, Debug, Default, serde::Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize)]
 pub struct Coverage {
     #[serde(default)]
     pub diagnostics: std::collections::BTreeMap<String, u64>,
@@ -38,12 +39,60 @@ pub struct Coverage {
     pub memory: Option<MemoryCoverage>,
 }
 
+impl serde::Serialize for Coverage {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        public_coverage_value(self).serialize(serializer)
+    }
+}
+
 #[derive(Clone, Debug, serde::Serialize, Deserialize)]
 pub struct MemoryCoverage {
     pub target_bytes: u64,
     pub observed_rss_bytes: Option<u64>,
     pub peak_observed_rss_bytes: u64,
     pub pressure: bool,
+}
+
+const PUBLIC_DIAGNOSTICS: &[&str] = &[
+    "binary_excluded",
+    "content_cache_hit",
+    "content_cache_miss",
+    "content_cache_write_error",
+    "git_metadata_excluded",
+    "non_file_change",
+    "outside_root",
+    "ownership_excluded",
+    "symlink_excluded",
+    "unsupported_encoding",
+    "unsupported_record",
+    "watcher_unavailable",
+];
+
+/// Project coverage is also returned by the owner status resource. Keep this
+/// projection separate from the internal report so path-bearing error samples
+/// never cross the MCP boundary.
+pub fn public_coverage_value(coverage: &Coverage) -> Value {
+    let mut diagnostics = BTreeMap::new();
+    for (key, count) in &coverage.diagnostics {
+        let category = if PUBLIC_DIAGNOSTICS.contains(&key.as_str()) {
+            key.as_str()
+        } else {
+            "other"
+        };
+        let entry = diagnostics.entry(category.to_owned()).or_insert(0u64);
+        *entry = (*entry).saturating_add(*count);
+    }
+    json!({
+        "reconciled_at": coverage.reconciled_at,
+        "pending_changes": coverage.pending_changes,
+        "excluded_count": coverage.excluded_count,
+        "error_count": coverage.error_count,
+        "diagnostics": diagnostics,
+        "memory": coverage.memory,
+    })
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -90,17 +139,8 @@ pub fn dispatch(
             "path_glob is only supported for project search"
         );
     }
-    let mut response = json!({"status":status,"generation":store.generation()?,"coverage":coverage,
+    let mut response = json!({"status":status,"generation":store.generation()?,"coverage":public_coverage_value(&coverage),
         "truncated":false,"results":[]});
-    while serde_json::to_vec(&response)?.len() + 256 > budget {
-        let Some(errors) = response["coverage"]["errors"].as_array_mut() else {
-            break;
-        };
-        if errors.pop().is_none() {
-            break;
-        }
-        response["coverage"]["errors_truncated"] = json!(true);
-    }
     if mode == "copies" {
         ensure!(
             is_session

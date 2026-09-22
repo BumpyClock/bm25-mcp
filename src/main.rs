@@ -12,6 +12,8 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+const STATUS_RESOURCE_URI: &str = "bm25://indexing/status";
+
 #[derive(Parser)]
 #[command(version, about)]
 struct Cli {
@@ -37,10 +39,16 @@ enum Commands {
 }
 struct Service {
     client: Arc<Mutex<OwnerClient>>,
+    status_client: Arc<Mutex<OwnerClient>>,
 }
 impl ServerHandler for Service {
     fn get_info(&self) -> ServerInfo {
-        ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
+        ServerInfo::new(
+            ServerCapabilities::builder()
+                .enable_resources()
+                .enable_tools()
+                .build(),
+        )
             .with_server_info(Implementation::new("bm25-mcp",env!("CARGO_PKG_VERSION")))
             .with_instructions("Search project text and coding-agent sessions using lexical BM25. Inspect status and coverage; results may be partial during reconciliation.")
     }
@@ -53,6 +61,44 @@ impl ServerHandler for Service {
             tools: tools::tool_definitions(),
             ..Default::default()
         })
+    }
+    async fn list_resources(
+        &self,
+        _request: Option<PaginatedRequestParams>,
+        _context: RequestContext<RoleServer>,
+    ) -> std::result::Result<ListResourcesResult, ErrorData> {
+        Ok(ListResourcesResult {
+            resources: vec![
+                RawResource::new(STATUS_RESOURCE_URI, "indexing-status")
+                    .with_description("Safe project and session indexing status.")
+                    .with_mime_type("application/json")
+                    .optional_annotate(None),
+            ],
+            ..Default::default()
+        })
+    }
+    async fn read_resource(
+        &self,
+        request: ReadResourceRequestParams,
+        _context: RequestContext<RoleServer>,
+    ) -> std::result::Result<ReadResourceResult, ErrorData> {
+        if request.uri != STATUS_RESOURCE_URI {
+            return Err(ErrorData::resource_not_found("unknown resource", None));
+        }
+        let status_client = self.status_client.clone();
+        let result =
+            tokio::task::spawn_blocking(move || status_client.lock().unwrap().status()).await;
+        let value = match result {
+            Ok(Ok(value)) => value,
+            Ok(Err(_)) | Err(_) => {
+                return Err(ErrorData::internal_error("status unavailable", None));
+            }
+        };
+        let text = serde_json::to_string(&value)
+            .map_err(|_| ErrorData::internal_error("status unavailable", None))?;
+        Ok(ReadResourceResult::new(vec![
+            ResourceContents::text(text, STATUS_RESOURCE_URI).with_mime_type("application/json"),
+        ]))
     }
     async fn call_tool(
         &self,
@@ -103,7 +149,9 @@ async fn main() -> Result<()> {
                 .or_else(|| dirs::cache_dir().map(|p| p.join("bm25-mcp")))
                 .ok_or_else(|| anyhow::anyhow!("no cache directory; specify --cache-dir"))?;
             let client = Arc::new(Mutex::new(OwnerClient::connect(&root, &cache)?));
+            let status_client = Arc::new(Mutex::new(OwnerClient::connect(&root, &cache)?));
             let heartbeat_client = Arc::downgrade(&client);
+            let heartbeat_status_client = Arc::downgrade(&status_client);
             let heartbeat = tokio::spawn(async move {
                 loop {
                     tokio::time::sleep(std::time::Duration::from_secs(5)).await;
@@ -114,9 +162,27 @@ async fn main() -> Result<()> {
                         .await;
                 }
             });
-            let service = Service { client }.serve(rmcp::transport::stdio()).await?;
+            let status_heartbeat = tokio::spawn(async move {
+                loop {
+                    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+                    let Some(status_client) = heartbeat_status_client.upgrade() else {
+                        break;
+                    };
+                    let _ = tokio::task::spawn_blocking(move || {
+                        status_client.lock().unwrap().heartbeat()
+                    })
+                    .await;
+                }
+            });
+            let service = Service {
+                client,
+                status_client,
+            }
+            .serve(rmcp::transport::stdio())
+            .await?;
             service.waiting().await?;
             heartbeat.abort();
+            status_heartbeat.abort();
             Ok(())
         }
     }
