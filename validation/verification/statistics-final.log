@@ -1,0 +1,42 @@
+
+running 1 test
+test benchmark_source_statistics ... stats_import unique=false elapsed_us=1000683
+stats_storage unique=false bytes=16273408
+stats_work unique=false query=postings result_rows=32 vm_steps=4200436
+stats_work unique=false query=summary result_rows=32 vm_steps=199
+stats unique=false trial=1 invalidate_us=224 restore_us=617
+stats unique=false trial=2 invalidate_us=243 restore_us=455
+stats unique=false trial=3 invalidate_us=214 restore_us=349
+stats unique=false trial=4 invalidate_us=191 restore_us=388
+stats unique=false trial=5 invalidate_us=231 restore_us=364
+stats_import unique=true elapsed_us=1811015
+stats_storage unique=true bytes=66002944
+stats_work unique=true query=postings result_rows=320000 vm_steps=8360020
+stats_work unique=true query=summary result_rows=320000 vm_steps=1920007
+stats unique=true trial=1 invalidate_us=2153664 restore_us=1120149
+stats unique=true trial=2 invalidate_us=2139057 restore_us=1076146
+stats unique=true trial=3 invalidate_us=2126259 restore_us=1090382
+stats unique=true trial=4 invalidate_us=2108342 restore_us=1079588
+stats unique=true trial=5 invalidate_us=2131368 restore_us=1098605
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 22.44s
+
+       22.44 real        12.54 user         9.35 sys
+            31604736  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+                2143  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                2089  voluntary context switches
+               18308  involuntary context switches
+        260541177137  instructions retired
+         67685788803  cycles elapsed
+            24985984  peak memory footprint

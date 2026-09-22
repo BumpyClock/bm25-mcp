@@ -1,0 +1,38 @@
+   Compiling bm25-mcp v0.1.0 (/Users/adityasharma/Projects/bm25-mcp)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.20s
+     Running unittests src/lib.rs (target/debug/deps/bm25_mcp-e20e6308023b4878)
+
+running 21 tests
+test sessions::session_stream::tests::benchmark_verification ... ignored, release-mode verification microbenchmark
+test sessions::session_stream::tests::nested_codex_tool_cwd_does_not_exclude_history ... ok
+test sessions::session_stream::tests::known_other_project_history_is_excluded_without_error ... ok
+test sessions::session_stream::tests::malformed_complete_record_is_resynchronized_with_category ... ok
+test sessions::session_stream::tests::ownership_uses_provider_routing_fields_only ... ok
+test sessions::session_stream::tests::codex_event_ids_do_not_replace_session_id_or_tool_metadata ... ok
+test sessions::session_stream::tests::cancellation_during_final_validation_keeps_checkpoint ... ok
+test sessions::session_stream::tests::append_reuses_checkpoint_and_persists_own_call_state ... ok
+test sessions::session_stream::tests::verification_rejects_invalid_boundaries_and_cancellation ... ok
+test sessions::session_stream::tests::visible_field_deduper_compares_huge_values_across_fragment_boundaries ... ok
+test sessions::session_stream::tests::visible_field_deduper_keeps_distinct_fields_and_events ... ok
+test sessions::session_stream::tests::visible_field_deduper_suppresses_exact_sibling_fields ... ok
+test sessions::session_stream::tests::changed_append_prefix_rebuilds_before_publishing ... ok
+test sessions::session_stream::tests::copilot_duplicate_result_siblings_are_indexed_once ... ok
+test sessions::session_stream::tests::structured_arguments_and_results_keep_keys_and_scalars ... ok
+test sessions::session_stream::tests::rewrite_invalidates_old_chunks_and_rebuilds_checkpoint ... ok
+test sessions::session_stream::tests::diagnostics_persist_beyond_bounded_error_samples ... ok
+test sessions::session_stream::tests::registry_revision_rechecks_append_ownership_for_nested_plain_roots ... ok
+test sessions::session_stream::tests::tentative_ownership_rejection_rebuilds_before_exclusion ... ok
+test sessions::session_stream::tests::huge_record_searches_complete_tail_without_value_allocation ... ok
+test sessions::session_stream::tests::verification_digests_match_independent_ranges ... ok
+
+test result: ok. 20 passed; 0 failed; 1 ignored; 0 measured; 68 filtered out; finished in 1.39s
+
+   Compiling bm25-mcp v0.1.0 (/Users/adityasharma/Projects/bm25-mcp)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.81s
+     Running tests/indexing_progress.rs (target/debug/deps/indexing_progress-078f55d1a6aeb44f)
+
+running 1 test
+test precise_session_append_normalizes_only_the_changed_suffix ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 3.70s
+

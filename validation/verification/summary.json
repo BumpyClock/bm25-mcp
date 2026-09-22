@@ -1,0 +1,372 @@
+{
+  "baseline": {
+    "prefix=67108864 suffix=1024/elapsed_us": {
+      "n": 5,
+      "median_us": 595622,
+      "min_us": 593885,
+      "max_us": 598140
+    },
+    "prefix=268435456 suffix=1024/elapsed_us": {
+      "n": 5,
+      "median_us": 2385720,
+      "min_us": 2375433,
+      "max_us": 2488882
+    },
+    "prefix=67108864 suffix=1048576/elapsed_us": {
+      "n": 5,
+      "median_us": 606062,
+      "min_us": 601746,
+      "max_us": 607643
+    },
+    "prefix=0 suffix=67108864/elapsed_us": {
+      "n": 5,
+      "median_us": 596133,
+      "min_us": 594628,
+      "max_us": 597670
+    }
+  },
+  "cloning": {
+    "prefix=67108864 suffix=1024/elapsed_us": {
+      "n": 5,
+      "median_us": 203859,
+      "min_us": 202899,
+      "max_us": 204957
+    },
+    "prefix=268435456 suffix=1024/elapsed_us": {
+      "n": 5,
+      "median_us": 813593,
+      "min_us": 812411,
+      "max_us": 813841
+    },
+    "prefix=67108864 suffix=1048576/elapsed_us": {
+      "n": 5,
+      "median_us": 209634,
+      "min_us": 209053,
+      "max_us": 210416
+    },
+    "prefix=0 suffix=67108864/elapsed_us": {
+      "n": 5,
+      "median_us": 399346,
+      "min_us": 398774,
+      "max_us": 404131
+    }
+  },
+  "paired-head": {
+    "cold records=1024 width=4096 accepted=true/elapsed_us": {
+      "n": 3,
+      "median_us": 1251302,
+      "min_us": 1248489,
+      "max_us": 1261197
+    },
+    "append records=1024 width=4096/elapsed_us": {
+      "n": 3,
+      "median_us": 71214,
+      "min_us": 70339,
+      "max_us": 71851
+    },
+    "cold records=1024 width=4096 accepted=false/elapsed_us": {
+      "n": 3,
+      "median_us": 255899,
+      "min_us": 253368,
+      "max_us": 304039
+    },
+    "cold records=128 width=32768 accepted=true/elapsed_us": {
+      "n": 3,
+      "median_us": 805003,
+      "min_us": 788074,
+      "max_us": 814125
+    },
+    "append records=128 width=32768/elapsed_us": {
+      "n": 3,
+      "median_us": 69133,
+      "min_us": 68875,
+      "max_us": 69767
+    },
+    "cold records=128 width=32768 accepted=false/elapsed_us": {
+      "n": 3,
+      "median_us": 92765,
+      "min_us": 90557,
+      "max_us": 93601
+    },
+    "cold records=1 width=4194304 accepted=true/elapsed_us": {
+      "n": 3,
+      "median_us": 715471,
+      "min_us": 708391,
+      "max_us": 717795
+    },
+    "append records=1 width=4194304/elapsed_us": {
+      "n": 3,
+      "median_us": 68466,
+      "min_us": 67413,
+      "max_us": 69284
+    },
+    "cold records=1 width=4194304 accepted=false/elapsed_us": {
+      "n": 3,
+      "median_us": 61413,
+      "min_us": 58797,
+      "max_us": 92840
+    },
+    "stats unique=false/invalidate_us": {
+      "n": 5,
+      "median_us": 69588,
+      "min_us": 68508,
+      "max_us": 75331
+    },
+    "stats unique=false/restore_us": {
+      "n": 5,
+      "median_us": 70240,
+      "min_us": 69520,
+      "max_us": 78484
+    },
+    "stats unique=true/invalidate_us": {
+      "n": 5,
+      "median_us": 2209816,
+      "min_us": 2194577,
+      "max_us": 2278029
+    },
+    "stats unique=true/restore_us": {
+      "n": 5,
+      "median_us": 1122178,
+      "min_us": 1110013,
+      "max_us": 1155881
+    }
+  },
+  "paired-64k": {
+    "cold records=1024 width=4096 accepted=true/elapsed_us": {
+      "n": 3,
+      "median_us": 785652,
+      "min_us": 780699,
+      "max_us": 787408
+    },
+    "append records=1024 width=4096/elapsed_us": {
+      "n": 3,
+      "median_us": 28635,
+      "min_us": 28469,
+      "max_us": 30299
+    },
+    "cold records=1024 width=4096 accepted=false/elapsed_us": {
+      "n": 3,
+      "median_us": 80744,
+      "min_us": 80288,
+      "max_us": 81031
+    },
+    "cold records=128 width=32768 accepted=true/elapsed_us": {
+      "n": 3,
+      "median_us": 687224,
+      "min_us": 677712,
+      "max_us": 717583
+    },
+    "append records=128 width=32768/elapsed_us": {
+      "n": 3,
+      "median_us": 28480,
+      "min_us": 27816,
+      "max_us": 29987
+    },
+    "cold records=128 width=32768 accepted=false/elapsed_us": {
+      "n": 3,
+      "median_us": 56766,
+      "min_us": 56450,
+      "max_us": 57712
+    },
+    "cold records=1 width=4194304 accepted=true/elapsed_us": {
+      "n": 3,
+      "median_us": 669239,
+      "min_us": 663861,
+      "max_us": 672001
+    },
+    "append records=1 width=4194304/elapsed_us": {
+      "n": 3,
+      "median_us": 28861,
+      "min_us": 28336,
+      "max_us": 28949
+    },
+    "cold records=1 width=4194304 accepted=false/elapsed_us": {
+      "n": 3,
+      "median_us": 59691,
+      "min_us": 59404,
+      "max_us": 59840
+    },
+    "stats unique=false/invalidate_us": {
+      "n": 5,
+      "median_us": 199,
+      "min_us": 183,
+      "max_us": 269
+    },
+    "stats unique=false/restore_us": {
+      "n": 5,
+      "median_us": 319,
+      "min_us": 301,
+      "max_us": 393
+    },
+    "stats unique=true/invalidate_us": {
+      "n": 5,
+      "median_us": 2109475,
+      "min_us": 2093480,
+      "max_us": 2135852
+    },
+    "stats unique=true/restore_us": {
+      "n": 5,
+      "median_us": 1067318,
+      "min_us": 1066295,
+      "max_us": 1116355
+    }
+  },
+  "paired-16k": {
+    "cold records=1024 width=4096 accepted=true/elapsed_us": {
+      "n": 3,
+      "median_us": 784012,
+      "min_us": 783896,
+      "max_us": 785633
+    },
+    "append records=1024 width=4096/elapsed_us": {
+      "n": 3,
+      "median_us": 29134,
+      "min_us": 28947,
+      "max_us": 29258
+    },
+    "cold records=1024 width=4096 accepted=false/elapsed_us": {
+      "n": 3,
+      "median_us": 88938,
+      "min_us": 87348,
+      "max_us": 90392
+    },
+    "cold records=128 width=32768 accepted=true/elapsed_us": {
+      "n": 3,
+      "median_us": 732229,
+      "min_us": 709653,
+      "max_us": 783399
+    },
+    "append records=128 width=32768/elapsed_us": {
+      "n": 3,
+      "median_us": 28682,
+      "min_us": 27930,
+      "max_us": 28985
+    },
+    "cold records=128 width=32768 accepted=false/elapsed_us": {
+      "n": 3,
+      "median_us": 96943,
+      "min_us": 95758,
+      "max_us": 99171
+    },
+    "cold records=1 width=4194304 accepted=true/elapsed_us": {
+      "n": 3,
+      "median_us": 671247,
+      "min_us": 665361,
+      "max_us": 675068
+    },
+    "append records=1 width=4194304/elapsed_us": {
+      "n": 3,
+      "median_us": 28656,
+      "min_us": 28514,
+      "max_us": 28771
+    },
+    "cold records=1 width=4194304 accepted=false/elapsed_us": {
+      "n": 3,
+      "median_us": 60122,
+      "min_us": 59320,
+      "max_us": 60719
+    },
+    "stats unique=false/invalidate_us": {
+      "n": 5,
+      "median_us": 196,
+      "min_us": 176,
+      "max_us": 215
+    },
+    "stats unique=false/restore_us": {
+      "n": 5,
+      "median_us": 397,
+      "min_us": 308,
+      "max_us": 493
+    },
+    "stats unique=true/invalidate_us": {
+      "n": 5,
+      "median_us": 2102567,
+      "min_us": 2070414,
+      "max_us": 2129922
+    },
+    "stats unique=true/restore_us": {
+      "n": 5,
+      "median_us": 1071285,
+      "min_us": 1055913,
+      "max_us": 1110847
+    }
+  },
+  "statistics-final": {
+    "stats unique=false/invalidate_us": {
+      "n": 5,
+      "median_us": 224,
+      "min_us": 191,
+      "max_us": 243
+    },
+    "stats unique=false/restore_us": {
+      "n": 5,
+      "median_us": 388,
+      "min_us": 349,
+      "max_us": 617
+    },
+    "stats unique=true/invalidate_us": {
+      "n": 5,
+      "median_us": 2131368,
+      "min_us": 2108342,
+      "max_us": 2153664
+    },
+    "stats unique=true/restore_us": {
+      "n": 5,
+      "median_us": 1090382,
+      "min_us": 1076146,
+      "max_us": 1120149
+    }
+  },
+  "concurrent-head": {
+    "concurrent search/idle_p95_us": {
+      "n": 3,
+      "median_us": 330,
+      "min_us": 197,
+      "max_us": 355
+    },
+    "concurrent search/active_p95_us": {
+      "n": 3,
+      "median_us": 333,
+      "min_us": 332,
+      "max_us": 514
+    },
+    "concurrent search/active_max_us": {
+      "n": 3,
+      "median_us": 4098,
+      "min_us": 1809,
+      "max_us": 4253
+    },
+    "concurrent search/import_us": {
+      "n": 3,
+      "median_us": 1300476,
+      "min_us": 1283751,
+      "max_us": 1356686
+    }
+  },
+  "concurrent-final": {
+    "concurrent search/idle_p95_us": {
+      "n": 3,
+      "median_us": 237,
+      "min_us": 236,
+      "max_us": 319
+    },
+    "concurrent search/active_p95_us": {
+      "n": 3,
+      "median_us": 380,
+      "min_us": 378,
+      "max_us": 402
+    },
+    "concurrent search/active_max_us": {
+      "n": 3,
+      "median_us": 9441,
+      "min_us": 4644,
+      "max_us": 12169
+    },
+    "concurrent search/import_us": {
+      "n": 3,
+      "median_us": 796879,
+      "min_us": 795301,
+      "max_us": 804378
+    }
+  }
+}

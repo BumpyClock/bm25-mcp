@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Share SHA-256 prefix state at checkpoint boundaries and defer append-prefix
+  verification to final validation, rebuilding after tentative failures.
+- Parse session records once into bounded replayable captures, hash records
+  while reading, and keep small records in memory with private disk spill.
+- Maintain transactional per-source BM25 summaries in store schema v3; backfill
+  v2 caches on open and preserve chunk-based document frequencies. Cache parser
+  scratch statements and index existing source lookups.
+- Expose separate session hash-input and observed spool-I/O counters. Benchmark
+  methods and limitations are recorded in `validation/verification/REPORT.md`.
 - Share temporary record ownership across project chunks, session chunks, and
   parser-state updates; preserve replay and clean up after the final reader.
   Temporary-record flush/open failures now abort reconciliation before source

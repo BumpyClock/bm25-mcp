@@ -1,0 +1,21 @@
+   Compiling bm25-mcp v0.1.0 (/Users/adityasharma/Projects/bm25-mcp)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.44s
+     Running tests/checkpoints.rs (target/debug/deps/checkpoints-b5e5848049a5aebe)
+
+running 5 tests
+test crash_writer_helper ... ok
+test disk_parser_state_is_atomic_with_chunks_and_checkpoint ... ok
+test tokenizer_upgrade_discards_only_derived_index_state ... ok
+test crash_during_transaction_preserves_last_committed_offset ... ok
+test session_chunks_and_offsets_commit_and_roll_back_together ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/oracle.rs (target/debug/deps/oracle-28a4dc5aa7b59027)
+
+running 2 tests
+test source_summaries_preserve_chunk_frequencies_across_mutations_and_migration ... ok
+test durable_replacements_and_deletions_match_fresh_upstream_builds ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s
+

@@ -1,0 +1,14 @@
+   Compiling bm25-mcp v0.1.0 (/Users/adityasharma/Projects/bm25-mcp)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.46s
+     Running tests/recovery.rs (target/debug/deps/recovery-4f8cdf588883a041)
+
+running 6 tests
+test concurrent_frontends_replace_a_stale_endpoint_and_share_one_owner ... ok
+test git_worktrees_share_sessions_but_keep_code_collections_separate ... ok
+test live_frontend_recovers_after_its_owner_process_crashes ... ok
+test owner_releases_endpoint_and_lock_after_last_client_disconnects ... ok
+test restarted_owner_reconstructs_unresolved_session_coverage ... ok
+test restarted_owner_recovers_persisted_index_after_offline_edit ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 14.04s
+

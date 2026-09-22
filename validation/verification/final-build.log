@@ -1,0 +1,3 @@
+   Compiling bm25-mcp v0.1.0 (/Users/adityasharma/Projects/bm25-mcp)
+    Finished `release` profile [optimized] target(s) in 12.27s
+  Executable tests/session_performance.rs (target/release/deps/session_performance-7c4905c8b49f1b8a)

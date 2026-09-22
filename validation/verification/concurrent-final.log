@@ -1,0 +1,27 @@
+
+running 1 test
+test benchmark_concurrent_search ... concurrent trial=0 queries=442 idle_p95_us=237 active_p95_us=402 active_max_us=12169 import_us=796879 first_progress_ms=Some(11) first_commit_ms=Some(796) durable_txn_ms=115
+concurrent trial=1 queries=445 idle_p95_us=236 active_p95_us=378 active_max_us=9441 import_us=795301 first_progress_ms=Some(12) first_commit_ms=Some(795) durable_txn_ms=97
+concurrent trial=2 queries=455 idle_p95_us=319 active_p95_us=380 active_max_us=4644 import_us=804378 first_progress_ms=Some(12) first_commit_ms=Some(804) durable_txn_ms=107
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 2.91s
+
+        3.17 real         2.22 user         0.96 sys
+            14073856  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+                9339  page reclaims
+                 120  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                 111  voluntary context switches
+                7002  involuntary context switches
+         39561089287  instructions retired
+          9612811302  cycles elapsed
+             7258448  peak memory footprint

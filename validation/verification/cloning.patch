@@ -1,0 +1,188 @@
+diff --git a/src/session_stream.rs b/src/session_stream.rs
+index a03cf0a..d462ed7 100644
+--- a/src/session_stream.rs
++++ b/src/session_stream.rs
+@@ -2909,11 +2909,14 @@ fn digest_file_controlled(
+     should_continue: &dyn Fn() -> bool,
+     progress: &ProgressReporter,
+ ) -> Result<(String, String, String, String)> {
++    if suffix_offset > checkpoint_offset {
++        bail!("session checkpoint precedes append offset")
++    }
+     let mut file = File::open(path)?;
+     let mut full_hasher = Sha256::new();
+     let mut suffix_hasher = Sha256::new();
+-    let mut checkpoint_prefix_hasher = Sha256::new();
+-    let mut previous_prefix_hasher = Sha256::new();
++    let mut checkpoint_prefix_digest = None;
++    let mut previous_prefix_digest = None;
+     let mut buffer = [0_u8; 16 * 1024];
+     let mut offset = 0_u64;
+     loop {
+@@ -2921,31 +2924,39 @@ fn digest_file_controlled(
+             return Err(ScanCancelled.into());
+         }
+         let count = file.read(&mut buffer)?;
++        let end_offset = offset.saturating_add(count as u64);
++        let bytes = &buffer[..count];
++        let mut start = 0;
++        // Snapshot the running hash at exact boundaries, including zero and EOF.
++        for (boundary, digest) in [
++            (suffix_offset, &mut previous_prefix_digest),
++            (checkpoint_offset, &mut checkpoint_prefix_digest),
++        ] {
++            if digest.is_none() && boundary <= end_offset {
++                let end = (boundary - offset) as usize;
++                full_hasher.update(&bytes[start..end]);
++                *digest = Some(hex_digest(full_hasher.clone().finalize()));
++                start = end;
++            }
++        }
+         if count == 0 {
+             break;
+         }
+-        let bytes = &buffer[..count];
+         progress.record_source_bytes(count as u64, count as u64);
+-        full_hasher.update(bytes);
+-        if suffix_offset < offset.saturating_add(count as u64) {
++        full_hasher.update(&bytes[start..]);
++        if suffix_offset < end_offset {
+             let start = suffix_offset.saturating_sub(offset) as usize;
+             suffix_hasher.update(&bytes[start..]);
+         }
+-        if offset < checkpoint_offset {
+-            let end = checkpoint_offset.saturating_sub(offset).min(count as u64) as usize;
+-            checkpoint_prefix_hasher.update(&bytes[..end]);
+-        }
+-        if offset < suffix_offset {
+-            let end = suffix_offset.saturating_sub(offset).min(count as u64) as usize;
+-            previous_prefix_hasher.update(&bytes[..end]);
+-        }
+-        offset = offset.saturating_add(count as u64);
++        offset = end_offset;
+     }
+     Ok((
+         hex_digest(full_hasher.finalize()),
+         hex_digest(suffix_hasher.finalize()),
+-        hex_digest(checkpoint_prefix_hasher.finalize()),
+-        hex_digest(previous_prefix_hasher.finalize()),
++        checkpoint_prefix_digest
++            .ok_or_else(|| anyhow!("unstable_source: session prefix shorter than checkpoint"))?,
++        previous_prefix_digest
++            .ok_or_else(|| anyhow!("unstable_source: session prefix shorter than append offset"))?,
+     ))
+ }
+ 
+@@ -3405,6 +3416,112 @@ mod tests {
+         }
+     }
+ 
++    #[test]
++    fn verification_digests_match_independent_ranges() -> Result<()> {
++        let directory = TempDir::new()?;
++        let path = directory.path().join("ranges");
++        let data: Vec<u8> = (0..49_153)
++            .map(|i| ((i * 31 + i / 251) % 256) as u8)
++            .collect();
++        let boundaries = [0, 1, 63, 64, 65, 16_383, 16_384, 16_385, 32_768, 49_153];
++        for len in boundaries {
++            fs::write(&path, &data[..len])?;
++            for previous in boundaries.into_iter().filter(|&offset| offset <= len) {
++                for checkpoint in boundaries
++                    .into_iter()
++                    .filter(|&offset| previous <= offset && offset <= len)
++                {
++                    let actual = digest_file_controlled(
++                        &path,
++                        previous as u64,
++                        checkpoint as u64,
++                        &|| true,
++                        &ProgressReporter::noop(),
++                    )?;
++                    let hash = |bytes: &[u8]| hex_digest(Sha256::digest(bytes));
++                    assert_eq!(
++                        actual,
++                        (
++                            hash(&data[..len]),
++                            hash(&data[previous..len]),
++                            hash(&data[..checkpoint]),
++                            hash(&data[..previous]),
++                        ),
++                        "length {len}, previous {previous}, checkpoint {checkpoint}"
++                    );
++                }
++            }
++        }
++        Ok(())
++    }
++
++    #[test]
++    fn verification_rejects_invalid_boundaries_and_cancellation() -> Result<()> {
++        let directory = TempDir::new()?;
++        let path = directory.path().join("ranges");
++        fs::write(&path, b"abc")?;
++        for (previous, checkpoint) in [(2, 1), (0, 4), (4, 4), (u64::MAX, u64::MAX)] {
++            assert!(
++                digest_file_controlled(
++                    &path,
++                    previous,
++                    checkpoint,
++                    &|| true,
++                    &ProgressReporter::noop(),
++                )
++                .is_err(),
++                "previous {previous}, checkpoint {checkpoint}"
++            );
++        }
++        let error =
++            digest_file_controlled(&path, 0, 3, &|| false, &ProgressReporter::noop()).unwrap_err();
++        assert!(error.downcast_ref::<ScanCancelled>().is_some());
++        Ok(())
++    }
++
++    #[test]
++    #[ignore = "release-mode verification microbenchmark"]
++    fn benchmark_verification() -> Result<()> {
++        let directory = TempDir::new()?;
++        let path = directory.path().join("benchmark");
++        let block: Vec<u8> = (0..1024 * 1024).map(|i| (i % 251) as u8).collect();
++        for (prefix_mib, suffix_bytes) in [
++            (64, 1024),
++            (256, 1024),
++            (64, 1024 * 1024),
++            (0, 64 * 1024 * 1024),
++        ] {
++            let mut file = File::create(&path)?;
++            for _ in 0..prefix_mib {
++                file.write_all(&block)?;
++            }
++            for _ in 0..suffix_bytes / block.len() {
++                file.write_all(&block)?;
++            }
++            file.write_all(&block[..suffix_bytes % block.len()])?;
++            drop(file);
++            let previous = prefix_mib * 1024 * 1024;
++            let checkpoint = previous + suffix_bytes as u64;
++            for trial in 0..6 {
++                let started = Instant::now();
++                std::hint::black_box(digest_file_controlled(
++                    &path,
++                    previous,
++                    checkpoint,
++                    &|| true,
++                    &ProgressReporter::noop(),
++                )?);
++                if trial != 0 {
++                    println!(
++                        "prefix={previous} suffix={suffix_bytes} trial={trial} elapsed_us={}",
++                        started.elapsed().as_micros()
++                    );
++                }
++            }
++        }
++        Ok(())
++    }
++
+     fn test_normalized_field(path: &str, text: &str, event_id: &str) -> Normalized {
+         Normalized {
+             text: text.to_owned(),

@@ -1,0 +1,740 @@
+--- a/src/store.rs
++++ b/src/store.rs
+@@ -28,7 +28,7 @@
+ use admission::{Admission, Lane};
+ pub(crate) use admission::{IndexedPool, ScorablePool};
+ 
+-const SCHEMA_VERSION: &str = "bm25-mcp-store-v2";
++const SCHEMA_VERSION: &str = "bm25-mcp-store-v3";
+ const MAX_CONTEXT_ROWS: usize = 4096;
+ const DECLARATION_INDEX_VERSION: &str = "bm25-mcp-declarations-v1";
+ // Exact declarations are admitted independently, with match_id order making
+@@ -343,12 +343,20 @@
+         )?;
+         let first_ordinal = if append_version.is_some() {
+             tx.query_row(
+-                "SELECT COALESCE(MAX(ordinal)+1,0) FROM chunks WHERE source_key=?1",
++                "SELECT doc_count FROM source_stats WHERE source_key=?1",
+                 [&source.key],
+                 |r| r.get::<_, i64>(0),
+             )?
+         } else {
+             tx.execute("DELETE FROM chunks WHERE source_key=?1", [&source.key])?;
++            tx.execute(
++                "DELETE FROM source_stats WHERE source_key=?1",
++                [&source.key],
++            )?;
++            tx.execute(
++                "DELETE FROM source_term_stats WHERE source_key=?1",
++                [&source.key],
++            )?;
+             tx.execute(
+                 "DELETE FROM session_state WHERE source_key=?1",
+                 [&source.key],
+@@ -400,12 +408,8 @@
+             version: source.version.clone(),
+             eligible: true,
+         };
+-        adjust_statistics_from_ordinal(
+-            &tx,
+-            &new_info,
+-            1,
+-            if append_eligible { first_ordinal } else { 0 },
+-        )?;
++        extend_source_statistics(&tx, &source.key, first_ordinal)?;
++        adjust_statistics(&tx, &new_info, 1, append_eligible.then_some(first_ordinal))?;
+         set_generation(&tx, next_generation)?;
+         tx.commit()?;
+         Ok(())
+@@ -554,7 +558,7 @@
+             set_generation(&tx, generation)?;
+         }
+         let chunks: i64 = tx.query_row(
+-            "SELECT COUNT(*) FROM chunks WHERE source_key=?1",
++            "SELECT COALESCE((SELECT doc_count FROM source_stats WHERE source_key=?1),0)",
+             [key],
+             |row| row.get(0),
+         )?;
+@@ -1135,10 +1139,11 @@
+                 |r| r.get(0),
+             )
+             .optional()?;
+-        if previous
+-            .as_deref()
+-            .is_some_and(|version| version != "bm25-mcp-store-v1" && version != SCHEMA_VERSION)
+-        {
++        if previous.as_deref().is_some_and(|version| {
++            version != "bm25-mcp-store-v1"
++                && version != "bm25-mcp-store-v2"
++                && version != SCHEMA_VERSION
++        }) {
+             bail!(
+                 "unsupported store schema {}; expected {SCHEMA_VERSION}",
+                 previous.unwrap()
+@@ -1198,6 +1203,7 @@
+          );
+          CREATE INDEX IF NOT EXISTS chunks_source_ordinal
+              ON chunks(source_key, source_version, ordinal);
++         CREATE INDEX IF NOT EXISTS chunks_source_position ON chunks(source_key, ordinal);
+          CREATE INDEX IF NOT EXISTS chunks_event_id
+              ON chunks(event_id);
+          CREATE TABLE IF NOT EXISTS terms(
+@@ -1225,6 +1231,18 @@
+              doc_freq INTEGER NOT NULL,
+              PRIMARY KEY(collection, kind, term_id)
+          );
++         CREATE TABLE IF NOT EXISTS source_stats(
++             source_key TEXT PRIMARY KEY REFERENCES sources(key) ON DELETE CASCADE,
++             doc_count INTEGER NOT NULL CHECK(doc_count>=0),
++             total_tokens INTEGER NOT NULL CHECK(total_tokens>=0)
++         );
++         CREATE TABLE IF NOT EXISTS source_term_stats(
++             source_key TEXT NOT NULL REFERENCES sources(key) ON DELETE CASCADE,
++             term_id INTEGER NOT NULL REFERENCES terms(id),
++             doc_freq INTEGER NOT NULL CHECK(doc_freq>0),
++             PRIMARY KEY(source_key, term_id)
++         );
++         CREATE INDEX IF NOT EXISTS source_term_stats_term ON source_term_stats(term_id);
+          CREATE TABLE IF NOT EXISTS declarations(
+              chunk_id INTEGER NOT NULL REFERENCES chunks(id) ON DELETE CASCADE,
+              symbol TEXT NOT NULL,
+@@ -1274,7 +1292,7 @@
+         [],
+         |row| row.get(0),
+     )?;
+-    if schema != SCHEMA_VERSION {
++    if schema != SCHEMA_VERSION && schema != "bm25-mcp-store-v2" {
+         bail!("unsupported store schema {schema}; expected {SCHEMA_VERSION}")
+     }
+     let tokenizer: String = conn.query_row(
+@@ -1293,6 +1311,23 @@
+         )?;
+         let generation = next_generation(&tx)?;
+         set_generation(&tx, generation)?;
++        tx.commit()?;
++    }
++    if schema == "bm25-mcp-store-v2" {
++        let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
++        tx.execute_batch(
++            "DELETE FROM source_term_stats; DELETE FROM source_stats;
++             INSERT INTO source_stats(source_key,doc_count,total_tokens)
++             SELECT s.key,COUNT(c.id),COALESCE(SUM(c.token_len),0)
++             FROM sources s LEFT JOIN chunks c ON c.source_key=s.key GROUP BY s.key;
++             INSERT INTO source_term_stats(source_key,term_id,doc_freq)
++             SELECT c.source_key,p.term_id,COUNT(*) FROM chunks c
++             JOIN postings p ON p.chunk_id=c.id GROUP BY c.source_key,p.term_id;",
++        )?;
++        tx.execute(
++            "UPDATE meta SET value=?1 WHERE key='schema_version'",
++            [SCHEMA_VERSION],
++        )?;
+         tx.commit()?;
+     }
+     rebuild_declarations(conn)?;
+@@ -1446,24 +1481,48 @@
+     .map_err(Into::into)
+ }
+ 
++fn extend_source_statistics(tx: &Transaction<'_>, source: &str, first_ordinal: i64) -> Result<()> {
++    tx.execute(
++        "INSERT INTO source_stats(source_key,doc_count,total_tokens)
++         SELECT ?1,COUNT(id),COALESCE(SUM(token_len),0) FROM chunks
++         WHERE source_key=?1 AND ordinal>=?2
++         ON CONFLICT(source_key) DO UPDATE SET
++             doc_count=source_stats.doc_count+excluded.doc_count,
++             total_tokens=source_stats.total_tokens+excluded.total_tokens",
++        params![source, first_ordinal],
++    )?;
++    tx.execute(
++        "INSERT INTO source_term_stats(source_key,term_id,doc_freq)
++         SELECT ?1,p.term_id,COUNT(*) FROM chunks c JOIN postings p ON p.chunk_id=c.id
++         WHERE c.source_key=?1 AND c.ordinal>=?2 GROUP BY p.term_id
++         ON CONFLICT(source_key,term_id) DO UPDATE SET
++             doc_freq=source_term_stats.doc_freq+excluded.doc_freq",
++        params![source, first_ordinal],
++    )?;
++    Ok(())
++}
++
+ fn adjust_statistics_for_source(
+     tx: &Transaction<'_>,
+     source: &SourceInfo,
+     sign: i64,
+ ) -> Result<()> {
+-    adjust_statistics_from_ordinal(tx, source, sign, 0)
+-}
+-
+-fn adjust_statistics_from_ordinal(
++    adjust_statistics(tx, source, sign, None)
++}
++
++fn adjust_statistics(
+     tx: &Transaction<'_>,
+     source: &SourceInfo,
+     sign: i64,
+-    first_ordinal: i64,
++    first_ordinal: Option<i64>,
+ ) -> Result<()> {
+     debug_assert!(sign == 1 || sign == -1);
+     let (doc_count, total_tokens): (i64, i64) = tx.query_row(
+-        "SELECT COUNT(id), COALESCE(SUM(token_len),0) FROM chunks
+-         WHERE source_key=?1 AND ordinal>=?2",
++        if first_ordinal.is_some() {
++            "SELECT COUNT(id), COALESCE(SUM(token_len),0) FROM chunks WHERE source_key=?1 AND ordinal>=?2"
++        } else {
++            "SELECT doc_count,total_tokens FROM source_stats WHERE source_key=?1 AND ?2 IS NULL"
++        },
+         params![source.key, first_ordinal],
+         |row| Ok((row.get(0)?, row.get(1)?)),
+     )?;
+@@ -1480,11 +1539,12 @@
+             sign * total_tokens
+         ],
+     )?;
+-    let mut stmt = tx.prepare(
+-        "SELECT p.term_id, COUNT(*) FROM chunks c
+-         JOIN postings p ON p.chunk_id=c.id
+-         WHERE c.source_key=?1 AND c.ordinal>=?2 GROUP BY p.term_id",
+-    )?;
++    let mut stmt = tx.prepare_cached(if first_ordinal.is_some() {
++        "SELECT p.term_id, COUNT(*) FROM chunks c JOIN postings p ON p.chunk_id=c.id
++         WHERE c.source_key=?1 AND c.ordinal>=?2 GROUP BY p.term_id"
++    } else {
++        "SELECT term_id,doc_freq FROM source_term_stats WHERE source_key=?1 AND ?2 IS NULL"
++    })?;
+     let mut rows = stmt.query(params![source.key, first_ordinal])?;
+     let mut update_term = tx.prepare_cached(
+         "INSERT INTO term_stats(collection, kind, term_id, doc_freq)
+--- a/tests/oracle.rs
++++ b/tests/oracle.rs
+@@ -91,3 +91,216 @@
+         docs[0] = format!("parseHTTPResponse timeout round{round}");
+     }
+ }
++
++fn assert_exact_statistics(path: &std::path::Path) {
++    let conn = rusqlite::Connection::open(path).unwrap();
++    let rows = |sql: &str| {
++        conn.prepare(sql)
++            .unwrap()
++            .query_map([], |r| {
++                Ok((
++                    r.get::<_, String>(0)?,
++                    r.get::<_, String>(1)?,
++                    r.get::<_, i64>(2)?,
++                    r.get::<_, i64>(3)?,
++                ))
++            })
++            .unwrap()
++            .collect::<rusqlite::Result<Vec<_>>>()
++            .unwrap()
++    };
++    assert_eq!(
++        rows(
++            "SELECT collection,kind,doc_count,total_tokens FROM stats WHERE doc_count>0 ORDER BY 1,2"
++        ),
++        rows(
++            "SELECT s.collection,s.kind,COUNT(c.id),SUM(c.token_len) FROM sources s JOIN chunks c ON c.source_key=s.key WHERE s.eligible=1 GROUP BY 1,2 ORDER BY 1,2"
++        )
++    );
++    assert_eq!(
++        rows("SELECT collection,kind,term_id,doc_freq FROM term_stats ORDER BY 1,2,3"),
++        rows(
++            "SELECT s.collection,s.kind,p.term_id,COUNT(*) FROM sources s JOIN chunks c ON c.source_key=s.key JOIN postings p ON p.chunk_id=c.id WHERE s.eligible=1 GROUP BY 1,2,3 ORDER BY 1,2,3"
++        )
++    );
++    assert_eq!(
++        rows("SELECT source_key,'',doc_count,total_tokens FROM source_stats ORDER BY 1"),
++        rows(
++            "SELECT s.key,'',COUNT(c.id),COALESCE(SUM(c.token_len),0) FROM sources s LEFT JOIN chunks c ON c.source_key=s.key GROUP BY s.key ORDER BY 1"
++        )
++    );
++    assert_eq!(
++        rows("SELECT source_key,'',term_id,doc_freq FROM source_term_stats ORDER BY 1,3"),
++        rows(
++            "SELECT c.source_key,'',p.term_id,COUNT(*) FROM chunks c JOIN postings p ON p.chunk_id=c.id GROUP BY 1,3 ORDER BY 1,3"
++        )
++    );
++    assert_eq!(
++        conn.query_row("SELECT COUNT(*) FROM pragma_foreign_key_check", [], |r| r
++            .get::<_, i64>(
++            0
++        ))
++        .unwrap(),
++        0
++    );
++}
++
++#[test]
++fn source_summaries_preserve_chunk_frequencies_across_mutations_and_migration() -> anyhow::Result<()>
++{
++    use bm25_mcp::store::SessionCheckpoint;
++    let dir = tempfile::tempdir()?;
++    let path = dir.path().join("summaries.sqlite3");
++    let mut store = Store::open(&path)?;
++    let mut source = Source {
++        key: "history".into(),
++        collection: "owner".into(),
++        kind: "session".into(),
++        path: "history.jsonl".into(),
++        version: "0".into(),
++    };
++    let chunk = || {
++        Ok(Chunk {
++            text: "repeated repeated shared".into(),
++            ..Default::default()
++        })
++    };
++    let checkpoint = SessionCheckpoint {
++        offset: 10,
++        state: "original".into(),
++    };
++    store.replace_session(&source, (0..50).map(|_| chunk()), &checkpoint)?;
++    let empty = Source {
++        key: "empty".into(),
++        ..source.clone()
++    };
++    store.replace_source(&empty, std::iter::empty())?;
++    assert_exact_statistics(&path);
++    let conn = rusqlite::Connection::open(&path)?;
++    assert_eq!(conn.query_row("SELECT doc_freq FROM source_term_stats st JOIN terms t ON t.id=st.term_id WHERE st.source_key='history' AND t.term='repeated'", [], |r| r.get::<_, i64>(0))?, 50);
++    drop(conn);
++
++    for round in 1..7 {
++        if round % 2 == 0 {
++            store.invalidate_source(&source.key)?;
++            store.invalidate_source(&source.key)?;
++            assert_exact_statistics(&path);
++        }
++        let previous = source.version.clone();
++        source.version = round.to_string();
++        store.append_session(&source, &previous, [chunk()], &checkpoint)?;
++        assert_exact_statistics(&path);
++    }
++    store.invalidate_collection("owner", "session")?;
++    assert_exact_statistics(&path);
++    store.mark_source_verified(&source.key)?;
++    assert_exact_statistics(&path);
++    store.invalidate_source(&source.key)?;
++    drop(store);
++
++    // Simulate an existing v2 cache with both quarantined and empty sources.
++    let conn = rusqlite::Connection::open(&path)?;
++    conn.execute_batch("DROP TABLE source_term_stats; DROP TABLE source_stats; UPDATE meta SET value='bm25-mcp-store-v2' WHERE key='schema_version'")?;
++    let generation: String =
++        conn.query_row("SELECT value FROM meta WHERE key='generation'", [], |r| {
++            r.get(0)
++        })?;
++    drop(conn);
++    store = Store::open(&path)?;
++    assert_exact_statistics(&path);
++    assert_eq!(
++        store.session_checkpoint(&source.key)?,
++        Some(checkpoint.clone())
++    );
++    assert_eq!(store.generation()?.to_string(), generation);
++    store.mark_source_verified(&source.key)?;
++    assert_exact_statistics(&path);
++    let previous = source.version.clone();
++    source.version = "rollback".into();
++    assert!(
++        store
++            .append_session(
++                &source,
++                &previous,
++                [chunk(), Err(anyhow::anyhow!("rollback"))],
++                &checkpoint
++            )
++            .is_err()
++    );
++    assert_exact_statistics(&path);
++    source.collection = "moved".into();
++    store.replace_session(
++        &source,
++        [Ok(Chunk {
++            text: "replacement shared".into(),
++            ..Default::default()
++        })],
++        &checkpoint,
++    )?;
++    assert_exact_statistics(&path);
++    store.remove_source(&source.key)?;
++    store.remove_source(&empty.key)?;
++    store.compact()?;
++    assert_exact_statistics(&path);
++    Ok(())
++}
++
++#[test]
++fn source_summary_backfill_failure_rolls_back_and_retries() -> anyhow::Result<()> {
++    let dir = tempfile::tempdir()?;
++    let path = dir.path().join("backfill.sqlite3");
++    let store = Store::open(&path)?;
++    store.replace_source(
++        &Source {
++            key: "source".into(),
++            collection: "owner".into(),
++            kind: "project".into(),
++            path: "file".into(),
++            version: "1".into(),
++        },
++        [Ok(Chunk {
++            text: "retainedmarker".into(),
++            ..Default::default()
++        })],
++    )?;
++    drop(store);
++    let conn = rusqlite::Connection::open(&path)?;
++    conn.execute_batch("UPDATE meta SET value='bm25-mcp-store-v2' WHERE key='schema_version'; DELETE FROM source_term_stats; DELETE FROM source_stats; CREATE TRIGGER reject_backfill BEFORE INSERT ON source_stats BEGIN SELECT RAISE(ABORT,'injected backfill failure'); END;")?;
++    assert!(Store::open(&path).is_err());
++    assert_eq!(
++        conn.query_row(
++            "SELECT value FROM meta WHERE key='schema_version'",
++            [],
++            |r| r.get::<_, String>(0)
++        )?,
++        "bm25-mcp-store-v2"
++    );
++    assert_eq!(
++        conn.query_row("SELECT COUNT(*) FROM chunks", [], |r| r.get::<_, i64>(0))?,
++        1
++    );
++    assert_eq!(
++        conn.query_row("SELECT COUNT(*) FROM source_stats", [], |r| r
++            .get::<_, i64>(0))?,
++        0
++    );
++    conn.execute_batch("DROP TRIGGER reject_backfill")?;
++    let store = Store::open(&path)?;
++    assert_exact_statistics(&path);
++    assert_eq!(
++        store
++            .search(
++                "retainedmarker",
++                &SearchFilter {
++                    collection: "owner".into(),
++                    kind: "project".into(),
++                    ..Default::default()
++                },
++                10
++            )?
++            .1
++            .len(),
++        1
++    );
++    Ok(())
++}
+--- a/README.md
++++ b/README.md
+@@ -86,6 +86,12 @@
+ `work.json_inspection_bytes` tracks actual parser input separately from source
+ reads, including progress within one large physical JSON record. The resource
+ omits source paths, transcript text, and raw error messages.
++`work.session_hash_bytes` counts bytes supplied to session source and raw-record
++hashers, including overlapping work. `work.spool_read_bytes` and
++`work.spool_write_bytes` count logical file I/O for session raw-record, capture,
++chunk, and parser-state spools, including retries. In-memory buffers do not add
++file I/O. These counters exclude SQLite, tokenizer spills, and visible-field
++deduplication files; they do not measure physical disk traffic.
+ 
+ Unambiguous session-file events reconcile only the affected sources. Other
+ verified sources remain searchable during those updates. Directory, overflow,
+@@ -95,6 +101,22 @@
+ matching parser checkpoint commit atomically; interrupted suffix work resumes
+ from the last durable checkpoint. Progress visibility does not permit
+ unverified partial data to become searchable.
++
++Session appends prepare the suffix privately and verify the old prefix in the
++final whole-file pass. A failed tentative append or ownership rejection falls
++back to a full-source rebuild. Prefix digests share one running SHA-256 state;
++checkpoint contents and the hash algorithm are unchanged. JSON records are
++parsed once into replayable captures, so metadata discovered later can still
++apply to earlier records. Raw records and captures each use at most a 64 KiB
++inline buffer before spilling to private temporary storage.
++
++Store schema v3 maintains each source's chunk count, token total, and per-term
++chunk frequencies, including while the source is quarantined. This avoids
++regrouping historical postings when restoring eligibility. Opening a v2 cache
++backfills these summaries transactionally without changing chunks, checkpoints,
++or search generations. Older executables cannot open the upgraded cache; use
++a separate cache directory when returning to an older executable. Tokenizer
++changes discard the summaries with the other derived index data.
+ 
+ Prepared project chunks, session chunks, and parser-state updates are finalized
+ before their source transaction starts. A temporary-record flush or reader-open
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -2,6 +2,15 @@
+ 
+ ## Unreleased
+ 
++- Share SHA-256 prefix state at checkpoint boundaries and defer append-prefix
++  verification to final validation, rebuilding after tentative failures.
++- Parse session records once into bounded replayable captures, hash records
++  while reading, and keep small records in memory with private disk spill.
++- Maintain transactional per-source BM25 summaries in store schema v3; backfill
++  v2 caches on open and preserve chunk-based document frequencies. Cache parser
++  scratch statements and index existing source lookups.
++- Expose separate session hash-input and observed spool-I/O counters. Benchmark
++  methods and limitations are recorded in `validation/verification/REPORT.md`.
+ - Share temporary record ownership across project chunks, session chunks, and
+   parser-state updates; preserve replay and clean up after the final reader.
+   Temporary-record flush/open failures now abort reconciliation before source
+--- /dev/null
++++ b/validation/verification/REPORT.md
+@@ -0,0 +1,220 @@
++# Session indexing work reduction
++
++Implemented against `c56852d02a483d72d381270e61bef61830648d17` on
++2026-09-21 (local time). Validation was performed before committing the series.
++
++## Ordered changes
++
++The following patches apply in order to the reviewed HEAD and reconstruct the
++changed source, tests, and documentation. Their application was checked against
++the working files. The first patch also adds the opt-in measurement harness.
++
++1. [Share checkpoint hash state](patches/01-share-prefix-hash-state.patch).
++2. [Validate tentative appends before publication](patches/02-validate-tentative-appends.patch).
++3. [Prepare records once with bounded spill](patches/03-prepare-records-once.patch).
++   This includes scratch statement caching, indexed source lookup, and work counters.
++4. [Maintain source statistics](patches/04-maintain-source-statistics.patch).
++
++SHA-256, checkpoint schema 7, the streaming JSON walker, scoring, indexing
++concurrency, watcher scheduling, and audit frequency are retained. Store schema
++changes separately to v3 for maintained statistical contributions.
++
++## Acceptance protocol
++
++A compatible checkpoint selects a tentative suffix offset. Raw records, parsed
++captures, normalized chunks, state updates, and diagnostics remain private.
++Before accepted data reaches the source transaction, one whole-file pass checks
++the prepared suffix and committed prefix, with source identity, length, and
++modification-time checks surrounding preparation and validation. Prefix digests
++are finalized from clones of the running SHA-256 state at exact boundaries.
++
++A rejected or failed attempt with a checkpoint discards its tentative output and
++retries from zero without that checkpoint. It cannot repeatedly reuse an invalid
++append checkpoint. Cancellation and spool-finalization failure abort immediately.
++There are at most three full-source attempts after the tentative attempt; ordinary
++cold reads retain their three-attempt stability limit. Ownership exclusion on a
++checkpoint path is resolved by rebuilding before publishing an exclusion.
++
++The source remains quarantined until successful verification and transactional
++publication. No changes were made to the controller's read-validation or
++publication-lock boundaries. This remains optimistic verification, not an atomic
++snapshot against arbitrary concurrent writers.
++
++Complete records are parsed once. A bounded binary capture archive plus typed
++record descriptors retain order, raw digests, byte/line bounds, and late session
++metadata. Replay preserves first-value duplicate-field handling, tool correlation,
++normalization, and the existing diagnostic counts. Once a cwd proves the source
++cannot be accepted, later records retain metadata only and skip raw-record hashing.
++Ownership discovered late can still require capturing earlier visible content.
++
++Raw-byte and capture storage each allow a 64 KiB inline buffer. Together this adds
++at most 128 KiB of retained inline capacity per active source, plus at most 128 KiB
++of transient range copies and bounded reader/fragment buffers. Existing metadata,
++chunk, tokenizer, and scratch-state budgets still apply. Large records spill using
++the same private file owner as typed record spools; no transcript-sized heap value
++or per-record collection of open capture files is retained.
++
++Store v3 keeps source chunk counts, token totals, and per-source/term chunk
++frequencies, including for quarantined sources. Only newly inserted ordinals are
++aggregated on append. Quarantine/restoration uses stored contributions, and source
++deletion cascades them. Replacement, parser-state updates, checkpoints, summaries,
++and global statistics share the source transaction. Chunk counts also supply the
++next append ordinal and verified-source count.
++
++Opening a v2 cache backfills all sources, including empty and quarantined ones,
++and advances the schema marker in the same transaction. A failed backfill leaves
++v2 retryable. Tokenizer invalidation deletes summaries with the other derived data.
++Older executables reject v3 rather than silently leaving summaries stale.
++
++## Measurement method
++
++Apple M1 Max, macOS, Rust 1.98.1 (`aarch64-apple-darwin`), pinned dependencies,
++Cargo release profile, unchanged hash implementation. Synthetic files and fresh
++SQLite databases isolate each import. Source files are freshly written and then
++read through a warm OS cache: “cold import” means a new index, not cold physical
++storage. No production cache or installed executable was changed.
++
++The verifier uses one warmup and five measured trials. Preparation uses one
++warmup and three measured trials per record shape and ownership outcome. Statistics
++use one warmup and five quarantine/append/restore cycles. Tests and benchmark runs
++were separated for the paired comparison, but this is a shared workstation with
++background load; timings are workload evidence, not service-level guarantees.
++
++Primary logs are `paired-head.log`, `paired-64k.log`, `paired-16k.log`, and
++`statistics-final.log`. Earlier stage logs record cloning, parsing, and summary
++measurements independently. The final statistics log includes the term-ID index
++needed for efficient foreign-key checks during compaction. The paired preparation
++runs precede that index and the cached verified-count lookup; neither path is used
++by those preparation workloads. Timing binaries also precede the final missing-spool
++error-classification check; that failure path is tested separately and is not
++exercised by these workloads.
++
++`summarize.py` produces `summary.json` with every sample count, median, minimum,
++and maximum. It includes the first measured row even when the Rust test runner
++prefixes that row with the test name.
++
++## Results
++
++Times below are milliseconds, shown as median [minimum–maximum].
++
++| Workload | Original HEAD | Changed |
++| --- | ---: | ---: |
++| Import 1,024 × 4 KiB messages | 1251.30 [1248.49–1261.20] | 785.65 [780.70–787.41] |
++| Import 128 × 32 KiB messages | 805.00 [788.07–814.12] | 687.22 [677.71–717.58] |
++| Import one 4 MiB message | 715.47 [708.39–717.80] | 669.24 [663.86–672.00] |
++| Tiny append to short-record history | 71.21 [70.34–71.85] | 28.64 [28.47–30.30] |
++| Tiny append to medium-record history | 69.13 [68.88–69.77] | 28.48 [27.82–29.99] |
++| Tiny append to large-record history | 68.47 [67.41–69.28] | 28.86 [28.34–28.95] |
++| Reject unrelated short-record history | 255.90 [253.37–304.04] | 80.74 [80.29–81.03] |
++| Reject unrelated medium-record history | 92.77 [90.56–93.60] | 56.77 [56.45–57.71] |
++| Reject unrelated large-record history | 61.41 [58.80–92.84] | 59.69 [59.40–59.84] |
++
++The small-record import uses about 37% less wall time and tiny appends about 60%
++less on these fixtures. The rejected single-large-record difference is too small
++relative to the baseline spread to claim a speedup.
++
++For the short-record import, median first progress was 11 ms before and 10 ms
++after; first committed/searchable source data was 1251 ms before and 785 ms after.
++One source still publishes atomically at the end of its preparation.
++
++The isolated verifier's 64 MiB prefix plus 1 KiB suffix went from approximately
++595 ms to 204 ms after hash cloning alone. This measures the verifier, not total
++indexing speed; source-read volume is unchanged by cloning alone.
++
++### Work counts and storage
++
++Tests establish exact successful-append counts: source reads `P + 2S`, session
++source/record hash input `P + 4S`, and parser input `S`. Cold accepted imports read
++the source twice and parse each complete record once. The old path read `2P + 3S`.
++Incomplete tails remain included in source validation and are not published.
++
++The changed short-record cold fixture read 8,628,302 source bytes, fed 17,256,604
++bytes into source/record hashers, and parsed 4,314,151 JSON bytes. Observed spool
++I/O was 23,468,842 bytes read and 14,480,744 written. These include capture replay,
++serialized chunks and parser-state updates, so they are larger than source I/O.
++There is no claim that fewer source passes alone establishes less total temporary
++I/O; equivalent full temporary-I/O counters were unavailable on the original HEAD.
++
++| Statistics workload: 10,000 chunks, 320,000 postings | Original HEAD | Final |
++| --- | ---: | ---: |
++| Quarantine, 32 repeating terms | 69.588 ms | 0.224 ms |
++| Append/restore, 32 repeating terms | 70.240 ms | 0.388 ms |
++| Quarantine, 320,000 distinct terms | 2209.816 ms | 2131.368 ms |
++| Append/restore, 320,000 distinct terms | 1122.178 ms | 1090.382 ms |
++| Database bytes, repeating vocabulary | 16,011,264 | 16,273,408 |
++| Database bytes, distinct vocabulary | 48,513,024 | 66,002,944 |
++
++The repeated-vocabulary benefit justifies maintained summaries for this case.
++The distinct-vocabulary case has little timing benefit and about 36% more database
++storage. Its measured import rose from 1.51 s to 1.81 s (one import per fixture;
++not enough samples for a general cold-import claim). Repeating-vocabulary imports
++were both about 1.00 s.
++
++A direct SQL probe counts 4,200,436 VM steps to group the repeated historical
++postings versus 199 to read the 32 summary rows. For distinct terms, the counts are
++8,360,020 versus 1,920,007, with 320,000 result rows in either case. These are
++statement work counts, not ratios of end-to-end performance. Summary frequencies
++sum to exactly 320,000 in both cases and retain one contribution per chunk/term.
++
++The 64 KiB inline threshold was compared with 16 KiB. Medium-record accepted
++imports took 687 ms versus 732 ms; rejected imports took 57 ms versus 97 ms.
++Tiny-record and single-large-record timings were similar. The 64 KiB threshold
++avoids spilling medium records without retaining a large-record-sized buffer.
++Maximum process RSS over the paired preparation/statistics suite was about
++39.2 MB for HEAD and 40.6 MB for 64 KiB; this includes the SQL query probe's result
++vector and is not an isolated production-memory bound.
++
++### Concurrent search
++
++Three imports ran while another thread repeatedly queried an unaffected project
++source. Each query asserted that the expected hit remained available. Median
++import time was 1300 ms on HEAD and 797 ms after the changes. Median per-run search
++P95 was 0.333 ms before and 0.380 ms after; the largest observed query was 4.253 ms
++before and 12.169 ms after. Median durable source-transaction time was 89 ms before
++and 107 ms after. The summaries add work during cold insertion even though total
++preparation time falls. These runs establish responsiveness for this small query
++fixture, not a general concurrent-search latency guarantee. Full samples and
++first-progress/commit measurements are in `concurrent-head.log` and
++`concurrent-final.log`.
++
++## Validation and limits
++
++Focused runs passed 94 library tests, 8 indexing-progress tests,
++3 statistics/oracle tests, and 16 tool tests. The broader run also passed checkpoint,
++coverage, MCP, admission, ranking-policy, and ranking-store tests. One of six recovery
++tests timed out waiting for automatic owner replacement; it passed immediately
++when run alone. All six recovery tests also passed in a subsequent serial run
++(`recovery-final.log`). No timeout or assertion was weakened, and the original
++timeout's cause is not established.
++
++Clippy with all targets/features and warnings denied passed. Formatting and diff
++checks passed. All 43 Python evaluation tests passed. Logs retain the failed full
++run and the successful isolated recovery retry rather than describing the initial
++run as clean.
++
++Coverage includes independent prefix-range digests, zero/equal/read-boundary
++checkpoints, invalid offsets, cancellation, source edits during final validation,
++prefix rewrites, ownership rejection, late metadata, duplicate IDs, large values,
++incomplete tails, spool finalization faults and cleanup, atomic commit rollback,
++restart, tokenizer changes, exact integer statistics, and failed-backfill retry.
++
++The new hash counter counts source and raw-record hash updates, not metadata or
++visible-field deduplication hashing. Spool counters are logical file reads/writes,
++including retries and buffer prefetch; they exclude SQLite, tokenizer spills, and
++visible-field deduplication files. Physical disk bytes, total SQL preparations,
++controller publication-lock duration, cold-cache operation, and the full proposed
++1 GiB/many-source matrix were not measured. Existing timing/transaction counters
++remain available. Scheduling and freshness-policy changes are deferred.
++
++## Reproduce
++
++```sh
++cargo test --release --lib benchmark_verification -- --ignored --nocapture
++cargo test --release --test session_performance -- --ignored --nocapture --test-threads=1
++python3 validation/verification/summarize.py
++```
++
++Build comparison revisions in separate target directories; shared Cargo target
++paths can replace identically named test executables. The concurrent baseline was
++rebuilt in its own target directory after detecting that collision. The saved
++comparison executables were checked for distinct hashes. Logs include `/usr/bin/time -l` output where available; wall-clock assertions are deliberately absent from tests.
+--- /dev/null
++++ b/validation/verification/summarize.py
+@@ -0,0 +1,32 @@
++#!/usr/bin/env python3
++"""Summarize the local benchmark logs without selecting individual fast trials."""
++import json
++import re
++import statistics
++from pathlib import Path
++
++root = Path(__file__).parent
++output = {}
++for name in ['baseline', 'cloning', 'paired-head', 'paired-64k', 'paired-16k', 'statistics-final', 'concurrent-head', 'concurrent-final']:
++    path = root / (name + '.log')
++    groups = {}
++    for line in path.read_text().splitlines():
++        if 'concurrent trial=' in line:
++            line = line[line.index('concurrent trial='):]
++        elif 'stats_import unique=' in line:
++            line = line[line.index('stats_import unique='):]
++        elif 'cold records=' in line:
++            line = line[line.index('cold records='):]
++        if line.startswith(('prefix=', 'cold ', 'append ', 'stats ', 'concurrent ')):
++            key = re.sub(r' trial=\d+.*', '', line)
++            values = re.findall(r'(elapsed_us|invalidate_us|restore_us|idle_p95_us|active_p95_us|active_max_us|import_us)=(\d+)', line)
++            if key == 'concurrent':
++                key = 'concurrent search'
++            for metric, value in values:
++                groups.setdefault(key + '/' + metric, []).append(int(value))
++    output[name] = {
++        key: {'n': len(values), 'median_us': statistics.median(values), 'min_us': min(values), 'max_us': max(values)}
++        for key, values in groups.items()
++    }
++(root / 'summary.json').write_text(json.dumps(output, indent=2) + '\n')
++print(json.dumps(output, indent=2))

@@ -1,0 +1,4 @@
+   Compiling bm25_turbo v0.2.0 (/Users/adityasharma/Projects/bm25-mcp-perf-baseline/vendor/bm25_turbo)
+   Compiling bm25-mcp v0.1.0 (/Users/adityasharma/Projects/bm25-mcp-perf-baseline)
+    Finished `release` profile [optimized] target(s) in 25.43s
+  Executable tests/session_performance.rs (target/release/deps/session_performance-7c4905c8b49f1b8a)

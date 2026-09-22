@@ -28,7 +28,7 @@ mod admission;
 use admission::{Admission, Lane};
 pub(crate) use admission::{IndexedPool, ScorablePool};
 
-const SCHEMA_VERSION: &str = "bm25-mcp-store-v2";
+const SCHEMA_VERSION: &str = "bm25-mcp-store-v3";
 const MAX_CONTEXT_ROWS: usize = 4096;
 const DECLARATION_INDEX_VERSION: &str = "bm25-mcp-declarations-v1";
 // Exact declarations are admitted independently, with match_id order making
@@ -343,12 +343,20 @@ impl Store {
         )?;
         let first_ordinal = if append_version.is_some() {
             tx.query_row(
-                "SELECT COALESCE(MAX(ordinal)+1,0) FROM chunks WHERE source_key=?1",
+                "SELECT doc_count FROM source_stats WHERE source_key=?1",
                 [&source.key],
                 |r| r.get::<_, i64>(0),
             )?
         } else {
             tx.execute("DELETE FROM chunks WHERE source_key=?1", [&source.key])?;
+            tx.execute(
+                "DELETE FROM source_stats WHERE source_key=?1",
+                [&source.key],
+            )?;
+            tx.execute(
+                "DELETE FROM source_term_stats WHERE source_key=?1",
+                [&source.key],
+            )?;
             tx.execute(
                 "DELETE FROM session_state WHERE source_key=?1",
                 [&source.key],
@@ -400,12 +408,8 @@ impl Store {
             version: source.version.clone(),
             eligible: true,
         };
-        adjust_statistics_from_ordinal(
-            &tx,
-            &new_info,
-            1,
-            if append_eligible { first_ordinal } else { 0 },
-        )?;
+        extend_source_statistics(&tx, &source.key, first_ordinal)?;
+        adjust_statistics(&tx, &new_info, 1, append_eligible.then_some(first_ordinal))?;
         set_generation(&tx, next_generation)?;
         tx.commit()?;
         Ok(())
@@ -554,7 +558,7 @@ impl Store {
             set_generation(&tx, generation)?;
         }
         let chunks: i64 = tx.query_row(
-            "SELECT COUNT(*) FROM chunks WHERE source_key=?1",
+            "SELECT COALESCE((SELECT doc_count FROM source_stats WHERE source_key=?1),0)",
             [key],
             |row| row.get(0),
         )?;
@@ -1135,10 +1139,11 @@ fn initialize(conn: &mut Connection) -> Result<()> {
                 |r| r.get(0),
             )
             .optional()?;
-        if previous
-            .as_deref()
-            .is_some_and(|version| version != "bm25-mcp-store-v1" && version != SCHEMA_VERSION)
-        {
+        if previous.as_deref().is_some_and(|version| {
+            version != "bm25-mcp-store-v1"
+                && version != "bm25-mcp-store-v2"
+                && version != SCHEMA_VERSION
+        }) {
             bail!(
                 "unsupported store schema {}; expected {SCHEMA_VERSION}",
                 previous.unwrap()
@@ -1198,6 +1203,7 @@ fn initialize(conn: &mut Connection) -> Result<()> {
          );
          CREATE INDEX IF NOT EXISTS chunks_source_ordinal
              ON chunks(source_key, source_version, ordinal);
+         CREATE INDEX IF NOT EXISTS chunks_source_position ON chunks(source_key, ordinal);
          CREATE INDEX IF NOT EXISTS chunks_event_id
              ON chunks(event_id);
          CREATE TABLE IF NOT EXISTS terms(
@@ -1225,6 +1231,18 @@ fn initialize(conn: &mut Connection) -> Result<()> {
              doc_freq INTEGER NOT NULL,
              PRIMARY KEY(collection, kind, term_id)
          );
+         CREATE TABLE IF NOT EXISTS source_stats(
+             source_key TEXT PRIMARY KEY REFERENCES sources(key) ON DELETE CASCADE,
+             doc_count INTEGER NOT NULL CHECK(doc_count>=0),
+             total_tokens INTEGER NOT NULL CHECK(total_tokens>=0)
+         );
+         CREATE TABLE IF NOT EXISTS source_term_stats(
+             source_key TEXT NOT NULL REFERENCES sources(key) ON DELETE CASCADE,
+             term_id INTEGER NOT NULL REFERENCES terms(id),
+             doc_freq INTEGER NOT NULL CHECK(doc_freq>0),
+             PRIMARY KEY(source_key, term_id)
+         );
+         CREATE INDEX IF NOT EXISTS source_term_stats_term ON source_term_stats(term_id);
          CREATE TABLE IF NOT EXISTS declarations(
              chunk_id INTEGER NOT NULL REFERENCES chunks(id) ON DELETE CASCADE,
              symbol TEXT NOT NULL,
@@ -1274,7 +1292,7 @@ fn initialize(conn: &mut Connection) -> Result<()> {
         [],
         |row| row.get(0),
     )?;
-    if schema != SCHEMA_VERSION {
+    if schema != SCHEMA_VERSION && schema != "bm25-mcp-store-v2" {
         bail!("unsupported store schema {schema}; expected {SCHEMA_VERSION}")
     }
     let tokenizer: String = conn.query_row(
@@ -1293,6 +1311,23 @@ fn initialize(conn: &mut Connection) -> Result<()> {
         )?;
         let generation = next_generation(&tx)?;
         set_generation(&tx, generation)?;
+        tx.commit()?;
+    }
+    if schema == "bm25-mcp-store-v2" {
+        let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        tx.execute_batch(
+            "DELETE FROM source_term_stats; DELETE FROM source_stats;
+             INSERT INTO source_stats(source_key,doc_count,total_tokens)
+             SELECT s.key,COUNT(c.id),COALESCE(SUM(c.token_len),0)
+             FROM sources s LEFT JOIN chunks c ON c.source_key=s.key GROUP BY s.key;
+             INSERT INTO source_term_stats(source_key,term_id,doc_freq)
+             SELECT c.source_key,p.term_id,COUNT(*) FROM chunks c
+             JOIN postings p ON p.chunk_id=c.id GROUP BY c.source_key,p.term_id;",
+        )?;
+        tx.execute(
+            "UPDATE meta SET value=?1 WHERE key='schema_version'",
+            [SCHEMA_VERSION],
+        )?;
         tx.commit()?;
     }
     rebuild_declarations(conn)?;
@@ -1446,24 +1481,48 @@ fn source_info(tx: &Connection, key: &str) -> Result<Option<SourceInfo>> {
     .map_err(Into::into)
 }
 
+fn extend_source_statistics(tx: &Transaction<'_>, source: &str, first_ordinal: i64) -> Result<()> {
+    tx.execute(
+        "INSERT INTO source_stats(source_key,doc_count,total_tokens)
+         SELECT ?1,COUNT(id),COALESCE(SUM(token_len),0) FROM chunks
+         WHERE source_key=?1 AND ordinal>=?2
+         ON CONFLICT(source_key) DO UPDATE SET
+             doc_count=source_stats.doc_count+excluded.doc_count,
+             total_tokens=source_stats.total_tokens+excluded.total_tokens",
+        params![source, first_ordinal],
+    )?;
+    tx.execute(
+        "INSERT INTO source_term_stats(source_key,term_id,doc_freq)
+         SELECT ?1,p.term_id,COUNT(*) FROM chunks c JOIN postings p ON p.chunk_id=c.id
+         WHERE c.source_key=?1 AND c.ordinal>=?2 GROUP BY p.term_id
+         ON CONFLICT(source_key,term_id) DO UPDATE SET
+             doc_freq=source_term_stats.doc_freq+excluded.doc_freq",
+        params![source, first_ordinal],
+    )?;
+    Ok(())
+}
+
 fn adjust_statistics_for_source(
     tx: &Transaction<'_>,
     source: &SourceInfo,
     sign: i64,
 ) -> Result<()> {
-    adjust_statistics_from_ordinal(tx, source, sign, 0)
+    adjust_statistics(tx, source, sign, None)
 }
 
-fn adjust_statistics_from_ordinal(
+fn adjust_statistics(
     tx: &Transaction<'_>,
     source: &SourceInfo,
     sign: i64,
-    first_ordinal: i64,
+    first_ordinal: Option<i64>,
 ) -> Result<()> {
     debug_assert!(sign == 1 || sign == -1);
     let (doc_count, total_tokens): (i64, i64) = tx.query_row(
-        "SELECT COUNT(id), COALESCE(SUM(token_len),0) FROM chunks
-         WHERE source_key=?1 AND ordinal>=?2",
+        if first_ordinal.is_some() {
+            "SELECT COUNT(id), COALESCE(SUM(token_len),0) FROM chunks WHERE source_key=?1 AND ordinal>=?2"
+        } else {
+            "SELECT doc_count,total_tokens FROM source_stats WHERE source_key=?1 AND ?2 IS NULL"
+        },
         params![source.key, first_ordinal],
         |row| Ok((row.get(0)?, row.get(1)?)),
     )?;
@@ -1480,11 +1539,12 @@ fn adjust_statistics_from_ordinal(
             sign * total_tokens
         ],
     )?;
-    let mut stmt = tx.prepare(
-        "SELECT p.term_id, COUNT(*) FROM chunks c
-         JOIN postings p ON p.chunk_id=c.id
-         WHERE c.source_key=?1 AND c.ordinal>=?2 GROUP BY p.term_id",
-    )?;
+    let mut stmt = tx.prepare_cached(if first_ordinal.is_some() {
+        "SELECT p.term_id, COUNT(*) FROM chunks c JOIN postings p ON p.chunk_id=c.id
+         WHERE c.source_key=?1 AND c.ordinal>=?2 GROUP BY p.term_id"
+    } else {
+        "SELECT term_id,doc_freq FROM source_term_stats WHERE source_key=?1 AND ?2 IS NULL"
+    })?;
     let mut rows = stmt.query(params![source.key, first_ordinal])?;
     let mut update_term = tx.prepare_cached(
         "INSERT INTO term_stats(collection, kind, term_id, doc_freq)

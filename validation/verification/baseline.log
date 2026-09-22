@@ -1,0 +1,29 @@
+   Compiling bm25-mcp v0.1.0 (/Users/adityasharma/Projects/bm25-mcp)
+    Finished `release` profile [optimized] target(s) in 7.69s
+     Running unittests src/lib.rs (target/release/deps/bm25_mcp-cd3422c046c2ec30)
+
+running 1 test
+prefix=67108864 suffix=1024 trial=1 elapsed_us=598140
+prefix=67108864 suffix=1024 trial=2 elapsed_us=593885
+prefix=67108864 suffix=1024 trial=3 elapsed_us=594789
+prefix=67108864 suffix=1024 trial=4 elapsed_us=595622
+prefix=67108864 suffix=1024 trial=5 elapsed_us=596401
+prefix=268435456 suffix=1024 trial=1 elapsed_us=2375433
+prefix=268435456 suffix=1024 trial=2 elapsed_us=2379650
+prefix=268435456 suffix=1024 trial=3 elapsed_us=2385720
+prefix=268435456 suffix=1024 trial=4 elapsed_us=2488882
+prefix=268435456 suffix=1024 trial=5 elapsed_us=2463140
+prefix=67108864 suffix=1048576 trial=1 elapsed_us=607643
+prefix=67108864 suffix=1048576 trial=2 elapsed_us=606590
+prefix=67108864 suffix=1048576 trial=3 elapsed_us=606062
+prefix=67108864 suffix=1048576 trial=4 elapsed_us=605181
+prefix=67108864 suffix=1048576 trial=5 elapsed_us=601746
+prefix=0 suffix=67108864 trial=1 elapsed_us=597194
+prefix=0 suffix=67108864 trial=2 elapsed_us=597670
+prefix=0 suffix=67108864 trial=3 elapsed_us=594628
+prefix=0 suffix=67108864 trial=4 elapsed_us=595546
+prefix=0 suffix=67108864 trial=5 elapsed_us=596133
+test sessions::session_stream::tests::benchmark_verification ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 85 filtered out; finished in 25.43s
+

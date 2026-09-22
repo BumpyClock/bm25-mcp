@@ -1,0 +1,1965 @@
+--- a/src/session_stream.rs
++++ b/src/session_stream.rs
+@@ -1,18 +1,21 @@
+ //! Provider-neutral session-file streaming and durable incremental parsing.
+ //!
+ //! This module intentionally does not build a `serde_json::Value` for a
+-//! record.  Physical records are spooled to disk, selected strings are
+-//! decoded by `session_json`, and only bounded chunks enter SQLite.  The
++//! record. Physical records and captures use bounded buffers with disk spill;
++//! selected strings are decoded once by `session_json`. Only bounded chunks
++//! enter SQLite. The
+ //! checkpoint is committed in the same transaction as those chunks, so an
+ //! incomplete tail or an interrupted append is replayed safely.
+ 
+-use super::session_json::{CaptureFile, Fragment, MAX_FRAGMENT_BYTES, ParseCancelled, PathPart};
++use super::session_json::{
++    CaptureArchive, CaptureFile, Fragment, MAX_FRAGMENT_BYTES, ParseCancelled, PathPart,
++};
+ use super::{SESSION_KIND, SessionConfig};
+ use crate::identity::IdentityRegistry;
+ use crate::ingest::{ProjectIdentity, project_identity};
+ use crate::model::{Chunk, ScanReport, Source};
+ use crate::progress::{ProgressPhase, ProgressReporter, ScratchBatchMetrics, WorkKind};
+-use crate::record_spool::{FinalizeError, RecordSpool, Records};
++use crate::record_spool::{ByteRange, ByteSpool, FinalizeError, RecordSpool, Records};
+ use crate::store::{SessionCheckpoint, SessionStateReader, Store};
+ use anyhow::{Context, Result, anyhow, bail};
+ use rusqlite::OptionalExtension;
+@@ -119,10 +122,9 @@
+ 
+     fn insert(&mut self, path: &str, value: &str) -> Result<()> {
+         if let Some(connection) = self.connection.as_ref() {
+-            connection.execute(
+-                "INSERT OR IGNORE INTO block_types(path,value) VALUES (?1,?2)",
+-                rusqlite::params![path, value],
+-            )?;
++            connection
++                .prepare_cached("INSERT OR IGNORE INTO block_types(path,value) VALUES (?1,?2)")?
++                .execute(rusqlite::params![path, value])?;
+             return Ok(());
+         }
+         if self.memory.contains_key(path) {
+@@ -136,10 +138,8 @@
+         self.connection
+             .as_ref()
+             .ok_or_else(|| anyhow!("block type index spill did not open"))?
+-            .execute(
+-                "INSERT OR IGNORE INTO block_types(path,value) VALUES (?1,?2)",
+-                rusqlite::params![path, value],
+-            )?;
++            .prepare_cached("INSERT OR IGNORE INTO block_types(path,value) VALUES (?1,?2)")?
++            .execute(rusqlite::params![path, value])?;
+         Ok(())
+     }
+ 
+@@ -151,11 +151,8 @@
+             return Ok(None);
+         };
+         connection
+-            .query_row(
+-                "SELECT value FROM block_types WHERE path=?1",
+-                [path],
+-                |row| row.get(0),
+-            )
++            .prepare_cached("SELECT value FROM block_types WHERE path=?1")?
++            .query_row([path], |row| row.get(0))
+             .optional()
+             .map_err(Into::into)
+     }
+@@ -167,11 +164,9 @@
+         let Some(connection) = self.connection.as_ref() else {
+             return Ok(false);
+         };
+-        let found: i64 = connection.query_row(
+-            "SELECT EXISTS(SELECT 1 FROM block_types WHERE value=?1)",
+-            [value],
+-            |row| row.get(0),
+-        )?;
++        let found: i64 = connection
++            .prepare_cached("SELECT EXISTS(SELECT 1 FROM block_types WHERE value=?1)")?
++            .query_row([value], |row| row.get(0))?;
+         Ok(found != 0)
+     }
+ 
+@@ -184,10 +179,9 @@
+         {
+             let transaction = connection.transaction()?;
+             for (path_key, value) in &self.memory {
+-                transaction.execute(
+-                    "INSERT INTO block_types(path,value) VALUES (?1,?2)",
+-                    rusqlite::params![path_key, value],
+-                )?;
++                transaction
++                    .prepare_cached("INSERT INTO block_types(path,value) VALUES (?1,?2)")?
++                    .execute(rusqlite::params![path_key, value])?;
+             }
+             transaction.commit()?;
+         }
+@@ -207,138 +201,7 @@
+     }
+ }
+ 
+-#[derive(Debug)]
+-struct Inspection {
+-    version: String,
+-    cwds: StringSpool,
+-    session_hint: Option<String>,
+-    malformed: bool,
+-}
+-
+ const MAX_SUMMARY_METADATA: usize = 4096;
+-
+-/// A bounded-memory sequence of metadata strings.  CWD fields are needed for
+-/// ownership checks but a history can contain an arbitrary number of them;
+-/// keeping those values in a private spool avoids turning metadata cardinality
+-/// into a process-memory limit.
+-struct StringSpool {
+-    path: Option<PathBuf>,
+-    writer: Option<BufWriter<File>>,
+-}
+-
+-impl std::fmt::Debug for StringSpool {
+-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+-        formatter
+-            .debug_struct("StringSpool")
+-            .field("path", &self.path)
+-            .finish()
+-    }
+-}
+-
+-impl StringSpool {
+-    fn new(prefix: &str) -> Result<Self> {
+-        static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+-        for _ in 0..32 {
+-            let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
+-            let stamp = SystemTime::now()
+-                .duration_since(UNIX_EPOCH)
+-                .unwrap_or_default()
+-                .as_nanos();
+-            let path = std::env::temp_dir().join(format!(
+-                "bm25-mcp-session-{prefix}-{}-{stamp}-{id}.bin",
+-                std::process::id()
+-            ));
+-            let mut options = OpenOptions::new();
+-            options.create_new(true).write(true);
+-            #[cfg(unix)]
+-            {
+-                use std::os::unix::fs::OpenOptionsExt;
+-                options.mode(0o600);
+-            }
+-            match options.open(&path) {
+-                Ok(file) => {
+-                    return Ok(Self {
+-                        path: Some(path),
+-                        writer: Some(BufWriter::new(file)),
+-                    });
+-                }
+-                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+-                Err(error) => return Err(error.into()),
+-            }
+-        }
+-        Err(anyhow!("could not create session metadata spool"))
+-    }
+-
+-    fn push(&mut self, value: &str) -> Result<()> {
+-        let bytes = value.as_bytes();
+-        let length = u32::try_from(bytes.len()).context("session metadata value too long")?;
+-        let writer = self
+-            .writer
+-            .as_mut()
+-            .ok_or_else(|| anyhow!("session metadata spool finished"))?;
+-        writer.write_all(&length.to_le_bytes())?;
+-        writer.write_all(bytes)?;
+-        Ok(())
+-    }
+-
+-    fn iter(&mut self) -> Result<StringSpoolIter> {
+-        if let Some(writer) = self.writer.as_mut() {
+-            writer.flush()?;
+-        }
+-        let path = self
+-            .path
+-            .as_ref()
+-            .ok_or_else(|| anyhow!("session metadata spool path missing"))?;
+-        Ok(StringSpoolIter {
+-            reader: BufReader::new(File::open(path)?),
+-            done: false,
+-        })
+-    }
+-}
+-
+-struct StringSpoolIter {
+-    reader: BufReader<File>,
+-    done: bool,
+-}
+-
+-impl Iterator for StringSpoolIter {
+-    type Item = Result<String>;
+-
+-    fn next(&mut self) -> Option<Self::Item> {
+-        if self.done {
+-            return None;
+-        }
+-        let mut length = [0_u8; 4];
+-        if let Err(error) = self.reader.read_exact(&mut length) {
+-            if error.kind() == std::io::ErrorKind::UnexpectedEof {
+-                self.done = true;
+-                return None;
+-            }
+-            self.done = true;
+-            return Some(Err(error.into()));
+-        }
+-        let length = u32::from_le_bytes(length) as usize;
+-        if length > MAX_METADATA_VALUE_BYTES {
+-            self.done = true;
+-            return Some(Err(anyhow!("session metadata value exceeds bound")));
+-        }
+-        let mut bytes = vec![0_u8; length];
+-        if let Err(error) = self.reader.read_exact(&mut bytes) {
+-            self.done = true;
+-            return Some(Err(error.into()));
+-        }
+-        Some(String::from_utf8(bytes).map_err(Into::into))
+-    }
+-}
+-
+-impl Drop for StringSpool {
+-    fn drop(&mut self) {
+-        self.writer.take();
+-        if let Some(path) = self.path.take() {
+-            let _ = fs::remove_file(path);
+-        }
+-    }
+-}
+ 
+ #[derive(Clone, Debug, Deserialize, Serialize)]
+ struct PersistedState {
+@@ -365,12 +228,20 @@
+     state_updates: Records<(String, String, Option<String>)>,
+ }
+ 
+-#[derive(Clone, Debug)]
++#[derive(Clone, Debug, Deserialize, Serialize)]
+ struct RecordRef {
+-    path: PathBuf,
++    digest: String,
+     start_byte: u64,
+     end_byte: u64,
+     line: u64,
++}
++
++#[derive(Deserialize, Serialize)]
++struct PreparedRecord {
++    record: RecordRef,
++    capture_start: u64,
++    capture_end: u64,
++    malformed: Option<String>,
+ }
+ 
+ #[derive(Clone, Debug, Default)]
+@@ -455,6 +326,10 @@
+         .transpose()?;
+     invalidate_scope(owner_key, store, config, changes)?;
+     let existing = store.sources(owner_key, SESSION_KIND)?;
++    let existing_by_key: HashMap<_, _> = existing
++        .iter()
++        .map(|source| (source.key.as_str(), source))
++        .collect();
+     let affected_existing = changes.map(|changes| {
+         let candidates = changes
+             .iter()
+@@ -548,7 +423,7 @@
+         }
+         let relative = source_path(file.provider, &file.path, config);
+         let key = source_key(owner_key, &relative);
+-        let old = existing.iter().find(|source| source.key == key);
++        let old = existing_by_key.get(key.as_str()).copied();
+         let mut source_report = ScanReport::default();
+         progress.record_current_source_bytes(0);
+         match fs::symlink_metadata(&file.path) {
+@@ -834,57 +709,110 @@
+         && previous.owner_key == owner_key
+         && previous.registry_revision == registry_revision
+         && checkpoint.offset <= before.len
+-
+     {
+         append = true;
+         start_offset = checkpoint.offset;
+         state = previous;
+     }
+ 
+-    progress.set_phase(ProgressPhase::JsonInspection);
+-    let inspection_started = Instant::now();
+-    let mut inspection = inspect(
+-        path,
+-        provider,
+-        start_offset,
+-        if append { state.next_line } else { 1 },
+-        report,
+-        should_continue,
+-        progress,
+-    )?;
+-    progress.record_work(WorkKind::JsonInspection, inspection_started.elapsed());
+     let mut saw_cwd = false;
+     // An append tentatively inherits ownership until final prefix validation.
+     let mut current_cwd = append;
+     let mut known_other_cwd = false;
+     let mut unknown_cwd = false;
+-    for cwd in inspection.cwds.iter()? {
+-        let cwd = cwd?;
+-        let owner = if let Some(owner) = cwd_cache.get(&cwd) {
+-            owner.clone()
+-        } else {
+-            progress.set_phase(ProgressPhase::Ownership);
+-            let ownership_started = Instant::now();
+-            let owner = associate_cwd(
+-                &cwd,
+-                root,
+-                root_identity,
+-                root_is_git,
+-                registry.as_deref_mut(),
+-            )?;
+-            progress.record_work(WorkKind::Ownership, ownership_started.elapsed());
+-            if cwd_cache.len() >= MAX_CWD_CACHE_ENTRIES {
+-                cwd_cache.clear();
+-            }
+-            cwd_cache.insert(cwd.clone(), owner.clone());
+-            owner
+-        };
+-        saw_cwd = true;
+-        match owner.as_deref() {
+-            Some(owner) if owner == owner_key => current_cwd = true,
+-            Some(_) => known_other_cwd = true,
+-            None => unknown_cwd = true,
+-        }
++    let mut session_hint = None;
++    let mut archive = CaptureArchive::observed(progress);
++    let mut prepared = RecordSpool::observed(progress)?;
++    progress.set_phase(ProgressPhase::JsonInspection);
++    let inspection_started = Instant::now();
++    let stream = stream_records(
++        path,
++        start_offset,
++        if append { state.next_line } else { 1 },
++        should_continue,
++        progress,
++        |record, bytes| {
++            progress.set_phase(ProgressPhase::JsonInspection);
++            progress.record_record_inspected();
++            // Once any cwd makes acceptance impossible, retain only metadata.
++            let parsed = archive.parse(
++                bytes.reader()?,
++                !known_other_cwd && !unknown_cwd,
++                Some(should_continue),
++                Some(progress),
++            );
++            let (capture, capture_start, capture_end) = match parsed {
++                Err(error) if error.downcast_ref::<ParseCancelled>().is_some() => {
++                    return Err(ScanCancelled.into());
++                }
++                Err(error) if error.downcast_ref::<FinalizeError>().is_some() => return Err(error),
++                Ok(capture) => capture,
++                Err(error) => {
++                    let message = format!("{} line {}: {error}", path.display(), record.line);
++                    diagnostic(report, "malformed_record", &message);
++                    prepared.push(&PreparedRecord {
++                        record: record.clone(),
++                        capture_start: 0,
++                        capture_end: 0,
++                        malformed: Some(truncate(message)),
++                    })?;
++                    return Ok(!known_other_cwd && !unknown_cwd);
++                }
++            };
++            let summary = summarize_fragments(provider, capture.metadata()?)?;
++            if summary.metadata_truncated {
++                diagnostic(
++                    report,
++                    "metadata",
++                    &format!(
++                        "{} line {} metadata fields exceeded bounded summary",
++                        path.display(),
++                        record.line
++                    ),
++                );
++            }
++            if session_hint.is_none() {
++                session_hint = summary.session_id;
++            }
++            if let Some(cwd) = summary.cwd {
++                let owner = if let Some(owner) = cwd_cache.get(&cwd) {
++                    owner.clone()
++                } else {
++                    progress.set_phase(ProgressPhase::Ownership);
++                    let ownership_started = Instant::now();
++                    let owner = associate_cwd(
++                        &cwd,
++                        root,
++                        root_identity,
++                        root_is_git,
++                        registry.as_deref_mut(),
++                    )?;
++                    progress.record_work(WorkKind::Ownership, ownership_started.elapsed());
++                    if cwd_cache.len() >= MAX_CWD_CACHE_ENTRIES {
++                        cwd_cache.clear();
++                    }
++                    cwd_cache.insert(cwd.clone(), owner.clone());
++                    owner
++                };
++                saw_cwd = true;
++                match owner.as_deref() {
++                    Some(owner) if owner == owner_key => current_cwd = true,
++                    Some(_) => known_other_cwd = true,
++                    None => unknown_cwd = true,
++                }
++            }
++            prepared.push(&PreparedRecord {
++                record: record.clone(),
++                capture_start,
++                capture_end,
++                malformed: None,
++            })?;
++            Ok(!known_other_cwd && !unknown_cwd)
++        },
++    )?;
++    progress.record_work(WorkKind::JsonInspection, inspection_started.elapsed());
++    if stream.pending_tail {
++        report.pending_count = report.pending_count.saturating_add(1);
+     }
+     if !saw_cwd && !append {
+         diagnostic(
+@@ -930,82 +858,68 @@
+             progress.record_work(WorkKind::TempFileOps, started.elapsed());
+             ids
+         },
+-        session_id: state.session_id.clone().or(inspection.session_hint.clone()),
++        session_id: state.session_id.clone().or(session_hint),
+     };
+     let mut chunks = {
+         let started = Instant::now();
+-        let chunks = RecordSpool::new()?;
++        let chunks = RecordSpool::observed(progress)?;
+         progress.record_work(WorkKind::TempFileOps, started.elapsed());
+         chunks
+     };
+     let mut chunk_count = 0_u64;
+-    let stream = stream_records(
+-        path,
+-        start_offset,
+-        if append { state.next_line } else { 1 },
+-        should_continue,
+-        progress,
+-        |record| {
+-            progress.record_record();
+-            let capture = match CaptureFile::parse_controlled_with_progress(
+-                &record.path,
+-                should_continue,
+-                progress,
+-            ) {
+-                Err(error) if error.downcast_ref::<ParseCancelled>().is_some() => {
++    let archive = archive.finish()?;
++    for item in prepared.finish::<PreparedRecord>()? {
++        if !should_continue() {
++            return Err(ScanCancelled.into());
++        }
++        let item = item?;
++        let record = &item.record;
++        progress.record_record();
++        if let Some(message) = item.malformed {
++            // Preserve the existing inspection and normalization diagnostics.
++            diagnostic(report, "malformed_record", &message);
++            continue;
++        }
++        let capture = CaptureFile::from_bytes(archive.range(item.capture_start, item.capture_end)?);
++        let summary = summarize(provider, &capture)?;
++        let digest = &record.digest;
++        if let Some(event_id) = &summary.event_id {
++            let dedup_key = format!("{event_id}:{digest}");
++            if !parser_state.ids.insert(STATE_KIND_SEEN_EVENT, &dedup_key)? {
++                continue;
++            }
++        }
++        if let Some(session_id) = &summary.session_id {
++            parser_state.session_id = Some(session_id.clone());
++        }
++        let mut appender = SessionChunkAppender::new(&mut chunks, progress);
++        let mut field_deduper = VisibleFieldDeduper::new();
++        {
++            let mut append_item = |item: Normalized| {
++                if !should_continue() {
+                     return Err(ScanCancelled.into());
+                 }
+-                Ok(capture) => capture,
+-                Err(error) => {
+-                    diagnostic(
+-                        report,
+-                        "malformed_record",
+-                        &format!("{} line {}: {error}", path.display(), record.line),
+-                    );
+-                    return Ok(());
+-                }
++                appender.push(item, record)
+             };
+-            let summary = summarize(provider, &capture)?;
+-            let digest = digest_file(&record.path)?;
+-            if let Some(event_id) = &summary.event_id {
+-                let dedup_key = format!("{event_id}:{digest}");
+-                if !parser_state.ids.insert(STATE_KIND_SEEN_EVENT, &dedup_key)? {
+-                    return Ok(());
+-                }
+-            }
+-            if let Some(session_id) = &summary.session_id {
+-                parser_state.session_id = Some(session_id.clone());
+-            }
+-            let mut appender = SessionChunkAppender::new(&mut chunks, progress);
+-            let mut field_deduper = VisibleFieldDeduper::new();
+-            {
+-                let mut append_item = |item: Normalized| {
+-                    if !should_continue() {
+-                        return Err(ScanCancelled.into());
+-                    }
+-                    appender.push(item, record)
+-                };
+-                progress.set_phase(ProgressPhase::Normalization);
+-                let normalization_started = Instant::now();
+-                let tokenization_started = Instant::now();
+-                normalize(
+-                    provider,
+-                    &capture,
+-                    &summary,
+-                    &mut parser_state.ids,
+-                    &config.own_tool_names,
+-                    parser_state.session_id.as_deref(),
+-                    &mut |item| field_deduper.push(item, &mut append_item),
+-                    report,
+-                )?;
+-                progress.record_work(WorkKind::Normalization, normalization_started.elapsed());
+-                progress.record_work(WorkKind::Tokenization, tokenization_started.elapsed());
+-                field_deduper.finish(&mut append_item)?;
+-            }
+-            chunk_count = chunk_count.saturating_add(appender.finish()?);
+-            Ok(())
+-        },
+-    )?;
++            progress.set_phase(ProgressPhase::Normalization);
++            let normalization_started = Instant::now();
++            let tokenization_started = Instant::now();
++            normalize(
++                provider,
++                &capture,
++                &summary,
++                &mut parser_state.ids,
++                &config.own_tool_names,
++                parser_state.session_id.as_deref(),
++                &mut |item| field_deduper.push(item, &mut append_item),
++                report,
++            )?;
++            progress.record_work(WorkKind::Normalization, normalization_started.elapsed());
++            progress.record_work(WorkKind::Tokenization, tokenization_started.elapsed());
++            field_deduper.finish(&mut append_item)?;
++        }
++        chunk_count = chunk_count.saturating_add(appender.finish()?);
++    }
+     if !should_continue() {
+         return Err(ScanCancelled.into());
+     }
+@@ -1019,7 +933,6 @@
+     if before.token != after.token
+         || before.len != after.len
+         || before.modified != after.modified
+-        || stream.version != inspection.version
+         || final_suffix != stream.version
+         || (!append && final_version != stream.version)
+         || (append && previous_prefix_digest != state.prefix_digest)
+@@ -1052,77 +965,14 @@
+     }))
+ }
+ 
+-fn inspect(
+-    path: &Path,
++fn summarize(provider: Provider, capture: &CaptureFile) -> Result<RecordSummary> {
++    summarize_fragments(provider, capture.iter()?)
++}
++
++fn summarize_fragments(
+     provider: Provider,
+-    start_offset: u64,
+-    start_line: u64,
+-    report: &mut ScanReport,
+-    should_continue: &dyn Fn() -> bool,
+-    progress: &ProgressReporter,
+-) -> Result<Inspection> {
+-    let mut inspection = Inspection {
+-        version: String::new(),
+-        cwds: StringSpool::new("cwds")?,
+-        session_hint: None,
+-        malformed: false,
+-    };
+-    let stream = stream_records(
+-        path,
+-        start_offset,
+-        start_line,
+-        should_continue,
+-        progress,
+-        |record| {
+-            progress.record_record_inspected();
+-            let capture = match CaptureFile::parse_metadata_controlled_with_progress(
+-                &record.path,
+-                should_continue,
+-                progress,
+-            ) {
+-                Err(error) if error.downcast_ref::<ParseCancelled>().is_some() => {
+-                    return Err(ScanCancelled.into());
+-                }
+-                Ok(capture) => capture,
+-                Err(error) => {
+-                    inspection.malformed = true;
+-                    diagnostic(
+-                        report,
+-                        "malformed_record",
+-                        &format!("{} line {}: {error}", path.display(), record.line),
+-                    );
+-                    return Ok(());
+-                }
+-            };
+-            let summary = summarize(provider, &capture)?;
+-            if summary.metadata_truncated {
+-                diagnostic(
+-                    report,
+-                    "metadata",
+-                    &format!(
+-                        "{} line {} metadata fields exceeded bounded summary",
+-                        path.display(),
+-                        record.line
+-                    ),
+-                );
+-            }
+-            if let Some(cwd) = summary.cwd {
+-                inspection.cwds.push(&cwd)?;
+-            }
+-            if inspection.session_hint.is_none() {
+-                inspection.session_hint = summary.session_id;
+-            }
+-            Ok(())
+-        },
+-    )?;
+-    if stream.pending_tail {
+-        report.pending_count = report.pending_count.saturating_add(1);
+-    }
+-    inspection.version = stream.version;
+-    Ok(inspection)
+-}
+-
+-fn summarize(provider: Provider, capture: &CaptureFile) -> Result<RecordSummary> {
++    fragments: impl Iterator<Item = Result<Fragment>>,
++) -> Result<RecordSummary> {
+     let mut summary = RecordSummary {
+         fields: HashMap::new(),
+         block_types: BlockTypeIndex::new()?,
+@@ -1138,7 +988,7 @@
+         tool_use_id: None,
+         metadata_truncated: false,
+     };
+-    for item in capture.iter()? {
++    for item in fragments {
+         let fragment = item?;
+         let fragment_key = path_key(&fragment.path);
+         let visible = fragment
+@@ -1281,8 +1131,6 @@
+     session_id: Option<String>,
+ }
+ 
+-const STATE_ID_TABLE: &str = "session_ids";
+-
+ /// Exact membership for a source's incremental parser state.  The committed
+ /// prefix lives in Store's session_state table and is queried by key; IDs
+ /// discovered while parsing the current suffix live in this private SQLite
+@@ -1314,9 +1162,7 @@
+     ) -> Result<Self> {
+         let (path, connection) = open_state_scratch()?;
+         connection.execute(
+-            &format!(
+-                "CREATE TABLE {STATE_ID_TABLE}(kind TEXT NOT NULL, key TEXT NOT NULL, value TEXT NOT NULL, PRIMARY KEY(kind,key))"
+-            ),
++            "CREATE TABLE session_ids(kind TEXT NOT NULL, key TEXT NOT NULL, value TEXT NOT NULL, PRIMARY KEY(kind,key))",
+             [],
+         )?;
+         Ok(Self {
+@@ -1324,7 +1170,7 @@
+             scratch_path: Some(path),
+             connection: Some(connection),
+             reader: append.then(|| store.session_state_reader()).transpose()?,
+-            updates: Some(RecordSpool::new()?),
++            updates: Some(RecordSpool::observed(progress)?),
+             pending_writes: 0,
+             batch_started: None,
+             lookup_elapsed: Duration::ZERO,
+@@ -1349,11 +1195,8 @@
+             .connection
+             .as_ref()
+             .ok_or_else(|| anyhow!("session ID scratch database closed"))?
+-            .query_row(
+-                &format!("SELECT 1 FROM {STATE_ID_TABLE} WHERE kind=?1 AND key=?2"),
+-                rusqlite::params![kind, key],
+-                |row| row.get(0),
+-            )
++            .prepare_cached("SELECT 1 FROM session_ids WHERE kind=?1 AND key=?2")?
++            .query_row(rusqlite::params![kind, key], |row| row.get(0))
+             .optional()?;
+         if local.is_some() {
+             self.lookup_elapsed = self.lookup_elapsed.saturating_add(lookup_started.elapsed());
+@@ -1385,10 +1228,8 @@
+         self.connection
+             .as_ref()
+             .ok_or_else(|| anyhow!("session ID scratch database closed"))?
+-            .execute(
+-                &format!("INSERT INTO {STATE_ID_TABLE}(kind,key,value) VALUES (?1,?2,?3)"),
+-                rusqlite::params![kind, key, value],
+-            )?;
++            .prepare_cached("INSERT INTO session_ids(kind,key,value) VALUES (?1,?2,?3)")?
++            .execute(rusqlite::params![kind, key, value])?;
+         self.insert_elapsed = self.insert_elapsed.saturating_add(insert_started.elapsed());
+         self.insert_count = self.insert_count.saturating_add(1);
+         self.progress
+@@ -1415,11 +1256,8 @@
+             .as_ref()
+             .ok_or_else(|| anyhow!("session ID scratch database closed"))?;
+         let local: Option<String> = connection
+-            .query_row(
+-                &format!("SELECT value FROM {STATE_ID_TABLE} WHERE kind=?1 AND key=?2"),
+-                rusqlite::params![kind, key],
+-                |row| row.get(0),
+-            )
++            .prepare_cached("SELECT value FROM session_ids WHERE kind=?1 AND key=?2")?
++            .query_row(rusqlite::params![kind, key], |row| row.get(0))
+             .optional()?;
+         if local.is_some() {
+             return Ok(local);
+@@ -2696,17 +2534,15 @@
+     mut callback: F,
+ ) -> Result<StreamResult>
+ where
+-    F: FnMut(&RecordRef) -> Result<()>,
++    F: FnMut(&RecordRef, &ByteRange) -> Result<bool>,
+ {
+     let mut input = File::open(path).with_context(|| format!("opening {}", path.display()))?;
+     input.seek(SeekFrom::Start(start_offset))?;
+-    let mut spool = RecordByteSpool::new()?;
++    let mut spool = ByteSpool::observed(progress);
++    let mut record_hasher = Sha256::new();
++    // The callback can stop record hashing once ownership rules out acceptance.
++    let mut hash_records = true;
+     let mut hasher = Sha256::new();
+-    if start_offset > 0 {
+-        // The caller validates the prefix separately; the suffix stream only
+-        // needs a version hash when it is a full scan.  Keeping this branch
+-        // explicit prevents accidental hash-of-suffix version identifiers.
+-    }
+     let mut buffer = [0_u8; 16 * 1024];
+     let mut absolute = start_offset;
+     let mut record_start = start_offset;
+@@ -2723,6 +2559,7 @@
+         }
+         progress.record_source_bytes(count as u64, count as u64);
+         hasher.update(&buffer[..count]);
++        progress.record_session_hash_bytes(count as u64);
+         let mut segment = 0_usize;
+         for (index, byte) in buffer[..count].iter().enumerate() {
+             if *byte != b'\n' {
+@@ -2730,16 +2567,23 @@
+             }
+             if index + 1 > segment {
+                 spool.write_all(&buffer[segment..=index])?;
+-            }
+-            spool.flush()?;
++                if hash_records {
++                    record_hasher.update(&buffer[segment..=index]);
++                    progress.record_session_hash_bytes((index + 1 - segment) as u64);
++                }
++            }
+             let record = RecordRef {
+-                path: spool.path.clone(),
++                digest: if hash_records {
++                    hex_digest(record_hasher.finalize_reset())
++                } else {
++                    String::new()
++                },
+                 start_byte: record_start,
+                 end_byte: absolute.saturating_add(index as u64).saturating_add(1),
+                 line,
+             };
+-            callback(&record)?;
+-            spool.reset()?;
++            hash_records = callback(&record, &spool.range(0, spool.len())?)?;
++            spool.reset();
+             record_start = record.end_byte;
+             complete_offset = record.end_byte;
+             line = line.saturating_add(1);
+@@ -2748,6 +2592,10 @@
+         }
+         if segment < count {
+             spool.write_all(&buffer[segment..count])?;
++            if hash_records {
++                record_hasher.update(&buffer[segment..count]);
++                progress.record_session_hash_bytes((count - segment) as u64);
++            }
+             record_len = record_len.saturating_add((count - segment) as u64);
+         }
+         absolute = absolute.saturating_add(count as u64);
+@@ -2759,79 +2607,6 @@
+         next_line: line,
+         pending_tail,
+     })
+-}
+-
+-struct RecordByteSpool {
+-    path: PathBuf,
+-    file: Option<File>,
+-}
+-
+-impl RecordByteSpool {
+-    fn new() -> Result<Self> {
+-        static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+-        for _ in 0..32 {
+-            let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
+-            let stamp = SystemTime::now()
+-                .duration_since(UNIX_EPOCH)
+-                .unwrap_or_default()
+-                .as_nanos();
+-            let path = std::env::temp_dir().join(format!(
+-                "bm25-mcp-session-record-{}-{stamp}-{id}.json",
+-                std::process::id()
+-            ));
+-            let mut options = OpenOptions::new();
+-            options.create_new(true).read(true).write(true);
+-            #[cfg(unix)]
+-            {
+-                use std::os::unix::fs::OpenOptionsExt;
+-                options.mode(0o600);
+-            }
+-            match options.open(&path) {
+-                Ok(file) => {
+-                    return Ok(Self {
+-                        path,
+-                        file: Some(file),
+-                    });
+-                }
+-                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+-                Err(error) => return Err(error.into()),
+-            }
+-        }
+-        Err(anyhow!("could not create session record spool"))
+-    }
+-
+-    fn write_all(&mut self, bytes: &[u8]) -> Result<()> {
+-        self.file
+-            .as_mut()
+-            .ok_or_else(|| anyhow!("session record spool closed"))?
+-            .write_all(bytes)?;
+-        Ok(())
+-    }
+-
+-    fn flush(&mut self) -> Result<()> {
+-        self.file
+-            .as_mut()
+-            .ok_or_else(|| anyhow!("session record spool closed"))?
+-            .flush()?;
+-        Ok(())
+-    }
+-
+-    fn reset(&mut self) -> Result<()> {
+-        let file = self
+-            .file
+-            .as_mut()
+-            .ok_or_else(|| anyhow!("session record spool closed"))?;
+-        file.set_len(0)?;
+-        file.seek(SeekFrom::Start(0))?;
+-        Ok(())
+-    }
+-}
+-
+-impl Drop for RecordByteSpool {
+-    fn drop(&mut self) {
+-        self.file.take();
+-        let _ = fs::remove_file(&self.path);
+-    }
+ }
+ 
+ fn file_identity(path: &Path) -> Result<FileIdentityWithLength> {
+@@ -2867,20 +2642,6 @@
+     len: u64,
+     token: String,
+     modified: u128,
+-}
+-
+-fn digest_file(path: &Path) -> Result<String> {
+-    let mut file = File::open(path)?;
+-    let mut hasher = Sha256::new();
+-    let mut buffer = [0_u8; 16 * 1024];
+-    loop {
+-        let count = file.read(&mut buffer)?;
+-        if count == 0 {
+-            break;
+-        }
+-        hasher.update(&buffer[..count]);
+-    }
+-    Ok(hex_digest(hasher.finalize()))
+ }
+ 
+ fn digest_file_controlled(
+@@ -2924,6 +2685,9 @@
+             break;
+         }
+         progress.record_source_bytes(count as u64, count as u64);
++        progress.record_session_hash_bytes(
++            count as u64 + end_offset.saturating_sub(suffix_offset.max(offset)),
++        );
+         full_hasher.update(&bytes[start..]);
+         if suffix_offset < end_offset {
+             let start = suffix_offset.saturating_sub(offset) as usize;
+@@ -3840,6 +3604,101 @@
+         let checkpoint = store.session_checkpoint(&source.key)?.unwrap();
+         assert!(checkpoint.offset > first_checkpoint.offset);
+         assert_eq!(checkpoint.offset, fs::metadata(&path)?.len());
++        Ok(())
++    }
++
++    #[test]
++    fn mutation_at_final_validation_discards_captured_records() -> Result<()> {
++        let (project, _home, config, store, owner) = setup();
++        let path = config.codex_home.join("sessions/mutation.jsonl");
++        let history = |text: &str| {
++            [
++            line(serde_json::json!({"type":"session_meta", "payload":{"cwd":project.path(), "id":"mutation"}})),
++            line(serde_json::json!({"type":"response_item", "payload":{"type":"message", "id":"message", "role":"user", "content":[{"type":"text", "text":text}]}})),
++        ].concat()
++        };
++        fs::write(&path, history("beforemutation"))?;
++        let progress = ProgressReporter::new();
++        let mutated = std::cell::Cell::new(false);
++        let keep = || {
++            if progress.snapshot().phase == ProgressPhase::PrefixVerification
++                && !mutated.replace(true)
++            {
++                fs::write(&path, history("aftermutationx")).unwrap();
++            }
++            true
++        };
++        let report = scan_observed(
++            project.path(),
++            &owner,
++            &store,
++            &config,
++            None,
++            &keep,
++            &progress,
++            None,
++        )?;
++        assert_eq!(report.error_count, 0, "{report:?}");
++        assert_eq!(progress.snapshot().work.retries, 1);
++        assert_eq!(progress.snapshot().chunks_committed, 1);
++        assert!(
++            store
++                .search("beforemutation", &session_filter(&owner), 10)?
++                .1
++                .is_empty()
++        );
++        assert_eq!(
++            store
++                .search("aftermutationx", &session_filter(&owner), 10)?
++                .1
++                .len(),
++            1
++        );
++        Ok(())
++    }
++
++    #[test]
++    fn late_session_metadata_and_duplicate_ids_survive_capture_replay() -> Result<()> {
++        for padding in [0, 70_000] {
++            let (project, _home, config, store, owner) = setup();
++            let path = config.codex_home.join("sessions/late-metadata.jsonl");
++            let text = format!("latemetadatamarker {}", "padding ".repeat(padding));
++            let first = format!(
++                "{{\"type\":\"response_item\",\"payload\":{{\"type\":\"message\",\"id\":\"first-id\",\"id\":\"second-id\",\"role\":\"user\",\"content\":[{{\"type\":\"text\",\"text\":{}}}]}}}}\n",
++                serde_json::to_string(&text)?
++            );
++            let metadata = line(
++                serde_json::json!({"type":"session_meta", "payload":{"cwd":project.path(), "id":"late-session"}}),
++            );
++            fs::write(
++                &path,
++                [first.as_bytes(), first.as_bytes(), &metadata].concat(),
++            )?;
++            let progress = ProgressReporter::new();
++            let report = scan_observed(
++                project.path(),
++                &owner,
++                &store,
++                &config,
++                None,
++                &|| true,
++                &progress,
++                None,
++            )?;
++            assert_eq!(report.error_count, 0, "{report:?}");
++            let hits = store
++                .search("latemetadatamarker", &session_filter(&owner), 10)?
++                .1;
++            assert_eq!(hits.len(), 1);
++            assert_eq!(hits[0].chunk.session_id.as_deref(), Some("late-session"));
++            assert_eq!(hits[0].chunk.event_id.as_deref(), Some("first-id"));
++            assert_eq!(hits[0].chunk.start_byte, 0);
++            assert_eq!(hits[0].chunk.end_byte, first.len() as u64);
++            assert_eq!(hits[0].chunk.start_line, 1);
++            let size = fs::metadata(&path)?.len();
++            assert_eq!(progress.snapshot().bytes_read, 2 * size);
++            assert_eq!(progress.snapshot().work.json_inspection_bytes, size);
++        }
+         Ok(())
+     }
+ 
+--- a/src/session_json.rs
++++ b/src/session_json.rs
+@@ -10,15 +10,17 @@
+ 
+ use crate::progress::ProgressReporter;
+ use crate::progress::WorkKind;
++use crate::record_spool::{ByteRange, ByteSpool};
+ use anyhow::{Context, Result, anyhow, bail};
+ use serde::{Deserialize, Serialize};
+-use std::fs::{self, File, OpenOptions};
+-use std::io::{BufReader, BufWriter, Read, Write};
+-use std::path::{Path, PathBuf};
+-use std::sync::atomic::{AtomicU64, Ordering};
+-use std::time::{SystemTime, UNIX_EPOCH};
++#[cfg(test)]
++use std::fs::File;
++use std::io::{BufReader, Read, Write};
++#[cfg(test)]
++use std::path::Path;
+ 
+ pub const MAX_FRAGMENT_BYTES: usize = 16 * 1024;
++#[cfg(test)]
+ const JSON_READ_BUFFER_BYTES: usize = 64 * 1024;
+ const JSON_CANCEL_CHECK_BYTES: u64 = 64 * 1024;
+ const MAX_KEY_BYTES: usize = 4096;
+@@ -37,104 +39,80 @@
+     pub text: String,
+ }
+ 
+-/// A disk-backed sequence of decoded string fragments from one JSON record.
+-/// The file is removed when this value is dropped.
++/// Replayable fragments from one record, sharing a bounded capture archive.
++#[derive(Debug)]
+ pub struct CaptureFile {
+-    path: PathBuf,
+-}
+-
+-impl std::fmt::Debug for CaptureFile {
+-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+-        formatter
+-            .debug_struct("CaptureFile")
+-            .field("path", &self.path)
+-            .finish()
+-    }
+-}
+-
+-impl CaptureFile {
+-    #[allow(dead_code)]
+-    pub fn parse(record_path: &Path) -> Result<Self> {
+-        Self::parse_with_visible_fields(record_path, true, None, None)
+-    }
+-
+-    /// Parse a record while retaining only metadata fields needed for
+-    /// ownership and routing. Visible message/tool payloads are still
+-    /// validated lexically, but their strings and structured scalar values
+-    /// are not spooled during an inspection pass.
+-    #[allow(dead_code)]
+-    pub fn parse_metadata(record_path: &Path) -> Result<Self> {
+-        Self::parse_with_visible_fields(record_path, false, None, None)
+-    }
+-
+-    #[allow(dead_code)]
+-    pub fn parse_controlled(
+-        record_path: &Path,
+-        should_continue: &dyn Fn() -> bool,
+-    ) -> Result<Self> {
+-        Self::parse_with_visible_fields(record_path, true, Some(should_continue), None)
+-    }
+-
+-    pub fn parse_controlled_with_progress(
+-        record_path: &Path,
+-        should_continue: &dyn Fn() -> bool,
+-        progress: &ProgressReporter,
+-    ) -> Result<Self> {
+-        Self::parse_with_visible_fields(record_path, true, Some(should_continue), Some(progress))
+-    }
+-
+-    #[allow(dead_code)]
+-    pub fn parse_metadata_controlled(
+-        record_path: &Path,
+-        should_continue: &dyn Fn() -> bool,
+-    ) -> Result<Self> {
+-        Self::parse_with_visible_fields(record_path, false, Some(should_continue), None)
+-    }
+-
+-    pub fn parse_metadata_controlled_with_progress(
+-        record_path: &Path,
+-        should_continue: &dyn Fn() -> bool,
+-        progress: &ProgressReporter,
+-    ) -> Result<Self> {
+-        Self::parse_with_visible_fields(record_path, false, Some(should_continue), Some(progress))
+-    }
+-
+-    fn parse_with_visible_fields(
+-        record_path: &Path,
+-        capture_visible_fields: bool,
++    bytes: ByteRange,
++}
++
++#[derive(Default)]
++pub struct CaptureArchive {
++    spool: CaptureSpool,
++}
++
++impl CaptureArchive {
++    pub fn observed(progress: &ProgressReporter) -> Self {
++        Self {
++            spool: CaptureSpool {
++                bytes: ByteSpool::observed(progress),
++            },
++        }
++    }
++
++    pub fn parse<R: Read>(
++        &mut self,
++        reader: R,
++        visible: bool,
+         should_continue: Option<&dyn Fn() -> bool>,
+         progress: Option<&ProgressReporter>,
+-    ) -> Result<Self> {
+-        let spool = CaptureSpool::new()?;
++    ) -> Result<(CaptureFile, u64, u64)> {
++        let start = self.spool.bytes.len();
++        let mut parser =
++            JsonParser::new(reader, &mut self.spool, visible, should_continue, progress);
++        let parsed = parser.parse_root();
++        parser.finish()?;
++        parsed?;
++        let end = self.spool.bytes.len();
++        Ok((
++            CaptureFile::from_bytes(self.spool.bytes.range(start, end)?),
++            start,
++            end,
++        ))
++    }
++
++    pub fn finish(self) -> Result<ByteRange> {
++        self.spool.bytes.finish()
++    }
++}
++
++impl CaptureFile {
++    #[cfg(test)]
++    pub fn parse(record_path: &Path) -> Result<Self> {
+         let reader = BufReader::with_capacity(JSON_READ_BUFFER_BYTES, File::open(record_path)?);
+-        let mut parser = JsonParser::new(
+-            reader,
+-            spool,
+-            capture_visible_fields,
+-            should_continue,
+-            progress,
+-        );
+-        parser.parse_root()?;
+-        let spool = parser.finish()?;
+-        spool.finish()
++        Ok(CaptureArchive::default().parse(reader, true, None, None)?.0)
++    }
++
++    pub fn from_bytes(bytes: ByteRange) -> Self {
++        Self { bytes }
+     }
+ 
+     pub fn iter(&self) -> Result<CaptureIter> {
+         Ok(CaptureIter {
+-            reader: BufReader::with_capacity(JSON_READ_BUFFER_BYTES, File::open(&self.path)?),
++            reader: self.bytes.reader()?,
+             done: false,
+         })
+     }
+-}
+-
+-impl Drop for CaptureFile {
+-    fn drop(&mut self) {
+-        let _ = fs::remove_file(&self.path);
++
++    pub fn metadata(&self) -> Result<impl Iterator<Item = Result<Fragment>>> {
++        Ok(self.iter()?.filter(|item| {
++            item.as_ref()
++                .map_or(true, |fragment| metadata_path(&fragment.path))
++        }))
+     }
+ }
+ 
+ pub struct CaptureIter {
+-    reader: BufReader<File>,
++    reader: BufReader<Box<dyn Read>>,
+     done: bool,
+ }
+ 
+@@ -157,11 +135,18 @@
+             return None;
+         }
+         let mut length = [0_u8; 4];
+-        if let Err(error) = self.reader.read_exact(&mut length) {
+-            if error.kind() == std::io::ErrorKind::UnexpectedEof {
++        match self.reader.read(&mut length[..1]) {
++            Ok(0) => {
+                 self.done = true;
+                 return None;
+             }
++            Ok(_) => {}
++            Err(error) => {
++                self.done = true;
++                return Some(Err(error.into()));
++            }
++        }
++        if let Err(error) = self.reader.read_exact(&mut length[1..]) {
+             self.done = true;
+             return Some(Err(error.into()));
+         }
+@@ -204,46 +189,12 @@
+     }
+ }
+ 
++#[derive(Default)]
+ struct CaptureSpool {
+-    path: Option<PathBuf>,
+-    file: Option<BufWriter<File>>,
++    bytes: ByteSpool,
+ }
+ 
+ impl CaptureSpool {
+-    fn new() -> Result<Self> {
+-        static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+-        let temp_dir = std::env::temp_dir();
+-        for _ in 0..32 {
+-            let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
+-            let stamp = SystemTime::now()
+-                .duration_since(UNIX_EPOCH)
+-                .unwrap_or_default()
+-                .as_nanos();
+-            let path = temp_dir.join(format!(
+-                "bm25-mcp-json-capture-{}-{stamp}-{id}.bin",
+-                std::process::id()
+-            ));
+-            let mut options = OpenOptions::new();
+-            options.create_new(true).write(true);
+-            #[cfg(unix)]
+-            {
+-                use std::os::unix::fs::OpenOptionsExt;
+-                options.mode(0o600);
+-            }
+-            match options.open(&path) {
+-                Ok(file) => {
+-                    return Ok(Self {
+-                        path: Some(path),
+-                        file: Some(BufWriter::new(file)),
+-                    });
+-                }
+-                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+-                Err(error) => return Err(error.into()),
+-            }
+-        }
+-        Err(anyhow!("could not create JSON capture spool"))
+-    }
+-
+     fn push(&mut self, path: &[PathPart], text: &str) -> Result<()> {
+         if text.is_empty() {
+             return Ok(());
+@@ -257,45 +208,19 @@
+         }
+         let path_len = u32::try_from(path_bytes.len()).context("JSON path length overflow")?;
+         let text_len = u32::try_from(text.len()).context("JSON fragment length overflow")?;
+-        let file = self
+-            .file
+-            .as_mut()
+-            .ok_or_else(|| anyhow!("JSON capture spool already finished"))?;
++        let file = &mut self.bytes;
+         file.write_all(&path_len.to_le_bytes())?;
+         file.write_all(&path_bytes)?;
+         file.write_all(&text_len.to_le_bytes())?;
+         file.write_all(text.as_bytes())?;
+         Ok(())
+     }
+-
+-    fn finish(mut self) -> Result<CaptureFile> {
+-        let mut file = self
+-            .file
+-            .take()
+-            .ok_or_else(|| anyhow!("JSON capture spool already finished"))?;
+-        file.flush()?;
+-        Ok(CaptureFile {
+-            path: self
+-                .path
+-                .take()
+-                .ok_or_else(|| anyhow!("JSON capture spool path missing"))?,
+-        })
+-    }
+-}
+-
+-impl Drop for CaptureSpool {
+-    fn drop(&mut self) {
+-        self.file.take();
+-        if let Some(path) = self.path.take() {
+-            let _ = fs::remove_file(path);
+-        }
+-    }
+ }
+ 
+ struct JsonParser<'a, R> {
+     reader: R,
+     offset: u64,
+-    spool: CaptureSpool,
++    spool: &'a mut CaptureSpool,
+     pending: Option<u8>,
+     capture_visible_fields: bool,
+     should_continue: Option<&'a dyn Fn() -> bool>,
+@@ -306,7 +231,7 @@
+ impl<'a, R: Read> JsonParser<'a, R> {
+     fn new(
+         reader: R,
+-        spool: CaptureSpool,
++        spool: &'a mut CaptureSpool,
+         capture_visible_fields: bool,
+         should_continue: Option<&'a dyn Fn() -> bool>,
+         progress: Option<&'a ProgressReporter>,
+@@ -334,13 +259,13 @@
+         Ok(())
+     }
+ 
+-    fn finish(self) -> Result<CaptureSpool> {
++    fn finish(self) -> Result<()> {
+         if self.bytes_since_check != 0
+             && let Some(progress) = self.progress
+         {
+             progress.record_work_bytes(WorkKind::JsonInspection, self.bytes_since_check);
+         }
+-        Ok(self.spool)
++        Ok(())
+     }
+ 
+     fn parse_value(&mut self, path: &mut Vec<PathPart>, depth: usize) -> Result<()> {
+@@ -889,11 +814,7 @@
+     }
+ 
+     fn capture_path(&self, path: &[PathPart]) -> bool {
+-        should_capture(path)
+-            && (self.capture_visible_fields
+-                || !path
+-                    .iter()
+-                    .any(|part| matches!(part, PathPart::Key(key) if is_visible_field_key(key))))
++        should_capture(path) && (self.capture_visible_fields || metadata_path(path))
+     }
+ 
+     fn skip_ws(&mut self) -> Result<()> {
+@@ -1038,6 +959,12 @@
+     })
+ }
+ 
++fn metadata_path(path: &[PathPart]) -> bool {
++    !path
++        .iter()
++        .any(|part| matches!(part, PathPart::Key(key) if is_visible_field_key(key)))
++}
++
+ fn is_visible_field_key(key: &str) -> bool {
+     matches!(
+         key,
+@@ -1057,6 +984,15 @@
+     use super::*;
+     use std::io::Write;
+     use tempfile::NamedTempFile;
++
++    #[test]
++    fn truncated_capture_header_is_an_error() -> Result<()> {
++        let mut bytes = ByteSpool::default();
++        bytes.write_all(&[1])?;
++        let capture = CaptureFile::from_bytes(bytes.finish()?);
++        assert!(capture.iter()?.next().unwrap().is_err());
++        Ok(())
++    }
+ 
+     #[test]
+     fn huge_selected_string_is_fragmented_on_disk() -> Result<()> {
+--- a/src/record_spool.rs
++++ b/src/record_spool.rs
+@@ -1,10 +1,11 @@
+ //! Private temporary JSONL records with consuming finalization and replay.
+ 
++use crate::progress::ProgressReporter;
+ use anyhow::{Result, anyhow};
+ use serde::{Serialize, de::DeserializeOwned};
+ use std::{
+     fs::{self, File, OpenOptions},
+-    io::{self, BufRead, BufReader, BufWriter, Write},
++    io::{self, BufRead, BufReader, BufWriter, Cursor, Read, Seek, SeekFrom, Write},
+     marker::PhantomData,
+     path::PathBuf,
+     sync::{
+@@ -15,6 +16,201 @@
+ };
+ 
+ const READ_BUFFER_BYTES: usize = 16 * 1024;
++pub(crate) const INLINE_BYTES: usize = 64 * 1024;
++
++/// Bounded bytes sharing the same private-file ownership as typed records.
++#[derive(Debug)]
++pub(crate) struct ByteSpool {
++    memory: Vec<u8>,
++    writer: Option<BufWriter<SpoolFile>>,
++    file: Option<Arc<TemporaryFile>>,
++    len: u64,
++    progress: ProgressReporter,
++}
++
++impl Default for ByteSpool {
++    fn default() -> Self {
++        Self::observed(&ProgressReporter::noop())
++    }
++}
++
++#[derive(Clone, Debug)]
++enum ByteStorage {
++    Memory(Arc<[u8]>),
++    File(Arc<TemporaryFile>),
++}
++
++#[derive(Clone, Debug)]
++pub(crate) struct ByteRange {
++    storage: ByteStorage,
++    start: u64,
++    len: u64,
++    progress: ProgressReporter,
++}
++
++impl ByteSpool {
++    pub(crate) fn observed(progress: &ProgressReporter) -> Self {
++        Self {
++            memory: Vec::new(),
++            writer: None,
++            file: None,
++            len: 0,
++            progress: progress.clone(),
++        }
++    }
++
++    pub(crate) fn len(&self) -> u64 {
++        self.len
++    }
++
++    pub(crate) fn range(&mut self, start: u64, end: u64) -> Result<ByteRange> {
++        anyhow::ensure!(
++            start <= end && end <= self.len,
++            "invalid temporary byte range"
++        );
++        if let Some(writer) = &mut self.writer {
++            writer.flush().map_err(FinalizeError)?;
++            Ok(ByteRange {
++                storage: ByteStorage::File(self.file.as_ref().unwrap().clone()),
++                start,
++                len: end - start,
++                progress: self.progress.clone(),
++            })
++        } else {
++            Ok(ByteRange {
++                storage: ByteStorage::Memory(Arc::from(&self.memory[start as usize..end as usize])),
++                start: 0,
++                len: end - start,
++                progress: self.progress.clone(),
++            })
++        }
++    }
++
++    pub(crate) fn finish(mut self) -> Result<ByteRange> {
++        if self.writer.is_some() {
++            self.range(0, self.len)
++        } else {
++            Ok(ByteRange {
++                storage: ByteStorage::Memory(self.memory.into()),
++                start: 0,
++                len: self.len,
++                progress: self.progress,
++            })
++        }
++    }
++
++    pub(crate) fn reset(&mut self) {
++        self.writer.take();
++        self.file.take();
++        self.memory.clear();
++        self.len = 0;
++    }
++}
++
++impl Write for ByteSpool {
++    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
++        if self.writer.is_none() && self.memory.len().saturating_add(bytes.len()) > INLINE_BYTES {
++            let (file, owner) = temporary_file(&self.progress).map_err(io::Error::other)?;
++            let mut writer = BufWriter::new(file);
++            writer.write_all(&self.memory)?;
++            self.memory.clear();
++            self.writer = Some(writer);
++            self.file = Some(owner);
++        }
++        if let Some(writer) = &mut self.writer {
++            writer.write_all(bytes)?;
++        } else {
++            if self.memory.capacity() == 0 {
++                self.memory.reserve_exact(INLINE_BYTES);
++            }
++            self.memory.extend_from_slice(bytes);
++        }
++        self.len += bytes.len() as u64;
++        Ok(bytes.len())
++    }
++
++    fn flush(&mut self) -> io::Result<()> {
++        if let Some(writer) = &mut self.writer {
++            writer.flush()?;
++        }
++        Ok(())
++    }
++}
++
++impl ByteRange {
++    pub(crate) fn range(&self, start: u64, end: u64) -> Result<Self> {
++        anyhow::ensure!(
++            start <= end && end <= self.len,
++            "invalid captured byte range"
++        );
++        Ok(Self {
++            storage: self.storage.clone(),
++            start: self.start + start,
++            len: end - start,
++            progress: self.progress.clone(),
++        })
++    }
++
++    pub(crate) fn reader(&self) -> Result<BufReader<Box<dyn Read>>> {
++        let reader: Box<dyn Read> = match &self.storage {
++            ByteStorage::Memory(bytes) => {
++                let mut reader = Cursor::new(bytes.clone());
++                reader.set_position(self.start);
++                Box::new(reader.take(self.len))
++            }
++            ByteStorage::File(owner) => {
++                let mut file = File::open(&owner.0).map_err(FinalizeError)?;
++                file.seek(SeekFrom::Start(self.start))
++                    .map_err(FinalizeError)?;
++                Box::new(OwnedByteReader {
++                    reader: SpoolFile {
++                        file,
++                        progress: self.progress.clone(),
++                    }
++                    .take(self.len),
++                    _owner: owner.clone(),
++                })
++            }
++        };
++        Ok(BufReader::with_capacity(READ_BUFFER_BYTES, reader))
++    }
++}
++
++struct OwnedByteReader {
++    reader: io::Take<SpoolFile>,
++    _owner: Arc<TemporaryFile>,
++}
++
++impl Read for OwnedByteReader {
++    fn read(&mut self, bytes: &mut [u8]) -> io::Result<usize> {
++        self.reader.read(bytes)
++    }
++}
++
++#[derive(Debug)]
++struct SpoolFile {
++    file: File,
++    progress: ProgressReporter,
++}
++
++impl Read for SpoolFile {
++    fn read(&mut self, bytes: &mut [u8]) -> io::Result<usize> {
++        let count = self.file.read(bytes)?;
++        self.progress.record_spool_io(count as u64, 0);
++        Ok(count)
++    }
++}
++
++impl Write for SpoolFile {
++    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
++        let count = self.file.write(bytes)?;
++        self.progress.record_spool_io(0, count as u64);
++        Ok(count)
++    }
++    fn flush(&mut self) -> io::Result<()> {
++        self.file.flush()
++    }
++}
+ 
+ #[derive(Debug)]
+ struct TemporaryFile(PathBuf);
+@@ -25,10 +221,46 @@
+     }
+ }
+ 
++fn temporary_file(progress: &ProgressReporter) -> Result<(SpoolFile, Arc<TemporaryFile>)> {
++    static NEXT_ID: AtomicU64 = AtomicU64::new(0);
++    for _ in 0..32 {
++        let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
++        let timestamp = SystemTime::now()
++            .duration_since(UNIX_EPOCH)
++            .unwrap_or_default()
++            .as_nanos();
++        let path = std::env::temp_dir().join(format!(
++            "bm25-mcp-records-{}-{timestamp}-{id}.jsonl",
++            std::process::id()
++        ));
++        let mut options = OpenOptions::new();
++        options.create_new(true).write(true);
++        #[cfg(unix)]
++        {
++            use std::os::unix::fs::OpenOptionsExt;
++            options.mode(0o600);
++        }
++        match options.open(&path) {
++            Ok(file) => {
++                return Ok((
++                    SpoolFile {
++                        file,
++                        progress: progress.clone(),
++                    },
++                    Arc::new(TemporaryFile(path)),
++                ));
++            }
++            Err(error) if error.kind() == io::ErrorKind::AlreadyExists => continue,
++            Err(error) => return Err(error.into()),
++        }
++    }
++    Err(anyhow!("could not create a unique record spool"))
++}
++
+ #[derive(Debug)]
+ pub(crate) struct RecordSpool {
+     // Handles must close before the last path owner removes the file on Windows.
+-    writer: BufWriter<File>,
++    writer: BufWriter<SpoolFile>,
+     file: Arc<TemporaryFile>,
+ }
+ 
+@@ -50,36 +282,15 @@
+ 
+ impl RecordSpool {
+     pub(crate) fn new() -> Result<Self> {
+-        static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+-        for _ in 0..32 {
+-            let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
+-            let timestamp = SystemTime::now()
+-                .duration_since(UNIX_EPOCH)
+-                .unwrap_or_default()
+-                .as_nanos();
+-            let path = std::env::temp_dir().join(format!(
+-                "bm25-mcp-records-{}-{timestamp}-{id}.jsonl",
+-                std::process::id()
+-            ));
+-            let mut options = OpenOptions::new();
+-            options.create_new(true).write(true);
+-            #[cfg(unix)]
+-            {
+-                use std::os::unix::fs::OpenOptionsExt;
+-                options.mode(0o600);
+-            }
+-            match options.open(&path) {
+-                Ok(file) => {
+-                    return Ok(Self {
+-                        writer: BufWriter::new(file),
+-                        file: Arc::new(TemporaryFile(path)),
+-                    });
+-                }
+-                Err(error) if error.kind() == io::ErrorKind::AlreadyExists => continue,
+-                Err(error) => return Err(error.into()),
+-            }
+-        }
+-        Err(anyhow!("could not create a unique record spool"))
++        Self::observed(&ProgressReporter::noop())
++    }
++
++    pub(crate) fn observed(progress: &ProgressReporter) -> Result<Self> {
++        let (writer, file) = temporary_file(progress)?;
++        Ok(Self {
++            writer: BufWriter::new(writer),
++            file,
++        })
+     }
+ 
+     pub(crate) fn push(&mut self, record: &impl Serialize) -> Result<()> {
+@@ -93,6 +304,7 @@
+         #[cfg(test)]
+         let failure = testing::take_failure::<T>(&mut writer, &file.0);
+         // Close before propagating a flush error so cleanup also works on Windows.
++        let progress = writer.get_ref().progress.clone();
+         let flushed = writer.flush();
+         drop(writer);
+         flushed.map_err(FinalizeError)?;
+@@ -100,31 +312,39 @@
+         if failure == Some(testing::Failure::Open) {
+             fs::remove_file(&file.0).unwrap();
+         }
+-        Records::open(file).map_err(FinalizeError)
++        Records::open(file, progress).map_err(FinalizeError)
+     }
+ }
+ 
+ #[derive(Debug)]
+ pub(crate) struct Records<T> {
+-    reader: Option<BufReader<File>>,
++    reader: Option<BufReader<SpoolFile>>,
+     file: Arc<TemporaryFile>,
+     line: Vec<u8>,
++    progress: ProgressReporter,
+     record: PhantomData<fn() -> T>,
+ }
+ 
+ impl<T> Records<T> {
+-    fn open(file: Arc<TemporaryFile>) -> io::Result<Self> {
+-        let reader = BufReader::with_capacity(READ_BUFFER_BYTES, File::open(&file.0)?);
++    fn open(file: Arc<TemporaryFile>, progress: ProgressReporter) -> io::Result<Self> {
++        let reader = BufReader::with_capacity(
++            READ_BUFFER_BYTES,
++            SpoolFile {
++                file: File::open(&file.0)?,
++                progress: progress.clone(),
++            },
++        );
+         Ok(Self {
+             reader: Some(reader),
+             file,
+             line: Vec::new(),
++            progress,
+             record: PhantomData,
+         })
+     }
+ 
+     pub(crate) fn reopen(&self) -> io::Result<Self> {
+-        Self::open(self.file.clone())
++        Self::open(self.file.clone(), self.progress.clone())
+     }
+ }
+ 
+@@ -177,7 +397,10 @@
+         }
+     }
+ 
+-    pub(super) fn take_failure<T>(writer: &mut BufWriter<File>, path: &Path) -> Option<Failure> {
++    pub(super) fn take_failure<T>(
++        writer: &mut BufWriter<SpoolFile>,
++        path: &Path,
++    ) -> Option<Failure> {
+         let failure = FAILURE.with(|slot| match slot.get() {
+             Some((record, failure)) if record == type_name::<T>() => {
+                 slot.set(None);
+@@ -187,7 +410,7 @@
+         });
+         if failure == Some(Failure::Flush) {
+             // Keep pending bytes but make the real flush target unwritable.
+-            *writer.get_mut() = File::open(path).unwrap();
++            writer.get_mut().file = File::open(path).unwrap();
+         }
+         failure
+     }
+--- a/src/record_spool_tests.rs
++++ b/src/record_spool_tests.rs
+@@ -193,3 +193,82 @@
+     assert!(!path.exists());
+     Ok(())
+ }
++
++#[test]
++fn byte_ranges_replay_across_spill_reset_and_owner_drop() -> Result<()> {
++    for length in [
++        0,
++        INLINE_BYTES - 1,
++        INLINE_BYTES,
++        INLINE_BYTES + 1,
++        INLINE_BYTES * 3,
++    ] {
++        let progress = ProgressReporter::new();
++        let mut spool = ByteSpool::observed(&progress);
++        let expected: Vec<u8> = (0..length).map(|i| (i % 251) as u8).collect();
++        spool.write_all(&expected)?;
++        let snapshot = spool.range(0, length as u64)?;
++        let path = spool.file.as_ref().map(|file| file.0.clone());
++        assert_eq!(path.is_some(), length > INLINE_BYTES);
++        spool.reset();
++        spool.write_all(b"next record")?;
++        let next = spool.finish()?;
++        let mut actual = Vec::new();
++        snapshot.reader()?.read_to_end(&mut actual)?;
++        assert_eq!(actual, expected);
++        let work = progress.snapshot().work;
++        assert_eq!(
++            work.spool_write_bytes,
++            if path.is_some() { length as u64 } else { 0 }
++        );
++        assert_eq!(work.spool_read_bytes, work.spool_write_bytes);
++        assert!(snapshot.range(1, 0).is_err());
++        assert!(snapshot.range(0, length as u64 + 1).is_err());
++        let mut reader = snapshot.reader()?;
++        drop(snapshot);
++        if let Some(path) = &path {
++            assert!(path.exists());
++        }
++        actual.clear();
++        reader.read_to_end(&mut actual)?;
++        assert_eq!(actual, expected);
++        drop(reader);
++        if let Some(path) = &path {
++            assert!(!path.exists());
++        }
++        actual.clear();
++        next.reader()?.read_to_end(&mut actual)?;
++        assert_eq!(actual, b"next record");
++    }
++    Ok(())
++}
++
++#[test]
++fn spilled_byte_flush_failure_is_a_finalization_error() -> Result<()> {
++    let mut spool = ByteSpool::default();
++    spool.write_all(&vec![0; INLINE_BYTES + 1])?;
++    let path = spool.file.as_ref().unwrap().0.clone();
++    spool.writer.as_mut().unwrap().get_mut().file = File::open(&path)?;
++    spool.write_all(b"buffered")?;
++    assert!(
++        spool
++            .finish()
++            .unwrap_err()
++            .downcast_ref::<FinalizeError>()
++            .is_some()
++    );
++    assert!(!path.exists());
++    Ok(())
++}
++
++#[test]
++fn spilled_byte_reader_open_failure_is_a_finalization_error() -> Result<()> {
++    let mut spool = ByteSpool::default();
++    spool.write_all(&vec![0; INLINE_BYTES + 1])?;
++    let path = spool.file.as_ref().unwrap().0.clone();
++    let bytes = spool.finish()?;
++    fs::remove_file(path)?;
++    let error = bytes.reader().err().expect("missing spool must fail");
++    assert!(error.downcast_ref::<FinalizeError>().is_some());
++    Ok(())
++}
+--- a/src/progress.rs
++++ b/src/progress.rs
+@@ -69,6 +69,12 @@
+ /// Aggregate timings and retry/cancellation counts for a run.
+ #[derive(Clone, Debug, Default, Serialize)]
+ pub struct WorkMetrics {
++    /// Bytes fed into session source/record hashers, counting overlapping work.
++    pub session_hash_bytes: u64,
++    /// Logical file I/O for observed record, raw-byte, and capture spools.
++    /// Excludes SQLite, tokenizer spills, and visible-field deduplication files.
++    pub spool_read_bytes: u64,
++    pub spool_write_bytes: u64,
+     pub discovery_ms: u64,
+     pub discovery_count: u64,
+     pub ownership_ms: u64,
+@@ -397,6 +403,14 @@
+     enabled: bool,
+ }
+ 
++impl std::fmt::Debug for ProgressReporter {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        f.debug_struct("ProgressReporter")
++            .field("enabled", &self.enabled)
++            .finish_non_exhaustive()
++    }
++}
++
+ impl Default for ProgressReporter {
+     fn default() -> Self {
+         Self::new()
+@@ -480,6 +494,19 @@
+         });
+     }
+ 
++    pub(crate) fn record_session_hash_bytes(&self, bytes: u64) {
++        self.update(|state, _| {
++            state.work.session_hash_bytes = state.work.session_hash_bytes.saturating_add(bytes);
++        });
++    }
++
++    pub(crate) fn record_spool_io(&self, read: u64, written: u64) {
++        self.update(|state, _| {
++            state.work.spool_read_bytes = state.work.spool_read_bytes.saturating_add(read);
++            state.work.spool_write_bytes = state.work.spool_write_bytes.saturating_add(written);
++        });
++    }
++
+     pub fn record_record(&self) {
+         self.update(|state, now| {
+             state.records_processed = state.records_processed.saturating_add(1);
+--- a/src/store.rs
++++ b/src/store.rs
+@@ -83,11 +83,10 @@
+     pub fn get(&self, source: &str, kind: &str, key: &str) -> Result<Option<String>> {
+         Ok(self
+             .connection
+-            .query_row(
++            .prepare_cached(
+                 "SELECT value FROM session_state WHERE source_key=?1 AND kind=?2 AND key=?3",
+-                params![source, kind, key],
+-                |r| r.get(0),
+-            )
++            )?
++            .query_row(params![source, kind, key], |r| r.get(0))
+             .optional()?)
+     }
+ }
+--- a/tests/indexing_progress.rs
++++ b/tests/indexing_progress.rs
+@@ -431,6 +431,7 @@
+         }
+     });
+     let suffix_bytes = serde_json::to_vec(&append_record).expect("encode suffix");
++    let prefix_bytes = fs::metadata(&changed).expect("prefix metadata").len();
+     let mut append = OpenOptions::new()
+         .append(true)
+         .open(&changed)
+@@ -459,9 +460,21 @@
+     assert_eq!(snapshot.records_processed, 1);
+     assert!(snapshot.bytes_hashed_for_verification > 0);
+     assert!(snapshot.bytes_read > suffix_bytes.len() as u64);
++    assert_eq!(
++        snapshot.bytes_read,
++        prefix_bytes + 2 * (suffix_bytes.len() as u64 + 1)
++    );
+     assert!(
+         snapshot.bytes_read.saturating_mul(2) < unrelated_bytes,
+         "precise scan read unrelated bytes: {snapshot:?}, unrelated_bytes={unrelated_bytes}"
++    );
++    assert_eq!(
++        snapshot.work.session_hash_bytes,
++        prefix_bytes + 4 * (suffix_bytes.len() as u64 + 1)
++    );
++    assert_eq!(
++        snapshot.work.json_inspection_bytes,
++        suffix_bytes.len() as u64 + 1
+     );
+     assert!(snapshot.chunks_prepared >= snapshot.chunks_committed);
+     assert!(snapshot.chunks_committed > 0);

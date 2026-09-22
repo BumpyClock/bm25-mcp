@@ -86,6 +86,12 @@ time a batch transaction stays open between records.
 `work.json_inspection_bytes` tracks actual parser input separately from source
 reads, including progress within one large physical JSON record. The resource
 omits source paths, transcript text, and raw error messages.
+`work.session_hash_bytes` counts bytes supplied to session source and raw-record
+hashers, including overlapping work. `work.spool_read_bytes` and
+`work.spool_write_bytes` count logical file I/O for session raw-record, capture,
+chunk, and parser-state spools, including retries. In-memory buffers do not add
+file I/O. These counters exclude SQLite, tokenizer spills, and visible-field
+deduplication files; they do not measure physical disk traffic.
 
 Unambiguous session-file events reconcile only the affected sources. Other
 verified sources remain searchable during those updates. Directory, overflow,
@@ -95,6 +101,22 @@ ownership conditions before publishing complete new records. Chunks and their
 matching parser checkpoint commit atomically; interrupted suffix work resumes
 from the last durable checkpoint. Progress visibility does not permit
 unverified partial data to become searchable.
+
+Session appends prepare the suffix privately and verify the old prefix in the
+final whole-file pass. A failed tentative append or ownership rejection falls
+back to a full-source rebuild. Prefix digests share one running SHA-256 state;
+checkpoint contents and the hash algorithm are unchanged. JSON records are
+parsed once into replayable captures, so metadata discovered later can still
+apply to earlier records. Raw records and captures each use at most a 64 KiB
+inline buffer before spilling to private temporary storage.
+
+Store schema v3 maintains each source's chunk count, token total, and per-term
+chunk frequencies, including while the source is quarantined. This avoids
+regrouping historical postings when restoring eligibility. Opening a v2 cache
+backfills these summaries transactionally without changing chunks, checkpoints,
+or search generations. Older executables cannot open the upgraded cache; use
+a separate cache directory when returning to an older executable. Tokenizer
+changes discard the summaries with the other derived index data.
 
 Prepared project chunks, session chunks, and parser-state updates are finalized
 before their source transaction starts. A temporary-record flush or reader-open

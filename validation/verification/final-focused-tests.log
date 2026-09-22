@@ -1,0 +1,147 @@
+   Compiling bm25-mcp v0.1.0 (/Users/adityasharma/Projects/bm25-mcp)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 20.15s
+     Running unittests src/lib.rs (target/debug/deps/bm25_mcp-e20e6308023b4878)
+
+running 92 tests
+test ingest::tests::project_identity_is_canonical_and_hash_backed ... ok
+test identity::tests::nested_plain_registration_wins_and_deleted_unknown_stays_unassociated ... ok
+test content_cache::tests::round_trips_chunks_and_enforces_disk_budget ... ok
+test ingest::tests::control_heavy_valid_utf8_is_excluded_as_binary ... ok
+test identity::tests::nested_git_cwd_uses_worktree_root ... ok
+test ingest::tests::identifiers_crossing_chunk_boundaries_are_searchable_without_partial_terms ... ok
+test identity::tests::live_git_identity_precedes_registered_plain_ancestor ... ok
+test identity::tests::persisted_git_worktree_can_be_associated_after_removal ... ok
+test reconciliation::tests::bounded_transition_sequences_obey_event_obligations_and_source_facts ... ok
+test ingest::tests::scan_decodes_supported_boms_and_splits_giant_lines ... ok
+test reconciliation::tests::scope_overflow_reconnect_and_stale_or_misscoped_completion ... ok
+test ingest::tests::unchanged_index_reuse_survives_missing_and_evicted_content_cache ... ok
+test reconciliation::tests::cancellation_after_repair_retains_committed_outcome_and_unvisited_errors ... ok
+test reconciliation::tests::watcher_recovery_and_status_precedence_preserve_source_diagnostics ... ok
+test record_spool::tests::abandoned_writer_and_partial_reader_remove_their_files ... ok
+test record_spool::tests::borrowed_records_round_trip_with_independent_replay ... ok
+test reconciliation::tests::unrelated_collection_database_commit_does_not_expire_a_read ... ok
+test record_spool::tests::empty_and_exhausted_readers_can_replay_until_dropped ... ok
+test record_spool::tests::flush_and_open_failures_are_reported_by_finish_and_clean_up ... ok
+test record_spool::tests::malformed_record_stops_iteration_and_cleans_up ... ok
+test reconciliation::tests::durable_failure_and_commit_to_metadata_gap_with_restart ... ok
+test record_spool::tests::simultaneous_last_readers_remove_the_file ... ok
+test record_spool::tests::spilled_byte_flush_failure_is_a_finalization_error ... ok
+test record_spool::tests::temporary_records_are_private ... ok
+test record_spool::tests::byte_ranges_replay_across_spill_reset_and_owner_drop ... ok
+test reconciliation::tests::actual_prepare_change_and_status_then_search_change_are_conservative ... ok
+test git_changes::tests::revision_changes_include_prior_dirty_current_dirty_and_untracked_files ... ok
+test runtime::tests::registry_lock_and_temp_events_do_not_trigger_session_reconcile ... ok
+test runtime::tests::rename_routing_requires_both_endpoints ... ok
+test ingest::tests::linked_worktree_uses_common_info_exclude ... ok
+test sessions::session_json::tests::escaped_unicode_and_surrogates_decode ... ok
+test reconciliation::tests::authoritative_full_and_successful_incremental_reconciliation_converge ... ok
+test sessions::session_json::tests::huge_selected_string_is_fragmented_on_disk ... ok
+test sessions::session_json::tests::structured_keys_and_scalars_are_captured ... ok
+test runtime::tests::status_snapshot_does_not_wait_for_a_durable_index_write ... ok
+test sessions::session_stream::tests::benchmark_verification ... ignored, release-mode verification microbenchmark
+test sessions::session_json::tests::numbers_follow_json_grammar ... ok
+test record_spool::tests::malformed_spooled_updates_roll_back_chunks_state_and_checkpoint ... ok
+test ingest::tests::scan_honors_gitignore_for_tracked_files_and_reconciles_binary_deletion ... ok
+test runtime::tests::collection_coverage_preserves_rejected_source_without_rows ... ok
+test reconciliation::tests::project_spool_finalization_failure_aborts_before_commit_and_retries ... ok
+test runtime::tests::collection_coverage_preserves_untouched_error ... ok
+test runtime::tests::collection_coverage_preserves_untouched_tail ... ok
+test sessions::session_stream::tests::codex_event_ids_do_not_replace_session_id_or_tool_metadata ... ok
+test sessions::session_stream::tests::cancellation_during_final_validation_keeps_checkpoint ... ok
+test sessions::session_stream::tests::append_reuses_checkpoint_and_persists_own_call_state ... ok
+test sessions::session_stream::tests::ownership_uses_provider_routing_fields_only ... ok
+test sessions::session_stream::tests::known_other_project_history_is_excluded_without_error ... ok
+test sessions::session_stream::tests::changed_append_prefix_rebuilds_before_publishing ... ok
+test sessions::session_stream::tests::diagnostics_persist_beyond_bounded_error_samples ... ok
+test sessions::session_stream::tests::malformed_complete_record_is_resynchronized_with_category ... ok
+test sessions::session_stream::tests::nested_codex_tool_cwd_does_not_exclude_history ... ok
+test sessions::session_stream::tests::verification_rejects_invalid_boundaries_and_cancellation ... ok
+test sessions::session_stream::tests::visible_field_deduper_compares_huge_values_across_fragment_boundaries ... ok
+test sessions::session_stream::tests::visible_field_deduper_keeps_distinct_fields_and_events ... ok
+test sessions::session_stream::tests::visible_field_deduper_suppresses_exact_sibling_fields ... ok
+test sessions::session_stream::tests::copilot_duplicate_result_siblings_are_indexed_once ... ok
+test sessions::session_stream::tests::structured_arguments_and_results_keep_keys_and_scalars ... ok
+test sessions::session_stream::tests::rewrite_invalidates_old_chunks_and_rebuilds_checkpoint ... ok
+test sessions::session_stream::tests::tentative_ownership_rejection_rebuilds_before_exclusion ... ok
+test sessions::tests::malformed_own_tool_configuration_is_rejected ... ok
+test sessions::tests::controlled_scan_stops_before_reconciling_unvisited_files ... ok
+test sessions::session_stream::tests::registry_revision_rechecks_append_ownership_for_nested_plain_roots ... ok
+test store::admission::tests::every_lane_rejects_candidates_outside_collection_and_filter_scope ... ok
+test store::admission::tests::admitted_evidence_and_statistics_stay_in_the_retrieval_snapshot ... ok
+test store::admission::tests::score_provenance_and_zero_raw_scores_are_explicit ... ok
+test sessions::tests::canceled_scan_suppresses_verified_sources_until_reconciled ... ok
+test store::tests::context_expands_distinct_events_when_one_event_has_multiple_chunks ... ok
+test store::tests::filters_are_applied_before_top_k_and_context_is_scoped ... ok
+test store::tests::invalidation_suppresses_then_verification_restores ... ok
+test store::tests::iterator_error_rolls_back_source_and_generation ... ok
+test store::upstream::scoring::tests::lucene_reference_value ... ok
+test text::tests::acronym_boundaries_are_streaming ... ok
+test text::tests::boundary_spanning_occurrence_has_no_partial_terms ... ok
+test text::tests::compound_forms_survive_streaming_boundaries_and_sentence_delimiters ... ok
+test store::tests::replace_search_delete_and_reopen_are_fresh ... ok
+test sessions::tests::incomplete_trailing_record_is_pending_and_does_not_publish ... ok
+test text::tests::normalizes_case_camel_and_snake_identifiers ... ok
+test sessions::tests::discovers_and_normalizes_all_supported_providers ... ok
+test text::tests::preserves_repeated_occurrences_but_dedupes_forms ... ok
+test text::tests::surface_tokens_bound_casefold_expansion ... ok
+test text::tests::surface_tokens_keep_exact_code_forms_and_lexical_parts ... ok
+test text::tests::uses_full_unicode_case_folding_for_query_and_document_terms ... ok
+test sessions::tests::rejects_nested_and_unrelated_git_cwds ... ok
+test text::tests::huge_compound_form_uses_digest_storage ... ok
+test reconciliation::tests::session_spool_finalization_failure_preserves_checkpoint_and_retries ... ok
+test text::tests::pathological_component_occurrence_deduplicates_with_disk_spill ... ok
+test sessions::session_stream::tests::huge_record_searches_complete_tail_without_value_allocation ... ok
+test store::admission::tests::protected_reservations_survive_saturation_overlap_and_delivery_order ... ok
+test text::tests::long_tokens_are_bounded_and_symmetric ... ok
+test sessions::session_stream::tests::verification_digests_match_independent_ranges ... ok
+test sessions::session_stream::tests::late_session_metadata_and_duplicate_ids_survive_capture_replay ... ok
+
+test result: ok. 91 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 2.16s
+
+     Running tests/checkpoints.rs (target/debug/deps/checkpoints-b5e5848049a5aebe)
+
+running 5 tests
+test crash_writer_helper ... ok
+test disk_parser_state_is_atomic_with_chunks_and_checkpoint ... ok
+test tokenizer_upgrade_discards_only_derived_index_state ... ok
+test session_chunks_and_offsets_commit_and_roll_back_together ... ok
+test crash_during_transaction_preserves_last_committed_offset ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/collection_coverage.rs (target/debug/deps/collection_coverage-f33f5c97733fff91)
+
+running 8 tests
+test project_precise_scan_preserves_rejected_text_without_source_rows ... ok
+test only_authoritative_full_scans_can_remove_unseen_rejected_sources ... ok
+test legacy_checkpoints_replay_inspection_diagnostics_before_claiming_coverage ... ok
+test unrelated_precise_success_does_not_clear_discovery_or_run_failure ... ok
+test cancelled_precise_scan_keeps_unvisited_outcomes_and_unaffected_content ... ok
+test restart_requires_full_reconstruction_despite_durable_checkpoints ... ok
+test failed_discovery_preserves_unseen_outcomes_even_without_source_rows ... ok
+test repairs_deletions_and_repeated_precise_scans_replace_source_outcomes ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.61s
+
+     Running tests/indexing_progress.rs (target/debug/deps/indexing_progress-078f55d1a6aeb44f)
+
+running 8 tests
+test snapshots_are_bounded_and_polling_does_not_change_work_timestamps ... ok
+test cancelled_scan_never_reports_a_committed_chunk ... ok
+test precise_project_reconciliation_preserves_unrelated_sources ... ok
+test precise_project_scan_respects_ignore_policy_for_post_ready_env_changes ... ok
+test precise_session_reconciliation_preserves_unrelated_checkpoints ... ok
+test scratch_batch_counters_match_successful_commit_boundaries ... ok
+test precise_session_append_normalizes_only_the_changed_suffix ... ok
+test large_json_record_reports_parser_work_before_commit ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.16s
+
+     Running tests/oracle.rs (target/debug/deps/oracle-28a4dc5aa7b59027)
+
+running 2 tests
+test source_summaries_preserve_chunk_frequencies_across_mutations_and_migration ... ok
+test durable_replacements_and_deletions_match_fresh_upstream_builds ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.18s
+
