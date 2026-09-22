@@ -739,11 +739,9 @@ fn read_file_with_retries(
     should_continue: &dyn Fn() -> bool,
     progress: &ProgressReporter,
 ) -> Result<Option<Parsed>> {
-    let mut last = None;
-    for attempt in 0..3 {
-        if attempt != 0 {
-            progress.record_retry();
-        }
+    let mut checkpoint = checkpoint;
+    let mut unstable_attempts = 0;
+    loop {
         let mut attempt_report = ScanReport::default();
         let result = read_file(
             path,
@@ -763,20 +761,33 @@ fn read_file_with_retries(
             progress,
         );
         match result {
+            // No append outcome is authoritative until its prefix is verified.
+            // Rebuild on rejection or failure, with no tentative diagnostics.
+            Ok(None) if checkpoint.is_some() => checkpoint = None,
             Ok(value) => {
                 *report = attempt_report;
                 return Ok(value);
             }
-            Err(error) if error.to_string().contains("unstable_source") && attempt < 2 => {
-                last = Some(error);
+            Err(error)
+                if error.downcast_ref::<ScanCancelled>().is_some()
+                    || error.downcast_ref::<FinalizeError>().is_some() =>
+            {
+                *report = attempt_report;
+                return Err(error);
+            }
+            Err(_) if checkpoint.is_some() => checkpoint = None,
+            Err(error)
+                if error.to_string().contains("unstable_source") && unstable_attempts < 2 =>
+            {
+                unstable_attempts += 1;
             }
             Err(error) => {
                 *report = attempt_report;
                 return Err(error);
             }
         }
+        progress.record_retry();
     }
-    Err(last.unwrap_or_else(|| anyhow!("unstable_source: source changed while reading")))
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -823,13 +834,7 @@ fn read_file(
         && previous.owner_key == owner_key
         && previous.registry_revision == registry_revision
         && checkpoint.offset <= before.len
-        && {
-            progress.set_phase(ProgressPhase::PrefixVerification);
-            let started = Instant::now();
-            let result = hash_prefix(path, checkpoint.offset, should_continue, progress)?;
-            progress.record_work(WorkKind::PrefixVerification, started.elapsed());
-            result == previous.prefix_digest
-        }
+
     {
         append = true;
         start_offset = checkpoint.offset;
@@ -849,8 +854,7 @@ fn read_file(
     )?;
     progress.record_work(WorkKind::JsonInspection, inspection_started.elapsed());
     let mut saw_cwd = false;
-    // A previously committed source has already passed ownership checks. An
-    // append suffix without another cwd inherits that verified ownership.
+    // An append tentatively inherits ownership until final prefix validation.
     let mut current_cwd = append;
     let mut known_other_cwd = false;
     let mut unknown_cwd = false;
@@ -1006,8 +1010,11 @@ fn read_file(
         return Err(ScanCancelled.into());
     }
     let offset = stream.complete_offset;
+    progress.set_phase(ProgressPhase::PrefixVerification);
+    let verification_started = Instant::now();
     let (final_version, final_suffix, prefix_digest, previous_prefix_digest) =
         digest_file_controlled(path, start_offset, offset, should_continue, progress)?;
+    progress.record_work(WorkKind::PrefixVerification, verification_started.elapsed());
     let after = file_identity(path)?;
     if before.token != after.token
         || before.len != after.len
@@ -2862,32 +2869,6 @@ struct FileIdentityWithLength {
     modified: u128,
 }
 
-fn hash_prefix(
-    path: &Path,
-    offset: u64,
-    should_continue: &dyn Fn() -> bool,
-    progress: &ProgressReporter,
-) -> Result<String> {
-    let mut file = File::open(path)?;
-    let mut remaining = offset;
-    let mut hasher = Sha256::new();
-    let mut buffer = [0_u8; 16 * 1024];
-    while remaining > 0 {
-        if !should_continue() {
-            return Err(ScanCancelled.into());
-        }
-        let wanted = remaining.min(buffer.len() as u64) as usize;
-        let count = file.read(&mut buffer[..wanted])?;
-        if count == 0 {
-            bail!("session prefix shorter than checkpoint")
-        }
-        hasher.update(&buffer[..count]);
-        progress.record_source_bytes(count as u64, count as u64);
-        remaining -= count as u64;
-    }
-    Ok(hex_digest(hasher.finalize()))
-}
-
 fn digest_file(path: &Path) -> Result<String> {
     let mut file = File::open(path)?;
     let mut hasher = Sha256::new();
@@ -3859,6 +3840,119 @@ mod tests {
         let checkpoint = store.session_checkpoint(&source.key)?.unwrap();
         assert!(checkpoint.offset > first_checkpoint.offset);
         assert_eq!(checkpoint.offset, fs::metadata(&path)?.len());
+        Ok(())
+    }
+
+    #[test]
+    fn changed_append_prefix_rebuilds_before_publishing() -> Result<()> {
+        let (project, _home, config, store, owner) = setup();
+        let path = config.codex_home.join("sessions/changed-prefix.jsonl");
+        let message = |text: &str| {
+            line(serde_json::json!({
+                "type":"response_item", "payload":{"type":"message", "id":text,
+                    "role":"user", "content":[{"type":"text", "text":text}]}
+            }))
+        };
+        let meta = line(
+            serde_json::json!({"type":"session_meta", "payload":{"cwd":project.path(), "id":"prefix"}}),
+        );
+        fs::write(&path, [meta.clone(), message("oldprefixmarker")].concat())?;
+        scan(project.path(), &owner, &store, &config, &|| true)?;
+        fs::write(
+            &path,
+            [meta, message("newprefixmarker"), message("suffixmarker")].concat(),
+        )?;
+        let progress = ProgressReporter::new();
+        let report = scan_observed(
+            project.path(),
+            &owner,
+            &store,
+            &config,
+            None,
+            &|| true,
+            &progress,
+            None,
+        )?;
+        assert_eq!(report.error_count, 0, "{report:?}");
+        assert_eq!(progress.snapshot().work.retries, 1);
+        let filter = session_filter(&owner);
+        assert!(store.search("oldprefixmarker", &filter, 10)?.1.is_empty());
+        assert_eq!(store.search("newprefixmarker", &filter, 10)?.1.len(), 1);
+        assert_eq!(store.search("suffixmarker", &filter, 10)?.1.len(), 1);
+        Ok(())
+    }
+
+    #[test]
+    fn tentative_ownership_rejection_rebuilds_before_exclusion() -> Result<()> {
+        let (project, _home, config, store, owner) = setup();
+        let other = TempDir::new()?;
+        git(other.path(), &["init", "-q"]);
+        let path = config.codex_home.join("sessions/ownership-change.jsonl");
+        let metadata = |cwd: &Path| {
+            line(
+                serde_json::json!({"type":"session_meta", "payload":{"cwd":cwd, "id":"ownership"}}),
+            )
+        };
+        fs::write(&path, metadata(project.path()))?;
+        scan(project.path(), &owner, &store, &config, &|| true)?;
+        assert_eq!(metadata(project.path()).len(), metadata(other.path()).len());
+        fs::write(
+            &path,
+            [metadata(other.path()), metadata(other.path())].concat(),
+        )?;
+        let progress = ProgressReporter::new();
+        let report = scan_observed(
+            project.path(),
+            &owner,
+            &store,
+            &config,
+            None,
+            &|| true,
+            &progress,
+            None,
+        )?;
+        assert_eq!(report.error_count, 0, "{report:?}");
+        assert_eq!(report.diagnostics.get("ownership_excluded"), Some(&1));
+        assert_eq!(progress.snapshot().work.retries, 1);
+        assert!(store.sources(&owner, SESSION_KIND)?.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn cancellation_during_final_validation_keeps_checkpoint() -> Result<()> {
+        let (project, _home, config, store, owner) = setup();
+        let path = config.codex_home.join("sessions/cancel-validation.jsonl");
+        fs::write(
+            &path,
+            line(
+                serde_json::json!({"type":"session_meta", "payload":{"cwd":project.path(), "id":"cancel"}}),
+            ),
+        )?;
+        scan(project.path(), &owner, &store, &config, &|| true)?;
+        let source = store.sources(&owner, SESSION_KIND)?.pop().unwrap();
+        let checkpoint = store.session_checkpoint(&source.key)?;
+        OpenOptions::new().append(true).open(&path)?.write_all(&line(serde_json::json!({"type":"response_item", "payload":{"type":"message", "id":"new", "role":"user", "content":[{"type":"text", "text":"cancelledmarker"}]}})))?;
+        let progress = ProgressReporter::new();
+        let keep = || progress.snapshot().phase != ProgressPhase::PrefixVerification;
+        let report = scan_observed(
+            project.path(),
+            &owner,
+            &store,
+            &config,
+            None,
+            &keep,
+            &progress,
+            None,
+        )?;
+        assert!(report.cancelled);
+        assert_eq!(store.session_checkpoint(&source.key)?, checkpoint);
+        assert_eq!(progress.snapshot().chunks_committed, 0);
+        assert!(
+            store
+                .search("cancelledmarker", &session_filter(&owner), 10)?
+                .1
+                .is_empty()
+        );
         Ok(())
     }
 
