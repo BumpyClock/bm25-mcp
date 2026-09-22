@@ -1,0 +1,12 @@
+   Compiling bm25-mcp v0.1.0 (/Users/adityasharma/Projects/bm25-mcp)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.74s
+     Running unittests src/lib.rs (target/debug/deps/bm25_mcp-e20e6308023b4878)
+
+running 4 tests
+test store::admission::tests::score_provenance_and_zero_raw_scores_are_explicit ... ok
+test store::admission::tests::every_lane_rejects_candidates_outside_collection_and_filter_scope ... ok
+test store::admission::tests::admitted_evidence_and_statistics_stay_in_the_retrieval_snapshot ... ok
+test store::admission::tests::protected_reservations_survive_saturation_overlap_and_delivery_order ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 69 filtered out; finished in 0.31s
+

@@ -247,7 +247,7 @@ fn cached_field(
     ))
 }
 
-pub struct Prepared {
+pub(crate) struct Prepared {
     hit: Hit,
     fields: Vec<Field>,
     symbols: BTreeSet<String>,
@@ -369,37 +369,77 @@ pub(crate) fn declared_symbols(text: &str) -> BTreeSet<String> {
     declaration_details(bounded(text)).2
 }
 
-fn body_evidence_from_tokens(tokens: &[String]) -> BodyEvidence {
-    let mut terms = BTreeMap::new();
-    for token in tokens {
-        *terms.entry(token.clone()).or_default() += 1;
+/// Explicit policy-test helpers. These inputs cannot enter the production ranker.
+#[doc(hidden)]
+pub mod testing {
+    use super::*;
+    pub struct Candidates(Vec<Prepared>);
+
+    pub fn prepare(hits: Vec<Hit>, plan: &QueryPlan) -> Result<Candidates> {
+        let mut indexed = Vec::new();
+        for hit in hits.into_iter().take(CANDIDATE_LIMIT) {
+            let tokens = tokenize_checked(bounded(&hit.chunk.text))?;
+            let mut terms = BTreeMap::new();
+            for token in &tokens {
+                *terms.entry(token.clone()).or_default() += 1;
+            }
+            indexed.push((
+                hit,
+                BodyEvidence {
+                    terms,
+                    length: tokens.len(),
+                },
+                AdmissionEvidence::default(),
+            ));
+        }
+        Ok(Candidates(prepare_indexed_inner(indexed, plan)?))
     }
-    BodyEvidence {
-        terms,
-        length: tokens.len(),
+
+    pub fn prepare_indexed(hits: Vec<(Hit, BodyEvidence)>, plan: &QueryPlan) -> Result<Candidates> {
+        Ok(Candidates(prepare_indexed_inner(
+            hits.into_iter()
+                .take(CANDIDATE_LIMIT)
+                .map(|(hit, body)| (hit, body, AdmissionEvidence::default())),
+            plan,
+        )?))
+    }
+
+    pub fn rerank(
+        candidates: Candidates,
+        plan: &QueryPlan,
+        stats: &CorpusStats,
+        options: RankingOptions,
+        now: DateTime<Utc>,
+        limit: usize,
+    ) -> Result<(Vec<Hit>, Vec<Trace>)> {
+        rerank_inner(candidates.0, plan, stats, options, now, limit)
     }
 }
 
-pub fn prepare(hits: Vec<Hit>, plan: &QueryPlan) -> Result<Vec<Prepared>> {
-    let mut indexed = Vec::new();
-    for hit in hits.into_iter().take(CANDIDATE_LIMIT) {
-        let tokens = tokenize_checked(bounded(&hit.chunk.text))?;
-        indexed.push((hit, body_evidence_from_tokens(&tokens)));
-    }
-    prepare_indexed_inner(indexed, plan)
+pub(crate) fn prepare_admitted(
+    pool: crate::store::IndexedPool,
+    plan: &QueryPlan,
+) -> Result<Vec<Prepared>> {
+    prepare_indexed_inner(pool.into_entries(), plan)
 }
 
-pub fn prepare_indexed(hits: Vec<(Hit, BodyEvidence)>, plan: &QueryPlan) -> Result<Vec<Prepared>> {
-    prepare_indexed_inner(hits.into_iter().take(CANDIDATE_LIMIT), plan)
+pub(crate) fn rank_indexed(
+    pool: crate::store::ScorablePool<'_>,
+    options: RankingOptions,
+    now: DateTime<Utc>,
+    limit: usize,
+) -> Result<(Vec<Hit>, Vec<Trace>)> {
+    let (prepared, stats, plan) = pool.into_parts();
+    rerank_inner(prepared, plan, &stats, options, now, limit)
 }
 
 fn prepare_indexed_inner(
-    hits: impl IntoIterator<Item = (Hit, BodyEvidence)>,
+    hits: impl IntoIterator<Item = (Hit, BodyEvidence, AdmissionEvidence)>,
     plan: &QueryPlan,
 ) -> Result<Vec<Prepared>> {
     let mut cache = TokenCache::default();
     hits.into_iter()
-        .map(|(hit, body_evidence)| {
+        .map(|(hit, body_evidence, admission)| {
             let text = bounded(&hit.chunk.text);
             let body = fold(text);
             let mut fields = Vec::new();
@@ -523,7 +563,7 @@ fn prepare_indexed_inner(
                 query_class: plan.class,
                 exact_class: ExactClass::None,
                 baseline_bm25: hit.score,
-                admission: AdmissionEvidence::default(),
+                admission,
                 matched_fields: BTreeMap::new(),
                 original_contribution: 0.,
                 expanded_contribution: 0.,
@@ -556,7 +596,10 @@ fn prepare_indexed_inner(
         .collect()
 }
 
-pub fn statistics_terms(candidates: &[Prepared], plan: &QueryPlan) -> Result<BTreeSet<String>> {
+pub(crate) fn statistics_terms(
+    candidates: &[Prepared],
+    plan: &QueryPlan,
+) -> Result<BTreeSet<String>> {
     let mut terms: BTreeSet<_> = plan.original.iter().cloned().collect();
     for probe in &plan.probes {
         terms.extend(tokenize_checked(&probe.query)?);
@@ -808,7 +851,7 @@ fn duplicate(a: &Prepared, b: &Prepared) -> bool {
     a.hit.source.kind == "project" && overlap(&a.hit, &b.hit) >= OVERLAP
 }
 
-pub fn rerank(
+fn rerank_inner(
     mut candidates: Vec<Prepared>,
     plan: &QueryPlan,
     stats: &CorpusStats,

@@ -160,6 +160,29 @@ pub fn scan_sessions_observed(
     should_continue: &dyn Fn() -> bool,
     progress: &ProgressReporter,
 ) -> Result<crate::model::ScanReport> {
+    scan_sessions_publishing(
+        root,
+        owner_key,
+        store,
+        config,
+        changes,
+        should_continue,
+        progress,
+        None,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn scan_sessions_publishing(
+    root: &Path,
+    owner_key: &str,
+    store: &Store,
+    config: &SessionConfig,
+    changes: Option<&HashSet<PathBuf>>,
+    should_continue: &dyn Fn() -> bool,
+    progress: &ProgressReporter,
+    publisher: Option<crate::reconciliation::Publisher>,
+) -> Result<crate::model::ScanReport> {
     progress.begin_run();
     let result = session_stream::scan_observed(
         root,
@@ -169,6 +192,7 @@ pub fn scan_sessions_observed(
         changes,
         should_continue,
         progress,
+        publisher,
     );
     match &result {
         Ok(report) if report.cancelled => progress.finish_run(ProgressPhase::Cancelled),

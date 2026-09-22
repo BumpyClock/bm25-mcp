@@ -39,6 +39,32 @@ pub struct Coverage {
     pub memory: Option<MemoryCoverage>,
 }
 
+impl From<crate::coverage::CoverageSnapshot> for Coverage {
+    fn from(snapshot: crate::coverage::CoverageSnapshot) -> Self {
+        Self {
+            diagnostics: snapshot.diagnostics,
+            reconciled_at: snapshot.reconciled_at,
+            pending_changes: snapshot.pending_changes,
+            excluded_count: snapshot.excluded_count,
+            error_count: snapshot.error_count,
+            errors: snapshot.errors,
+            memory: None,
+        }
+    }
+}
+
+/// Apply the controller's validation decision to every response shape.
+pub(crate) fn invalidate_read(value: &mut Value) {
+    for field in ["copies", "context", "results"] {
+        if value.get(field).is_some() {
+            value[field] = json!([]);
+        }
+    }
+    value.as_object_mut().unwrap().remove("cursor");
+    value["status"] = json!("refreshing");
+    value["coverage"]["pending_changes"] = Value::Null;
+}
+
 impl serde::Serialize for Coverage {
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
     where

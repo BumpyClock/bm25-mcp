@@ -75,8 +75,23 @@ pub struct ScanReport {
 }
 
 impl ScanReport {
-    pub(crate) fn record_source(&mut self, key: String, report: Self) {
-        let outcome = crate::coverage::SourceOutcome::from_report(&report);
+    pub(crate) fn record_source(
+        &mut self,
+        store: &crate::store::Store,
+        key: String,
+        version: Option<&str>,
+        report: Self,
+    ) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            report.sources == 0 || version.is_some(),
+            "successful outcome requires a source version"
+        );
+        let publication = store.confirm_source_publication(&key, version)?;
+        let (key, outcome) =
+            publication.outcome(crate::coverage::SourceOutcome::from_report(&report));
+        if let Some(publisher) = &self.coverage.publisher {
+            publisher.source(&publication, Some(&outcome));
+        }
         self.coverage.sources.insert(key, Some(outcome));
         self.sources += report.sources;
         self.chunks += report.chunks;
@@ -89,5 +104,19 @@ impl ScanReport {
         let remaining = 64usize.saturating_sub(self.errors.len());
         self.errors
             .extend(report.errors.into_iter().take(remaining));
+        Ok(())
+    }
+
+    pub(crate) fn record_removal(
+        &mut self,
+        store: &crate::store::Store,
+        key: String,
+    ) -> anyhow::Result<()> {
+        let publication = store.confirm_source_removal(&key)?;
+        if let Some(publisher) = &self.coverage.publisher {
+            publisher.source(&publication, None);
+        }
+        self.coverage.sources.insert(key, None);
+        Ok(())
     }
 }

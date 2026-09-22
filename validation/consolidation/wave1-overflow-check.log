@@ -1,0 +1,16 @@
+   Compiling bm25-mcp v0.1.0 (/Users/adityasharma/Projects/bm25-mcp)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.60s
+     Running unittests src/lib.rs (target/debug/deps/bm25_mcp-e20e6308023b4878)
+
+running 8 tests
+test reconciliation::tests::watcher_recovery_and_status_precedence_preserve_source_diagnostics ... ok
+test reconciliation::tests::scope_overflow_reconnect_and_stale_or_misscoped_completion ... ok
+test reconciliation::tests::unrelated_collection_database_commit_does_not_expire_a_read ... ok
+test reconciliation::tests::durable_failure_and_commit_to_metadata_gap_with_restart ... ok
+test reconciliation::tests::cancellation_after_repair_retains_committed_outcome_and_unvisited_errors ... ok
+test reconciliation::tests::bounded_transition_sequences_obey_event_obligations_and_source_facts ... ok
+test reconciliation::tests::authoritative_full_and_successful_incremental_reconciliation_converge ... ok
+test reconciliation::tests::actual_prepare_change_and_status_then_search_change_are_conservative ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 65 filtered out; finished in 0.15s
+

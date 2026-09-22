@@ -94,6 +94,15 @@ fixed metadata length normalization, not independently indexed field stats.
 
 ### Admission and persistence
 
+The private admission owner keeps one candidate record per scoped match ID,
+including all overlapping lane evidence and an optional original raw-query
+score. Only that owner creates the final bounded pool. Hydration turns the pool
+into a scoring input containing persisted body evidence, statistics, and its
+query plan in the same retrieval transaction. The production ranker accepts
+that input; direct policy-test helpers use a separate opaque type under
+`ranking::testing`. This consolidates ownership without changing lane policy,
+budgets, weights, relevance, or MMR selection.
+
 The lexical lane retrieves at most 200 candidates. For project identifier
 queries, the declaration lane selects at most 40 chunks by complete normalized
 symbol, ordered by match ID within the filtered snapshot. These chunks reserve

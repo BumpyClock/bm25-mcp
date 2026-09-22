@@ -129,6 +129,11 @@ counts. Older prefixes are replayed once, through the existing atomic checkpoint
 replacement path; subsequent precise updates retain suffix-only parsing and
 normal prefix verification.
 
+The internal ownership and publication/read protocol are documented in
+[reconciliation ownership](docs/reconciliation-ownership.md). Collection
+revisions validate search responses independently of progress counters and
+unrelated collections' database writes.
+
 ## Development
 
 ```sh

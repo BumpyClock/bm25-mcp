@@ -1,0 +1,1298 @@
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -2,6 +2,12 @@
+ 
+ ## Unreleased
+ 
++- Consolidate collection reconciliation, source-outcome publication, and read
++  validation under one controller; retain committed source repairs when later
++  work is cancelled and qualify reads across publication boundaries.
++- Consolidate bounded candidate admission and require persisted evidence and
++  snapshot-consistent statistics at the production ranking boundary, preserving
++  retrieval policy, scores, and public schemas.
+ - Preserve collection-wide pending work, errors, and exclusions across precise
+   source updates, including rejected sources without indexed rows; keep failed
+   discovery, cancellation, and restart coverage incomplete until reconciled.
+--- a/README.md
++++ b/README.md
+@@ -128,6 +128,11 @@
+ counts. Older prefixes are replayed once, through the existing atomic checkpoint
+ replacement path; subsequent precise updates retain suffix-only parsing and
+ normal prefix verification.
++
++The internal ownership and publication/read protocol are documented in
++[reconciliation ownership](docs/reconciliation-ownership.md). Collection
++revisions validate search responses independently of progress counters and
++unrelated collections' database writes.
+ 
+ ## Development
+ 
+--- a/docs/ranking-implementation.md
++++ b/docs/ranking-implementation.md
+@@ -94,6 +94,15 @@
+ 
+ ### Admission and persistence
+ 
++The private admission owner keeps one candidate record per scoped match ID,
++including all overlapping lane evidence and an optional original raw-query
++score. Only that owner creates the final bounded pool. Hydration turns the pool
++into a scoring input containing persisted body evidence, statistics, and its
++query plan in the same retrieval transaction. The production ranker accepts
++that input; direct policy-test helpers use a separate opaque type under
++`ranking::testing`. This consolidates ownership without changing lane policy,
++budgets, weights, relevance, or MMR selection.
++
+ The lexical lane retrieves at most 200 candidates. For project identifier
+ queries, the declaration lane selects at most 40 chunks by complete normalized
+ symbol, ordered by match ID within the filtered snapshot. These chunks reserve
+--- a/src/ranking.rs
++++ b/src/ranking.rs
+@@ -247,7 +247,7 @@
+     ))
+ }
+ 
+-pub struct Prepared {
++pub(crate) struct Prepared {
+     hit: Hit,
+     fields: Vec<Field>,
+     symbols: BTreeSet<String>,
+@@ -369,37 +369,77 @@
+     declaration_details(bounded(text)).2
+ }
+ 
+-fn body_evidence_from_tokens(tokens: &[String]) -> BodyEvidence {
+-    let mut terms = BTreeMap::new();
+-    for token in tokens {
+-        *terms.entry(token.clone()).or_default() += 1;
+-    }
+-    BodyEvidence {
+-        terms,
+-        length: tokens.len(),
+-    }
+-}
+-
+-pub fn prepare(hits: Vec<Hit>, plan: &QueryPlan) -> Result<Vec<Prepared>> {
+-    let mut indexed = Vec::new();
+-    for hit in hits.into_iter().take(CANDIDATE_LIMIT) {
+-        let tokens = tokenize_checked(bounded(&hit.chunk.text))?;
+-        indexed.push((hit, body_evidence_from_tokens(&tokens)));
+-    }
+-    prepare_indexed_inner(indexed, plan)
+-}
+-
+-pub fn prepare_indexed(hits: Vec<(Hit, BodyEvidence)>, plan: &QueryPlan) -> Result<Vec<Prepared>> {
+-    prepare_indexed_inner(hits.into_iter().take(CANDIDATE_LIMIT), plan)
++/// Explicit policy-test helpers. These inputs cannot enter the production ranker.
++#[doc(hidden)]
++pub mod testing {
++    use super::*;
++    pub struct Candidates(Vec<Prepared>);
++
++    pub fn prepare(hits: Vec<Hit>, plan: &QueryPlan) -> Result<Candidates> {
++        let mut indexed = Vec::new();
++        for hit in hits.into_iter().take(CANDIDATE_LIMIT) {
++            let tokens = tokenize_checked(bounded(&hit.chunk.text))?;
++            let mut terms = BTreeMap::new();
++            for token in &tokens {
++                *terms.entry(token.clone()).or_default() += 1;
++            }
++            indexed.push((
++                hit,
++                BodyEvidence {
++                    terms,
++                    length: tokens.len(),
++                },
++                AdmissionEvidence::default(),
++            ));
++        }
++        Ok(Candidates(prepare_indexed_inner(indexed, plan)?))
++    }
++
++    pub fn prepare_indexed(hits: Vec<(Hit, BodyEvidence)>, plan: &QueryPlan) -> Result<Candidates> {
++        Ok(Candidates(prepare_indexed_inner(
++            hits.into_iter()
++                .take(CANDIDATE_LIMIT)
++                .map(|(hit, body)| (hit, body, AdmissionEvidence::default())),
++            plan,
++        )?))
++    }
++
++    pub fn rerank(
++        candidates: Candidates,
++        plan: &QueryPlan,
++        stats: &CorpusStats,
++        options: RankingOptions,
++        now: DateTime<Utc>,
++        limit: usize,
++    ) -> Result<(Vec<Hit>, Vec<Trace>)> {
++        rerank_inner(candidates.0, plan, stats, options, now, limit)
++    }
++}
++
++pub(crate) fn prepare_admitted(
++    pool: crate::store::IndexedPool,
++    plan: &QueryPlan,
++) -> Result<Vec<Prepared>> {
++    prepare_indexed_inner(pool.into_entries(), plan)
++}
++
++pub(crate) fn rank_indexed(
++    pool: crate::store::ScorablePool<'_>,
++    options: RankingOptions,
++    now: DateTime<Utc>,
++    limit: usize,
++) -> Result<(Vec<Hit>, Vec<Trace>)> {
++    let (prepared, stats, plan) = pool.into_parts();
++    rerank_inner(prepared, plan, &stats, options, now, limit)
+ }
+ 
+ fn prepare_indexed_inner(
+-    hits: impl IntoIterator<Item = (Hit, BodyEvidence)>,
++    hits: impl IntoIterator<Item = (Hit, BodyEvidence, AdmissionEvidence)>,
+     plan: &QueryPlan,
+ ) -> Result<Vec<Prepared>> {
+     let mut cache = TokenCache::default();
+     hits.into_iter()
+-        .map(|(hit, body_evidence)| {
++        .map(|(hit, body_evidence, admission)| {
+             let text = bounded(&hit.chunk.text);
+             let body = fold(text);
+             let mut fields = Vec::new();
+@@ -523,7 +563,7 @@
+                 query_class: plan.class,
+                 exact_class: ExactClass::None,
+                 baseline_bm25: hit.score,
+-                admission: AdmissionEvidence::default(),
++                admission,
+                 matched_fields: BTreeMap::new(),
+                 original_contribution: 0.,
+                 expanded_contribution: 0.,
+@@ -556,7 +596,10 @@
+         .collect()
+ }
+ 
+-pub fn statistics_terms(candidates: &[Prepared], plan: &QueryPlan) -> Result<BTreeSet<String>> {
++pub(crate) fn statistics_terms(
++    candidates: &[Prepared],
++    plan: &QueryPlan,
++) -> Result<BTreeSet<String>> {
+     let mut terms: BTreeSet<_> = plan.original.iter().cloned().collect();
+     for probe in &plan.probes {
+         terms.extend(tokenize_checked(&probe.query)?);
+@@ -808,7 +851,7 @@
+     a.hit.source.kind == "project" && overlap(&a.hit, &b.hit) >= OVERLAP
+ }
+ 
+-pub fn rerank(
++fn rerank_inner(
+     mut candidates: Vec<Prepared>,
+     plan: &QueryPlan,
+     stats: &CorpusStats,
+--- a/src/store.rs
++++ b/src/store.rs
+@@ -5,7 +5,7 @@
+ //! temporary disk-backed accumulator on the same read snapshot; it never
+ //! materializes a complete in-memory index.
+ 
+-use std::collections::{HashMap, HashSet};
++use std::collections::HashMap;
+ use std::path::{Path, PathBuf};
+ use std::sync::{Arc, Condvar, Mutex, MutexGuard};
+ 
+@@ -22,6 +22,11 @@
+ mod hot;
+ #[path = "upstream/mod.rs"]
+ mod upstream;
++
++#[path = "admission.rs"]
++mod admission;
++use admission::{Admission, Lane};
++pub(crate) use admission::{IndexedPool, ScorablePool};
+ 
+ const SCHEMA_VERSION: &str = "bm25-mcp-store-v2";
+ const MAX_CONTEXT_ROWS: usize = 4096;
+@@ -655,18 +660,11 @@
+                 additional_retrievals: 0,
+             });
+         }
+-        let mut candidates = std::collections::BTreeMap::<String, Hit>::new();
+-        let mut original_ids = HashSet::new();
+-        let mut lexical_ids = HashSet::new();
+-        let mut definition_ids = HashSet::new();
+-        let mut path_ids = HashSet::new();
+-        let mut expansion_ids = HashSet::new();
+-        let mut expanded_scores = HashMap::<String, f32>::new();
+-        let mut meaningful_scores = HashMap::<String, f32>::new();
+         // Keep the raw tokenizer's multiplicity and stopword behavior for the
+         // first retrieval. QueryPlan terms are the reranker surface, not the
+         // baseline oracle query.
+         let terms = tokenize_checked(query_text)?;
++        let mut admission = Admission::new(filter, path_glob.clone(), &terms);
+         let initial = retrieve_terms(
+             &self.hot,
+             &tx,
+@@ -677,15 +675,13 @@
+             ranking::CANDIDATE_LIMIT,
+         )?;
+         for hit in initial {
+-            lexical_ids.insert(hit.match_id.clone());
+-            original_ids.insert(hit.match_id.clone());
+-            candidates.entry(hit.match_id.clone()).or_insert(hit);
++            admission.record(Lane::Lexical, hit)?;
+         }
+         let meaningful_retrievals = usize::from(plan.stopwords_removed);
+         if plan.stopwords_removed {
+             // Retained terms are already canonical, including long-token digests.
+             // Their admission must not depend on discarded stopword scores.
+-            for mut hit in retrieve_terms(
++            for hit in retrieve_terms(
+                 &self.hot,
+                 &tx,
+                 generation,
+@@ -694,32 +690,22 @@
+                 path_glob.as_ref(),
+                 ranking::MEANINGFUL_RESERVE,
+             )? {
+-                meaningful_scores.insert(hit.match_id.clone(), hit.score);
+-                hit.score = 0.;
+-                candidates.entry(hit.match_id.clone()).or_insert(hit);
++                admission.record(Lane::Meaningful, hit)?;
+             }
+         }
+         if filter.kind == "project" && plan.class == query::QueryClass::Identifier {
+             for hit in retrieve_declaration_hits(&tx, &plan.literal, filter, DEFINITION_RESERVE)? {
+-                definition_ids.insert(hit.match_id.clone());
+-                candidates.entry(hit.match_id.clone()).or_insert(hit);
++                admission.record(Lane::Definition, hit)?;
+             }
+         }
+         // Fallback probes are issued only when the literal pool
+         // is thin; this preserves literal evidence and bounds query work.
+         let mut active_probes = Vec::new();
+-        let strongest = candidates
+-            .values()
+-            .filter(|hit| original_ids.contains(&hit.match_id))
+-            .map(|hit| hit.score)
+-            .fold(0.0_f32, f32::max);
+-        let weak_pool = options.expansion
+-            && (original_ids.len() < ranking::THIN_POOL
+-                || strongest < ranking::WEAK_BM25_THRESHOLD);
++        let weak_pool = admission.weak(options);
+         if weak_pool {
+             for probe in plan.probes.iter().cloned() {
+                 let probe_terms = tokenize_checked(&probe.query)?;
+-                for mut hit in retrieve_terms(
++                for hit in retrieve_terms(
+                     &self.hot,
+                     &tx,
+                     generation,
+@@ -728,17 +714,7 @@
+                     path_glob.as_ref(),
+                     ranking::CANDIDATE_LIMIT,
+                 )? {
+-                    expansion_ids.insert(hit.match_id.clone());
+-                    expanded_scores
+-                        .entry(hit.match_id.clone())
+-                        .and_modify(|score| *score = score.max(hit.score))
+-                        .or_insert(hit.score);
+-                    if !original_ids.contains(&hit.match_id) {
+-                        // The probe score is not the original-query BM25 score.
+-                        // Hydrate that score for the final supplemental pool below.
+-                        hit.score = 0.;
+-                        candidates.entry(hit.match_id.clone()).or_insert(hit);
+-                    }
++                    admission.record(Lane::Expansion, hit)?;
+                 }
+                 active_probes.push(probe);
+             }
+@@ -764,44 +740,14 @@
+             )?;
+             for hit in rows {
+                 let hit = hit?;
+-                path_ids.insert(hit.match_id.clone());
+-                candidates.entry(hit.match_id.clone()).or_insert(hit);
++                admission.record(Lane::Path, hit)?;
+             }
+         }
+-        let mut hits = admit_ranked_candidates(
+-            candidates.into_values().collect(),
+-            &original_ids,
+-            &definition_ids,
+-            &meaningful_scores,
+-            &expanded_scores,
+-            &plan,
+-            weak_pool,
+-        );
+-        let candidate_count = hits.len();
+-        hydrate_baseline_scores(&tx, &mut hits, &terms, &original_ids)?;
+-        let mut body_evidence = hydrate_body_evidence(&tx, &hits)?;
+-        let indexed_hits = hits
+-            .into_iter()
+-            .map(|hit| {
+-                let evidence = body_evidence
+-                    .remove(&hit.match_id)
+-                    .ok_or_else(|| anyhow!("missing body evidence for {}", hit.match_id))?;
+-                Ok((hit, evidence))
+-            })
+-            .collect::<Result<Vec<_>>>()?;
+-        let prepared = ranking::prepare_indexed(indexed_hits, &plan)?;
+-        let stat_terms = ranking::statistics_terms(&prepared, &plan)?;
+-        let stats = corpus_stats(&tx, filter, &stat_terms)?;
+-        let (hits, mut traces) = ranking::rerank(prepared, &plan, &stats, options, now, limit)?;
+-        for trace in &mut traces {
+-            trace.admission = ranking::AdmissionEvidence {
+-                lexical: original_ids.contains(&trace.match_id),
+-                definition: definition_ids.contains(&trace.match_id),
+-                path: path_ids.contains(&trace.match_id),
+-                meaningful_bm25: meaningful_scores.get(&trace.match_id).copied(),
+-                expansion_bm25: expanded_scores.get(&trace.match_id).copied(),
+-            };
+-        }
++        let admission_counts = admission.counts();
++        let admitted = admission.finish(&plan, weak_pool);
++        let candidate_count = admitted.len();
++        let scorable = admitted.hydrate(&tx)?;
++        let (hits, traces) = ranking::rank_indexed(scorable, options, now, limit)?;
+         let additional_retrievals = meaningful_retrievals + plan.probes.len();
+         tx.commit()?;
+         Ok(ranking::RankedSearch {
+@@ -810,13 +756,7 @@
+             traces,
+             probes: plan.probes,
+             candidate_count,
+-            admission_counts: ranking::CandidateCounts {
+-                lexical: lexical_ids.len(),
+-                meaningful: meaningful_scores.len(),
+-                definitions: definition_ids.len(),
+-                path: path_ids.len(),
+-                expansion: expansion_ids.len(),
+-            },
++            admission_counts,
+             meaningful_retrievals,
+             additional_retrievals,
+         })
+@@ -1629,101 +1569,6 @@
+     Ok(())
+ }
+ 
+-fn admit_ranked_candidates(
+-    mut hits: Vec<Hit>,
+-    original_ids: &HashSet<String>,
+-    definition_ids: &HashSet<String>,
+-    meaningful_scores: &HashMap<String, f32>,
+-    expanded_scores: &HashMap<String, f32>,
+-    plan: &query::QueryPlan,
+-    weak_pool: bool,
+-) -> Vec<Hit> {
+-    let literal = crate::text::fold(&plan.literal.replace('\\', "/"));
+-    let exact_path = |hit: &Hit| {
+-        let path = crate::text::fold(&hit.source.path.replace('\\', "/"));
+-        (path == literal || path.ends_with(&format!("/{literal}"))) as u8
+-    };
+-    let compare = |a: &Hit, b: &Hit| {
+-        let exact_order = if matches!(plan.class, query::QueryClass::Path) {
+-            exact_path(b).cmp(&exact_path(a))
+-        } else {
+-            std::cmp::Ordering::Equal
+-        };
+-        exact_order
+-            .then_with(|| {
+-                original_ids
+-                    .contains(&b.match_id)
+-                    .cmp(&original_ids.contains(&a.match_id))
+-            })
+-            .then_with(|| b.score.total_cmp(&a.score))
+-            .then_with(|| a.match_id.cmp(&b.match_id))
+-    };
+-
+-    hits.sort_by(compare);
+-    let mut definitions = hits
+-        .iter()
+-        .filter(|hit| definition_ids.contains(&hit.match_id))
+-        .cloned()
+-        .collect::<Vec<_>>();
+-    definitions.sort_by(|a, b| {
+-        b.score
+-            .total_cmp(&a.score)
+-            .then_with(|| a.match_id.cmp(&b.match_id))
+-    });
+-    definitions.truncate(DEFINITION_RESERVE.min(ranking::CANDIDATE_LIMIT));
+-    let definition_keep: HashSet<_> = definitions.iter().map(|hit| hit.match_id.clone()).collect();
+-
+-    let mut remaining = hits
+-        .into_iter()
+-        .filter(|hit| !definition_keep.contains(&hit.match_id))
+-        .collect::<Vec<_>>();
+-    let mut meaningful = remaining
+-        .iter()
+-        .filter(|hit| meaningful_scores.contains_key(&hit.match_id))
+-        .cloned()
+-        .collect::<Vec<_>>();
+-    meaningful.sort_by(|a, b| {
+-        meaningful_scores[&b.match_id]
+-            .total_cmp(&meaningful_scores[&a.match_id])
+-            .then_with(|| a.match_id.cmp(&b.match_id))
+-    });
+-    meaningful.truncate(ranking::MEANINGFUL_RESERVE);
+-    let meaningful_keep: HashSet<_> = meaningful.iter().map(|hit| &hit.match_id).collect();
+-    remaining.retain(|hit| !meaningful_keep.contains(&hit.match_id));
+-    let mut expanded = Vec::new();
+-    if weak_pool && !expanded_scores.is_empty() {
+-        expanded = remaining
+-            .iter()
+-            .filter(|hit| !original_ids.contains(&hit.match_id))
+-            .cloned()
+-            .collect();
+-        expanded.sort_by(|a, b| {
+-            exact_path(b)
+-                .cmp(&exact_path(a))
+-                .then_with(|| {
+-                    expanded_scores
+-                        .get(&b.match_id)
+-                        .unwrap_or(&0.)
+-                        .total_cmp(expanded_scores.get(&a.match_id).unwrap_or(&0.))
+-                })
+-                .then_with(|| a.match_id.cmp(&b.match_id))
+-        });
+-        expanded.truncate(ranking::EXPANSION_RESERVE.min(ranking::CANDIDATE_LIMIT));
+-    }
+-    let expanded_keep: HashSet<_> = expanded.iter().map(|hit| hit.match_id.clone()).collect();
+-    remaining.retain(|hit| !expanded_keep.contains(&hit.match_id));
+-    remaining.sort_by(compare);
+-
+-    let reserved = definitions.len() + meaningful.len() + expanded.len();
+-    remaining.truncate(ranking::CANDIDATE_LIMIT.saturating_sub(reserved));
+-    definitions.extend(expanded);
+-    definitions.extend(meaningful);
+-    definitions.extend(remaining);
+-    definitions.sort_by(compare);
+-    definitions.truncate(ranking::CANDIDATE_LIMIT);
+-    definitions
+-}
+-
+ fn set_query_terms(tx: &Transaction<'_>, terms: &[String]) -> Result<()> {
+     create_query_tables(tx)?;
+     tx.execute("DELETE FROM bm25_query_terms", [])?;
+@@ -1736,18 +1581,16 @@
+ 
+ fn hydrate_baseline_scores(
+     tx: &Transaction<'_>,
+-    hits: &mut [Hit],
++    candidates: &mut [admission::Candidate],
+     terms: &[String],
+-    original_ids: &HashSet<String>,
+ ) -> Result<()> {
+-    let mut supplemental: Vec<_> = hits
++    let mut supplemental: Vec<_> = candidates
+         .iter_mut()
+-        .filter(|hit| !original_ids.contains(&hit.match_id))
++        .filter(|candidate| candidate.raw_bm25.is_none())
+         .collect();
+-    if supplemental.is_empty() {
+-        return Ok(());
+-    }
+-    set_query_terms(tx, terms)?;
++    if !supplemental.is_empty() {
++        set_query_terms(tx, terms)?;
++    }
+     for batch in supplemental.chunks_mut(BODY_EVIDENCE_BATCH) {
+         let placeholders = std::iter::repeat_n("?", batch.len())
+             .collect::<Vec<_>>()
+@@ -1770,15 +1613,23 @@
+         let mut statement = tx.prepare(&sql)?;
+         let scores = statement
+             .query_map(
+-                rusqlite::params_from_iter(batch.iter().map(|hit| hit.match_id.as_str())),
++                rusqlite::params_from_iter(
++                    batch
++                        .iter()
++                        .map(|candidate| candidate.hit.match_id.as_str()),
++                ),
+                 |row| Ok((row.get::<_, String>(0)?, row.get::<_, f32>(1)?)),
+             )?
+             .collect::<rusqlite::Result<HashMap<_, _>>>()?;
+-        for hit in batch {
+-            hit.score = *scores
+-                .get(&hit.match_id)
+-                .ok_or_else(|| anyhow!("missing baseline score for {}", hit.match_id))?;
+-        }
++        for candidate in batch {
++            candidate.raw_bm25 =
++                Some(*scores.get(&candidate.hit.match_id).ok_or_else(|| {
++                    anyhow!("missing baseline score for {}", candidate.hit.match_id)
++                })?);
++        }
++    }
++    for candidate in candidates {
++        candidate.hit.score = candidate.raw_bm25.expect("admitted baseline hydrated");
+     }
+     Ok(())
+ }
+@@ -1828,10 +1679,10 @@
+ 
+ fn hydrate_body_evidence(
+     tx: &Transaction<'_>,
+-    hits: &[Hit],
++    candidates: &[admission::Candidate],
+ ) -> Result<HashMap<String, ranking::BodyEvidence>> {
+-    let mut evidence = HashMap::with_capacity(hits.len());
+-    for batch in hits.chunks(BODY_EVIDENCE_BATCH) {
++    let mut evidence = HashMap::with_capacity(candidates.len());
++    for batch in candidates.chunks(BODY_EVIDENCE_BATCH) {
+         if batch.is_empty() {
+             continue;
+         }
+@@ -1848,7 +1699,9 @@
+         );
+         let mut stmt = tx.prepare(&sql)?;
+         let mut rows = stmt.query(rusqlite::params_from_iter(
+-            batch.iter().map(|hit| hit.match_id.as_str()),
++            batch
++                .iter()
++                .map(|candidate| candidate.hit.match_id.as_str()),
+         ))?;
+         while let Some(row) = rows.next()? {
+             let match_id: String = row.get(0)?;
+--- a/tests/ranking_policy.rs
++++ b/tests/ranking_policy.rs
+@@ -2,8 +2,9 @@
+     model::{Chunk, Hit, Source},
+     query::{QueryClass, QueryPlan, classify},
+     ranking::{
+-        BodyEvidence, CorpusStats, ExactClass, RankingOptions, prepare, prepare_indexed, rerank,
+-        temporal_factor, weighted_jaccard,
++        BodyEvidence, CorpusStats, ExactClass, RankingOptions, temporal_factor,
++        testing::{prepare, prepare_indexed, rerank},
++        weighted_jaccard,
+     },
+ };
+ use chrono::{Duration, Utc};
+--- a/docs/reconciliation-ownership.md
++++ b/docs/reconciliation-ownership.md
+@@ -71,3 +71,58 @@
+ Release evaluations and disposable indexing capture before/after behavior and
+ work counts. Measurement artifacts and final limitations are recorded under
+ `validation/consolidation/`.
++
++## Implemented boundaries
++
++`reconciliation::Controller` replaces root/session epochs, scanned/safe epochs,
++pending path mutexes, force-full/in-flight flags, watcher-error mutexes, the
++worker-local ledgers and independently published coverage. Watcher routing and
++Git discovery submit `Scope`; `Run::project` and `Run::sessions` perform the
++existing provider-specific effects and return the controller's completion
++decision. The transport uses `snapshot`/`validates`; it only adapts wire shapes.
++
++`ScanReport::record_source` requires a store-issued `SourcePublication` check of
++the committed source version and eligibility (or quarantine). Confirmed removal
++requires absence. These short indexed lookups use the existing database lock;
++they do not hold the controller lock. A run-bound publisher updates the existing
++ledger directly, with no event queue or retained history. Final scan publication
++is idempotent. Source versions are retained in the internal outcomes. Standalone
++scanner APIs still return reports for existing ingestion/evaluation callers.
++Only the controller's concrete project/session adapters can complete runtime
++runs; an arbitrary successful report cannot establish runtime readiness.
++
++The publication revision changes on begin, successful invalidation, source
++publication, completion and watcher-diagnostic changes. Observed changes have a
++separate revision. Reads begun during a run retain uncertain coverage even if a
++transaction has committed. A revision change at response validation suppresses
++results/context/copies and cursors. A new controller incarnation rejects old read
++and run tokens. Memory and progress are wire observations, never readiness proof.
++
++`store::admission::Admission` owns each retrieved ID and all its lane evidence,
++including optional raw-query BM25. It alone constructs `AdmittedPool`. The pool
++retains query scope, raw terms and query plan; its hydration is bounded and uses
++the retrieval transaction. `ScorablePool` contains prepared persisted evidence,
++statistics and the same plan, with a lifetime tied to the transaction. The
++production ranker accepts only that type. `ranking::testing::Candidates` is a
++separate opaque policy-test input; display-tokenization helpers cannot satisfy
++the production entry point. Retrieval weights, classification, probes, budgets,
++raw scorer, final relevance and MMR calculations remain unchanged.
++
++## Observable hardening and reproduction
++
++Two publication changes are intentional and separate from ranking policy:
++
++- `cancellation_after_repair_retains_committed_outcome_and_unvisited_errors`
++  repairs one of two rejected sources, then cancels immediately after the source
++  transaction. Previously the project scanner returned an error before recording
++  the committed repair; the worker applied only the failed run and retained both
++  old source errors. The run-bound publication now replaces the repaired source's
++  outcome while retaining the untouched error and unfinished-run uncertainty.
++- `durable_failure_and_commit_to_metadata_gap_with_restart` pauses after a real
++  SQLite commit, before source metadata publication. Coverage stays uncertain;
++  publication invalidates an earlier read token. The old response check compared
++  observed-change epochs only. The new collection token also detects relevant
++  publication changes; it does not compare the unrelated global generation.
++
++These changes do not publish unverified content, alter ranking, change the MCP
++schema, or require a database/checkpoint migration.
+--- /dev/null
++++ b/src/admission.rs
+@@ -0,0 +1,309 @@
++//! Private retrieval stages. Only Admission constructs an AdmittedPool.
++
++use super::*;
++use crate::{
++    query::QueryPlan,
++    ranking::{AdmissionEvidence, CandidateCounts},
++};
++use std::{cmp::Ordering, collections::BTreeMap, marker::PhantomData};
++
++#[derive(Clone, Copy)]
++pub(super) enum Lane {
++    Lexical,
++    Meaningful,
++    Definition,
++    Path,
++    Expansion,
++}
++
++#[derive(Clone)]
++pub(super) struct Candidate {
++    pub(super) hit: Hit,
++    pub(super) raw_bm25: Option<f32>,
++    evidence: AdmissionEvidence,
++}
++
++pub(super) struct Admission {
++    filter: SearchFilter,
++    path_glob: Option<GlobSet>,
++    candidates: BTreeMap<String, Candidate>,
++    raw_terms: Vec<String>,
++}
++
++pub(super) struct AdmittedPool<'plan> {
++    plan: &'plan QueryPlan,
++    raw_terms: Vec<String>,
++    filter: SearchFilter,
++    candidates: Vec<Candidate>,
++}
++
++/// Persisted body evidence can only enter the ranker through bounded hydration.
++pub(crate) struct IndexedPool {
++    entries: Vec<(Hit, ranking::BodyEvidence, AdmissionEvidence)>,
++}
++impl IndexedPool {
++    pub(crate) fn into_entries(self) -> Vec<(Hit, ranking::BodyEvidence, AdmissionEvidence)> {
++        self.entries
++    }
++}
++
++/// Preparation and statistics belong to the same live retrieval transaction.
++pub(crate) struct ScorablePool<'snapshot> {
++    plan: &'snapshot QueryPlan,
++    prepared: Vec<ranking::Prepared>,
++    stats: ranking::CorpusStats,
++    snapshot: PhantomData<&'snapshot ()>,
++}
++impl<'snapshot> ScorablePool<'snapshot> {
++    pub(crate) fn into_parts(
++        self,
++    ) -> (
++        Vec<ranking::Prepared>,
++        ranking::CorpusStats,
++        &'snapshot QueryPlan,
++    ) {
++        (self.prepared, self.stats, self.plan)
++    }
++}
++
++impl Admission {
++    pub(super) fn new(
++        filter: &SearchFilter,
++        path_glob: Option<GlobSet>,
++        raw_terms: &[String],
++    ) -> Self {
++        Self {
++            filter: filter.clone(),
++            raw_terms: raw_terms.to_vec(),
++            path_glob,
++            candidates: BTreeMap::new(),
++        }
++    }
++
++    pub(super) fn record(&mut self, lane: Lane, hit: Hit) -> Result<()> {
++        // Retrieval applies filters before lane limits. Check scope again at the
++        // merge boundary so a new supplemental lane cannot silently bypass it.
++        ensure!(
++            hit.source.collection == self.filter.collection
++                && hit.source.kind == self.filter.kind
++                && self
++                    .path_glob
++                    .as_ref()
++                    .is_none_or(|glob| glob.is_match(&hit.source.path))
++                && self
++                    .filter
++                    .agent
++                    .as_ref()
++                    .is_none_or(|value| hit.chunk.agent.as_ref() == Some(value))
++                && self.filter.session_id.as_ref().is_none_or(|value| hit
++                    .chunk
++                    .session_id
++                    .as_ref()
++                    == Some(value))
++                && self.filter.after.as_ref().is_none_or(|value| hit
++                    .chunk
++                    .timestamp
++                    .as_ref()
++                    .is_some_and(|timestamp| timestamp >= value))
++                && self.filter.before.as_ref().is_none_or(|value| hit
++                    .chunk
++                    .timestamp
++                    .as_ref()
++                    .is_some_and(|timestamp| timestamp < value)),
++            "retrieved candidate is outside query scope"
++        );
++        let score = hit.score;
++        let candidate = self
++            .candidates
++            .entry(hit.match_id.clone())
++            .or_insert(Candidate {
++                hit,
++                raw_bm25: None,
++                evidence: AdmissionEvidence::default(),
++            });
++        match lane {
++            Lane::Lexical => {
++                candidate.raw_bm25 = Some(score);
++                candidate.evidence.lexical = true;
++            }
++            Lane::Meaningful => candidate.evidence.meaningful_bm25 = Some(score),
++            Lane::Definition => candidate.evidence.definition = true,
++            Lane::Path => candidate.evidence.path = true,
++            Lane::Expansion => {
++                candidate.evidence.expansion_bm25 = Some(
++                    candidate
++                        .evidence
++                        .expansion_bm25
++                        .map_or(score, |old| old.max(score)),
++                )
++            }
++        }
++        Ok(())
++    }
++
++    pub(super) fn weak(&self, options: ranking::RankingOptions) -> bool {
++        let mut count = 0;
++        let mut strongest = 0.0_f32;
++        for score in self
++            .candidates
++            .values()
++            .filter_map(|candidate| candidate.raw_bm25)
++        {
++            count += 1;
++            strongest = strongest.max(score);
++        }
++        options.expansion
++            && (count < ranking::THIN_POOL || strongest < ranking::WEAK_BM25_THRESHOLD)
++    }
++
++    pub(super) fn counts(&self) -> CandidateCounts {
++        let mut counts = CandidateCounts::default();
++        for candidate in self.candidates.values() {
++            let evidence = &candidate.evidence;
++            counts.lexical += usize::from(evidence.lexical);
++            counts.meaningful += usize::from(evidence.meaningful_bm25.is_some());
++            counts.definitions += usize::from(evidence.definition);
++            counts.path += usize::from(evidence.path);
++            counts.expansion += usize::from(evidence.expansion_bm25.is_some());
++        }
++        counts
++    }
++
++    pub(super) fn finish(self, plan: &QueryPlan, weak_pool: bool) -> AdmittedPool<'_> {
++        let literal = crate::text::fold(&plan.literal.replace('\\', "/"));
++        let exact_path = |candidate: &Candidate| {
++            let path = crate::text::fold(&candidate.hit.source.path.replace('\\', "/"));
++            (path == literal || path.ends_with(&format!("/{literal}"))) as u8
++        };
++        let compare = |a: &Candidate, b: &Candidate| {
++            let exact_order = if matches!(plan.class, query::QueryClass::Path) {
++                exact_path(b).cmp(&exact_path(a))
++            } else {
++                Ordering::Equal
++            };
++            exact_order
++                .then_with(|| b.raw_bm25.is_some().cmp(&a.raw_bm25.is_some()))
++                .then_with(|| {
++                    b.raw_bm25
++                        .unwrap_or(0.)
++                        .total_cmp(&a.raw_bm25.unwrap_or(0.))
++                })
++                .then_with(|| a.hit.match_id.cmp(&b.hit.match_id))
++        };
++        let has_expansion = self
++            .candidates
++            .values()
++            .any(|candidate| candidate.evidence.expansion_bm25.is_some());
++        let mut remaining: Vec<_> = self.candidates.into_values().collect();
++        let mut selected = reserve(
++            &mut remaining,
++            |candidate| candidate.evidence.definition,
++            |a, b| {
++                b.raw_bm25
++                    .unwrap_or(0.)
++                    .total_cmp(&a.raw_bm25.unwrap_or(0.))
++                    .then_with(|| a.hit.match_id.cmp(&b.hit.match_id))
++            },
++            DEFINITION_RESERVE.min(ranking::CANDIDATE_LIMIT),
++        );
++        let meaningful = reserve(
++            &mut remaining,
++            |candidate| candidate.evidence.meaningful_bm25.is_some(),
++            |a, b| {
++                b.evidence
++                    .meaningful_bm25
++                    .unwrap()
++                    .total_cmp(&a.evidence.meaningful_bm25.unwrap())
++                    .then_with(|| a.hit.match_id.cmp(&b.hit.match_id))
++            },
++            ranking::MEANINGFUL_RESERVE,
++        );
++        if weak_pool && has_expansion {
++            // Preserve the existing supplemental reservation, including exact
++            // paths already retrieved by another lane when expansion is active.
++            selected.extend(reserve(
++                &mut remaining,
++                |candidate| candidate.raw_bm25.is_none(),
++                |a, b| {
++                    exact_path(b)
++                        .cmp(&exact_path(a))
++                        .then_with(|| {
++                            b.evidence
++                                .expansion_bm25
++                                .unwrap_or(0.)
++                                .total_cmp(&a.evidence.expansion_bm25.unwrap_or(0.))
++                        })
++                        .then_with(|| a.hit.match_id.cmp(&b.hit.match_id))
++                },
++                ranking::EXPANSION_RESERVE.min(ranking::CANDIDATE_LIMIT),
++            ));
++        }
++        selected.extend(meaningful);
++        remaining.sort_by(compare);
++        remaining.truncate(ranking::CANDIDATE_LIMIT.saturating_sub(selected.len()));
++        selected.extend(remaining);
++        selected.sort_by(compare);
++        selected.truncate(ranking::CANDIDATE_LIMIT);
++        AdmittedPool {
++            plan,
++            raw_terms: self.raw_terms,
++            filter: self.filter,
++            candidates: selected,
++        }
++    }
++}
++
++fn reserve(
++    remaining: &mut Vec<Candidate>,
++    eligible: impl Fn(&Candidate) -> bool,
++    compare: impl Fn(&Candidate, &Candidate) -> Ordering,
++    limit: usize,
++) -> Vec<Candidate> {
++    let (mut selected, mut rest): (Vec<_>, Vec<_>) =
++        std::mem::take(remaining).into_iter().partition(eligible);
++    selected.sort_by(compare);
++    rest.extend(selected.split_off(limit.min(selected.len())));
++    *remaining = rest;
++    selected
++}
++
++impl<'plan> AdmittedPool<'plan> {
++    pub(super) fn len(&self) -> usize {
++        self.candidates.len()
++    }
++
++    pub(super) fn hydrate<'snapshot>(
++        mut self,
++        tx: &'snapshot Transaction<'_>,
++    ) -> Result<ScorablePool<'snapshot>>
++    where
++        'plan: 'snapshot,
++    {
++        let plan = self.plan;
++        hydrate_baseline_scores(tx, &mut self.candidates, &self.raw_terms)?;
++        let mut evidence = hydrate_body_evidence(tx, &self.candidates)?;
++        let entries = self
++            .candidates
++            .into_iter()
++            .map(|candidate| {
++                let body = evidence.remove(&candidate.hit.match_id).ok_or_else(|| {
++                    anyhow!("missing body evidence for {}", candidate.hit.match_id)
++                })?;
++                Ok((candidate.hit, body, candidate.evidence))
++            })
++            .collect::<Result<Vec<_>>>()?;
++        let prepared = ranking::prepare_admitted(IndexedPool { entries }, plan)?;
++        let stat_terms = ranking::statistics_terms(&prepared, plan)?;
++        let stats = corpus_stats(tx, &self.filter, &stat_terms)?;
++        Ok(ScorablePool {
++            plan,
++            prepared,
++            stats,
++            snapshot: PhantomData,
++        })
++    }
++}
++
++#[cfg(test)]
++#[path = "admission_tests.rs"]
++mod tests;
+--- /dev/null
++++ b/src/admission_tests.rs
+@@ -0,0 +1,208 @@
++use super::*;
++use std::collections::BTreeSet;
++
++fn filter() -> SearchFilter {
++    SearchFilter {
++        collection: "c".into(),
++        kind: "project".into(),
++        ..Default::default()
++    }
++}
++fn hit(id: usize, score: f32) -> Hit {
++    Hit {
++        match_id: format!("id-{id:04}"),
++        copy_count: 1,
++        verified_at: None,
++        source: Source {
++            key: format!("s-{id}"),
++            collection: "c".into(),
++            kind: "project".into(),
++            path: "source.rs".into(),
++            version: "v".into(),
++        },
++        chunk: Chunk {
++            text: "needle".into(),
++            ..Default::default()
++        },
++        score,
++    }
++}
++
++#[test]
++fn protected_reservations_survive_saturation_overlap_and_delivery_order() {
++    let plan = QueryPlan::new("why does indexing fail", true).unwrap();
++    for rotation in 0..40 {
++        for ordinary in [0, 180, 200, 401] {
++            let mut admission = Admission::new(&filter(), None, &[]);
++            for index in 0..ordinary {
++                admission
++                    .record(Lane::Lexical, hit(100 + index, (ordinary - index) as f32))
++                    .unwrap();
++            }
++            for index in 0..40 {
++                let id = (index + rotation) % 40;
++                for _ in 0..2 {
++                    admission.record(Lane::Definition, hit(id, 0.)).unwrap();
++                    admission
++                        .record(Lane::Meaningful, hit(id + 20, id as f32))
++                        .unwrap();
++                    admission
++                        .record(Lane::Expansion, hit(id + 40, id as f32))
++                        .unwrap();
++                }
++            }
++            let counts = admission.counts();
++            assert_eq!(
++                (counts.definitions, counts.meaningful, counts.expansion),
++                (40, 40, 40)
++            );
++            let pool = admission.finish(&plan, true);
++            let ids: BTreeSet<_> = pool
++                .candidates
++                .iter()
++                .map(|candidate| candidate.hit.match_id.clone())
++                .collect();
++            assert_eq!(ids.len(), pool.len());
++            assert_eq!(pool.len(), (ordinary + 80).min(ranking::CANDIDATE_LIMIT));
++            for protected in 0..80 {
++                assert!(ids.contains(&hit(protected, 0.).match_id));
++            }
++        }
++    }
++}
++
++#[test]
++fn score_provenance_and_zero_raw_scores_are_explicit() {
++    let plan = QueryPlan::new("needle", true).unwrap();
++    let mut admission = Admission::new(&filter(), None, &[]);
++    admission.record(Lane::Lexical, hit(0, 0.)).unwrap();
++    admission.record(Lane::Meaningful, hit(0, 42.)).unwrap();
++    admission.record(Lane::Expansion, hit(0, 3.)).unwrap();
++    admission.record(Lane::Expansion, hit(0, 7.)).unwrap();
++    admission.record(Lane::Definition, hit(0, 0.)).unwrap();
++    admission.record(Lane::Path, hit(0, 0.)).unwrap();
++    admission.record(Lane::Meaningful, hit(1, 99.)).unwrap();
++    let pool = admission.finish(&plan, true);
++    assert_eq!(pool.len(), 2);
++    let lexical = pool
++        .candidates
++        .iter()
++        .find(|candidate| candidate.hit.match_id == hit(0, 0.).match_id)
++        .unwrap();
++    assert_eq!(lexical.raw_bm25, Some(0.));
++    assert!(lexical.evidence.lexical && lexical.evidence.path && lexical.evidence.definition);
++    assert_eq!(lexical.evidence.meaningful_bm25, Some(42.));
++    assert_eq!(lexical.evidence.expansion_bm25, Some(7.));
++    let supplemental = pool
++        .candidates
++        .iter()
++        .find(|candidate| candidate.hit.match_id == hit(1, 0.).match_id)
++        .unwrap();
++    assert_eq!(supplemental.raw_bm25, None);
++    assert_eq!(supplemental.evidence.meaningful_bm25, Some(99.));
++}
++
++#[test]
++fn every_lane_rejects_candidates_outside_collection_and_filter_scope() {
++    let mut scoped = filter();
++    scoped.agent = Some("codex".into());
++    scoped.session_id = Some("session".into());
++    scoped.after = Some("2026-09-01T00:00:00Z".into());
++    scoped.before = Some("2026-10-01T00:00:00Z".into());
++    scoped.path_glob = Some("src/*.rs".into());
++    let mut valid = hit(0, 1.);
++    valid.source.path = "src/good.rs".into();
++    valid.chunk.agent = scoped.agent.clone();
++    valid.chunk.session_id = scoped.session_id.clone();
++    valid.chunk.timestamp = Some("2026-09-21T00:00:00Z".into());
++    for lane in [
++        Lane::Lexical,
++        Lane::Definition,
++        Lane::Meaningful,
++        Lane::Expansion,
++        Lane::Path,
++    ] {
++        for mismatch in 0..8 {
++            let mut candidate = valid.clone();
++            match mismatch {
++                0 => candidate.source.collection = "other".into(),
++                1 => candidate.source.kind = "session".into(),
++                2 => candidate.source.path = "outside.txt".into(),
++                3 => candidate.chunk.agent = None,
++                4 => candidate.chunk.session_id = None,
++                5 => candidate.chunk.timestamp = None,
++                6 => candidate.chunk.timestamp = Some("2026-08-31T00:00:00Z".into()),
++                _ => candidate.chunk.timestamp = scoped.before.clone(),
++            }
++            let mut admission = Admission::new(
++                &scoped,
++                compile_path_glob(scoped.path_glob.as_deref()).unwrap(),
++                &[],
++            );
++            assert!(admission.record(lane, candidate).is_err());
++            assert!(admission.candidates.is_empty());
++            admission.record(lane, valid.clone()).unwrap();
++        }
++    }
++}
++
++#[test]
++fn admitted_evidence_and_statistics_stay_in_the_retrieval_snapshot() {
++    let dir = tempfile::tempdir().unwrap();
++    let store = Store::open(&dir.path().join("index.sqlite3")).unwrap();
++    let mut source = hit(0, 0.).source;
++    store
++        .replace_source(
++            &source,
++            [Ok(Chunk {
++                text: "nee".into(),
++                tokens: Some(vec!["needle".into()]),
++                ..Default::default()
++            })],
++        )
++        .unwrap();
++    let filter = filter();
++    let plan = QueryPlan::new("needle", true).unwrap();
++    let terms = tokenize_checked("needle").unwrap();
++    let mut conn = store.read_connection().unwrap();
++    register_search_functions(&conn, None).unwrap();
++    let tx = conn.transaction().unwrap();
++    let generation = current_generation(&tx).unwrap();
++    let raw = retrieve_terms(&store.hot, &tx, generation, &terms, &filter, None, 200).unwrap();
++    assert_eq!(raw.len(), 1);
++    let raw_score = raw[0].score;
++    let mut admission = Admission::new(&filter, None, &terms);
++    for hit in raw {
++        admission.record(Lane::Lexical, hit).unwrap();
++    }
++    let pool = admission.finish(&plan, false);
++    source.version = "replacement".into();
++    store
++        .replace_source(
++            &source,
++            [Ok(Chunk {
++                text: "unrelated".into(),
++                ..Default::default()
++            })],
++        )
++        .unwrap();
++    let scorable = pool.hydrate(&tx).unwrap();
++    let (hits, traces) = ranking::rank_indexed(
++        scorable,
++        ranking::RankingOptions::default(),
++        "2026-09-21T00:00:00Z".parse().unwrap(),
++        10,
++    )
++    .unwrap();
++    assert_eq!(
++        hits.len(),
++        1,
++        "persisted evidence survives a fragment boundary"
++    );
++    assert_eq!(hits[0].source.version, "v");
++    assert_eq!(hits[0].chunk.text, "nee");
++    assert_eq!(traces[0].baseline_bm25, raw_score);
++    assert!(traces[0].original_contribution > 0.);
++    tx.commit().unwrap();
++    assert!(store.search("needle", &filter, 10).unwrap().1.is_empty());
++}
+--- /dev/null
++++ b/examples/evaluate_stage_contracts.rs
+@@ -0,0 +1,142 @@
++//! Exact fixed-clock differential capture for the architectural consolidation.
++#[path = "support/admission_fixture.rs"]
++mod admission_fixture;
++#[path = "support/ranking_fixture.rs"]
++mod fixture;
++
++use anyhow::Result;
++use bm25_mcp::{
++    model::{Chunk, SearchFilter, Source},
++    ranking::RankingOptions,
++    store::Store,
++};
++use serde_json::{Value, json};
++use sha2::{Digest, Sha256};
++
++fn chunk_signature(chunk: &Chunk) -> Value {
++    let mut value = serde_json::to_value(chunk).expect("serializable chunk");
++    value["text"] = json!(format!("{:x}", Sha256::digest(chunk.text.as_bytes())));
++    value
++}
++
++fn capture(
++    store: &Store,
++    query: &str,
++    filter: &SearchFilter,
++    options: RankingOptions,
++) -> Result<Value> {
++    let raw = store.search(query, filter, 200)?.1;
++    let ranked =
++        store.search_ranked_with_at(query, filter, 50, options, "2026-09-21T00:00:00Z".parse()?)?;
++    let hits = |hits: &[bm25_mcp::model::Hit]| {
++        hits.iter()
++            .map(|hit| {
++                json!({
++                    "id": hit.match_id, "source": hit.source, "copy_count": hit.copy_count,
++                    "chunk": chunk_signature(&hit.chunk), "score_bits": hit.score.to_bits()
++                })
++            })
++            .collect::<Vec<_>>()
++    };
++    Ok(
++        json!({ "query": query, "kind": filter.kind, "raw": hits(&raw),
++        "ranked": hits(&ranked.hits), "traces": ranked.traces,
++        "candidate_count": ranked.candidate_count, "counts": ranked.admission_counts,
++        "probes": ranked.probes, "meaningful_retrievals": ranked.meaningful_retrievals,
++        "additional_retrievals": ranked.additional_retrievals }),
++    )
++}
++
++fn main() -> Result<()> {
++    let dir = tempfile::tempdir()?;
++    let store = Store::open(&dir.path().join("fixture.sqlite3"))?;
++    let cases = fixture::fixtures(&store)?;
++    let mut records = Vec::new();
++    for case in cases {
++        // Reuse relevance judgments without changing their grain or labels.
++        assert!(!case.must.is_empty() || !case.useful.is_empty());
++        for variant in 0..10 {
++            let mut options = RankingOptions::default();
++            match variant {
++                1 => options.fields = false,
++                2 => options.classification = false,
++                3 => options.exact = false,
++                4 => options.proximity = false,
++                5 => options.expansion = false,
++                6 => options.decay = false,
++                7 => options.dedupe = false,
++                8 => options.weighted_similarity = false,
++                9 => options.mmr = false,
++                _ => {}
++            }
++            records.push(capture(
++                &store,
++                case.query,
++                &fixture::filter(case.kind),
++                options,
++            )?);
++        }
++    }
++    fixture::replace_probe(&store)?;
++    records.push(capture(
++        &store,
++        "cloud sync",
++        &fixture::filter("project"),
++        RankingOptions::default(),
++    )?);
++    for kind in ["project", "session"] {
++        let store = Store::open(&dir.path().join(format!("{kind}.sqlite3")))?;
++        let filter = admission_fixture::populate(&store, kind)?;
++        for query in [
++            admission_fixture::QUERY,
++            admission_fixture::RETAINED_QUERY,
++            "is",
++            "why indexing indexing fail",
++        ] {
++            records.push(capture(&store, query, &filter, RankingOptions::default())?);
++        }
++        let source = Source {
++            key: "target".into(),
++            collection: filter.collection.clone(),
++            kind: kind.into(),
++            path: "target.txt".into(),
++            version: "replacement".into(),
++        };
++        store.replace_source(
++            &source,
++            [Ok(Chunk {
++                text: "indexing fail replacement".into(),
++                ..Default::default()
++            })],
++        )?;
++        records.push(capture(
++            &store,
++            admission_fixture::QUERY,
++            &filter,
++            RankingOptions::default(),
++        )?);
++        store.invalidate_source("target")?;
++        records.push(capture(
++            &store,
++            admission_fixture::QUERY,
++            &filter,
++            RankingOptions::default(),
++        )?);
++        store.mark_source_verified("target")?;
++        records.push(capture(
++            &store,
++            admission_fixture::QUERY,
++            &filter,
++            RankingOptions::default(),
++        )?);
++        store.remove_source("target")?;
++        records.push(capture(
++            &store,
++            admission_fixture::QUERY,
++            &filter,
++            RankingOptions::default(),
++        )?);
++    }
++    println!("{}", serde_json::to_string(&records)?);
++    Ok(())
++}

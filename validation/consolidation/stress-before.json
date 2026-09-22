@@ -1,0 +1,240 @@
+{
+  "cases": {
+    "distinct": {
+      "additional_retrievals": 0,
+      "admission_counts": {
+        "definitions": 0,
+        "expansion": 0,
+        "lexical": 200,
+        "meaningful": 0,
+        "path": 0
+      },
+      "candidate_count": 200,
+      "collection": "stress",
+      "compact_ms": 1.38875,
+      "database_bytes": 8187984,
+      "database_bytes_after_close": 3928064,
+      "database_bytes_after_close_files": {
+        "main": 3928064,
+        "shm": 0,
+        "total": 3928064,
+        "wal": 0
+      },
+      "database_bytes_after_rebuild": 3960832,
+      "database_bytes_after_rebuild_files": {
+        "main": 3928064,
+        "shm": 32768,
+        "total": 3960832,
+        "wal": 0
+      },
+      "database_bytes_open": {
+        "main": 3928064,
+        "shm": 32768,
+        "total": 8187984,
+        "wal": 4227152
+      },
+      "database_bytes_stage": "store-open-post-compact",
+      "declaration_rebuild": {
+        "database_bytes_after_close": 3928064,
+        "database_bytes_after_close_files": {
+          "main": 3928064,
+          "shm": 0,
+          "total": 3928064,
+          "wal": 0
+        },
+        "database_bytes_after_rebuild": 3960832,
+        "database_bytes_after_rebuild_files": {
+          "main": 3928064,
+          "shm": 32768,
+          "total": 3960832,
+          "wal": 0
+        },
+        "database_bytes_before_store_close": 8187984,
+        "database_bytes_delta_from_store_open": -4227152,
+        "database_bytes_growth_after_store_close": 32768,
+        "declaration_index_version": "bm25-mcp-declarations-v1",
+        "declarations_after": 0,
+        "declarations_before": 0,
+        "raw_statistics_after": [
+          220,
+          441978,
+          447,
+          447,
+          2198
+        ],
+        "raw_statistics_before": [
+          220,
+          441978,
+          447,
+          447,
+          2198
+        ],
+        "raw_statistics_unchanged": true,
+        "rebuild_ms": 6.61075,
+        "source_shape_after": [
+          220,
+          220,
+          "bm25-mcp-tokenizer-v4-unicode-17.0.0-casefold-9.0.0"
+        ],
+        "source_shape_before": [
+          220,
+          220,
+          "bm25-mcp-tokenizer-v4-unicode-17.0.0-casefold-9.0.0"
+        ],
+        "source_tokenizer_state_unchanged": true,
+        "supported": true
+      },
+      "deterministic": true,
+      "deterministic_checks": 34,
+      "documents": 220,
+      "expansion_probes": 0,
+      "final_pool_size": 200,
+      "indexing_ms": 508.409875,
+      "kind": "project",
+      "latency_ms": {
+        "p50_ms": 457.813167,
+        "p95_ms": 460.049792
+      },
+      "rss_bytes": {
+        "after": 89767936,
+        "before": 52199424,
+        "observed_peak": 89767936
+      },
+      "samples": 30,
+      "text_bytes": {
+        "max": 16052,
+        "min": 16050
+      },
+      "update_ms": 2.545833,
+      "warmups": 5
+    },
+    "identical": {
+      "additional_retrievals": 0,
+      "admission_counts": {
+        "definitions": 0,
+        "expansion": 0,
+        "lexical": 200,
+        "meaningful": 0,
+        "path": 0
+      },
+      "candidate_count": 200,
+      "collection": "stress",
+      "compact_ms": 1.264875,
+      "database_bytes": 8093656,
+      "database_bytes_after_close": 3854336,
+      "database_bytes_after_close_files": {
+        "main": 3854336,
+        "shm": 0,
+        "total": 3854336,
+        "wal": 0
+      },
+      "database_bytes_after_rebuild": 3887104,
+      "database_bytes_after_rebuild_files": {
+        "main": 3854336,
+        "shm": 32768,
+        "total": 3887104,
+        "wal": 0
+      },
+      "database_bytes_open": {
+        "main": 3854336,
+        "shm": 32768,
+        "total": 8093656,
+        "wal": 4206552
+      },
+      "database_bytes_stage": "store-open-post-compact",
+      "declaration_rebuild": {
+        "database_bytes_after_close": 3854336,
+        "database_bytes_after_close_files": {
+          "main": 3854336,
+          "shm": 0,
+          "total": 3854336,
+          "wal": 0
+        },
+        "database_bytes_after_rebuild": 3887104,
+        "database_bytes_after_rebuild_files": {
+          "main": 3854336,
+          "shm": 32768,
+          "total": 3887104,
+          "wal": 0
+        },
+        "database_bytes_before_store_close": 8093656,
+        "database_bytes_delta_from_store_open": -4206552,
+        "database_bytes_growth_after_store_close": 32768,
+        "declaration_index_version": "bm25-mcp-declarations-v1",
+        "declarations_after": 0,
+        "declarations_before": 0,
+        "raw_statistics_after": [
+          220,
+          441321,
+          8,
+          8,
+          1541
+        ],
+        "raw_statistics_before": [
+          220,
+          441321,
+          8,
+          8,
+          1541
+        ],
+        "raw_statistics_unchanged": true,
+        "rebuild_ms": 6.519083,
+        "source_shape_after": [
+          220,
+          220,
+          "bm25-mcp-tokenizer-v4-unicode-17.0.0-casefold-9.0.0"
+        ],
+        "source_shape_before": [
+          220,
+          220,
+          "bm25-mcp-tokenizer-v4-unicode-17.0.0-casefold-9.0.0"
+        ],
+        "source_tokenizer_state_unchanged": true,
+        "supported": true
+      },
+      "deterministic": true,
+      "deterministic_checks": 34,
+      "documents": 220,
+      "expansion_probes": 0,
+      "final_pool_size": 200,
+      "indexing_ms": 484.223417,
+      "kind": "project",
+      "latency_ms": {
+        "p50_ms": 112.83770799999999,
+        "p95_ms": 113.877333
+      },
+      "rss_bytes": {
+        "after": 52133888,
+        "before": 12255232,
+        "observed_peak": 52133888
+      },
+      "samples": 30,
+      "text_bytes": {
+        "max": 16031,
+        "min": 16031
+      },
+      "update_ms": 2.4293750000000003,
+      "warmups": 5
+    }
+  },
+  "clock_mode": "search_ranked_with_at explicit timestamp",
+  "evaluation_now": "2026-09-21T00:00:00Z",
+  "mode": "bounded_ranking_stress",
+  "notes": [
+    "release-mode bounded stress probe",
+    "220 documents force the 200-candidate cap",
+    "each chunk is below the 16 KiB production bound",
+    "SQLite main/WAL/SHM bytes, process RSS, update and compaction costs are reported",
+    "declaration_rebuild drops only the derived table/meta key, reopens the index, and verifies raw/source/tokenizer state",
+    "timings are machine-local and require same-machine pre/post comparison"
+  ],
+  "platform": {
+    "arch": "aarch64",
+    "os": "macos"
+  },
+  "revision": "working-tree",
+  "samples": 30,
+  "schema": 2,
+  "toolchain": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "warmups": 5
+}

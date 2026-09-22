@@ -1,0 +1,288 @@
+   Compiling bm25-mcp v0.1.0 (/Users/adityasharma/Projects/bm25-mcp)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.82s
+     Running unittests src/lib.rs (target/debug/deps/bm25_mcp-e20e6308023b4878)
+
+running 73 tests
+test ingest::tests::project_identity_is_canonical_and_hash_backed ... ok
+test identity::tests::nested_plain_registration_wins_and_deleted_unknown_stays_unassociated ... ok
+test ingest::tests::control_heavy_valid_utf8_is_excluded_as_binary ... ok
+test content_cache::tests::round_trips_chunks_and_enforces_disk_budget ... ok
+test ingest::tests::identifiers_crossing_chunk_boundaries_are_searchable_without_partial_terms ... ok
+test identity::tests::nested_git_cwd_uses_worktree_root ... ok
+test identity::tests::live_git_identity_precedes_registered_plain_ancestor ... ok
+test identity::tests::persisted_git_worktree_can_be_associated_after_removal ... ok
+test ingest::tests::unchanged_index_reuse_survives_missing_and_evicted_content_cache ... ok
+test reconciliation::tests::scope_overflow_reconnect_and_stale_or_misscoped_completion ... ok
+test reconciliation::tests::cancellation_after_repair_retains_committed_outcome_and_unvisited_errors ... ok
+test reconciliation::tests::watcher_recovery_and_status_precedence_preserve_source_diagnostics ... ok
+test ingest::tests::scan_decodes_supported_boms_and_splits_giant_lines ... ok
+test reconciliation::tests::bounded_transition_sequences_obey_event_obligations_and_source_facts ... ok
+test reconciliation::tests::unrelated_collection_database_commit_does_not_expire_a_read ... ok
+test runtime::tests::registry_lock_and_temp_events_do_not_trigger_session_reconcile ... ok
+test reconciliation::tests::actual_prepare_change_and_status_then_search_change_are_conservative ... ok
+test reconciliation::tests::durable_failure_and_commit_to_metadata_gap_with_restart ... ok
+test sessions::session_json::tests::escaped_unicode_and_surrogates_decode ... ok
+test runtime::tests::rename_routing_requires_both_endpoints ... ok
+test sessions::session_json::tests::huge_selected_string_is_fragmented_on_disk ... ok
+test sessions::session_json::tests::structured_keys_and_scalars_are_captured ... ok
+test runtime::tests::status_snapshot_does_not_wait_for_a_durable_index_write ... ok
+test sessions::session_json::tests::numbers_follow_json_grammar ... ok
+test reconciliation::tests::authoritative_full_and_successful_incremental_reconciliation_converge ... ok
+test ingest::tests::linked_worktree_uses_common_info_exclude ... ok
+test git_changes::tests::revision_changes_include_prior_dirty_current_dirty_and_untracked_files ... ok
+test runtime::tests::collection_coverage_preserves_rejected_source_without_rows ... ok
+test ingest::tests::scan_honors_gitignore_for_tracked_files_and_reconciles_binary_deletion ... ok
+test runtime::tests::collection_coverage_preserves_untouched_error ... ok
+test sessions::session_stream::tests::ownership_uses_provider_routing_fields_only ... ok
+test runtime::tests::collection_coverage_preserves_untouched_tail ... ok
+test sessions::session_stream::tests::codex_event_ids_do_not_replace_session_id_or_tool_metadata ... ok
+test sessions::session_stream::tests::known_other_project_history_is_excluded_without_error ... ok
+test sessions::session_stream::tests::visible_field_deduper_compares_huge_values_across_fragment_boundaries ... ok
+test sessions::session_stream::tests::visible_field_deduper_keeps_distinct_fields_and_events ... ok
+test sessions::session_stream::tests::append_reuses_checkpoint_and_persists_own_call_state ... ok
+test sessions::session_stream::tests::visible_field_deduper_suppresses_exact_sibling_fields ... ok
+test sessions::session_stream::tests::malformed_complete_record_is_resynchronized_with_category ... ok
+test sessions::session_stream::tests::nested_codex_tool_cwd_does_not_exclude_history ... ok
+test sessions::session_stream::tests::rewrite_invalidates_old_chunks_and_rebuilds_checkpoint ... ok
+test sessions::tests::malformed_own_tool_configuration_is_rejected ... ok
+test sessions::tests::controlled_scan_stops_before_reconciling_unvisited_files ... ok
+test store::admission::tests::admitted_evidence_and_statistics_stay_in_the_retrieval_snapshot ... ok
+test store::admission::tests::every_lane_rejects_candidates_outside_collection_and_filter_scope ... ok
+test sessions::session_stream::tests::structured_arguments_and_results_keep_keys_and_scalars ... ok
+test store::admission::tests::score_provenance_and_zero_raw_scores_are_explicit ... ok
+test sessions::tests::incomplete_trailing_record_is_pending_and_does_not_publish ... ok
+test store::tests::context_expands_distinct_events_when_one_event_has_multiple_chunks ... ok
+test store::tests::filters_are_applied_before_top_k_and_context_is_scoped ... ok
+test store::tests::invalidation_suppresses_then_verification_restores ... ok
+test sessions::tests::canceled_scan_suppresses_verified_sources_until_reconciled ... ok
+test store::upstream::scoring::tests::lucene_reference_value ... ok
+test text::tests::acronym_boundaries_are_streaming ... ok
+test text::tests::boundary_spanning_occurrence_has_no_partial_terms ... ok
+test text::tests::compound_forms_survive_streaming_boundaries_and_sentence_delimiters ... ok
+test sessions::session_stream::tests::registry_revision_rechecks_append_ownership_for_nested_plain_roots ... ok
+test store::tests::iterator_error_rolls_back_source_and_generation ... ok
+test text::tests::normalizes_case_camel_and_snake_identifiers ... ok
+test sessions::session_stream::tests::diagnostics_persist_beyond_bounded_error_samples ... ok
+test text::tests::preserves_repeated_occurrences_but_dedupes_forms ... ok
+test text::tests::surface_tokens_bound_casefold_expansion ... ok
+test text::tests::surface_tokens_keep_exact_code_forms_and_lexical_parts ... ok
+test text::tests::uses_full_unicode_case_folding_for_query_and_document_terms ... ok
+test sessions::tests::discovers_and_normalizes_all_supported_providers ... ok
+test store::tests::replace_search_delete_and_reopen_are_fresh ... ok
+test sessions::session_stream::tests::copilot_duplicate_result_siblings_are_indexed_once ... ok
+test sessions::tests::rejects_nested_and_unrelated_git_cwds ... ok
+test text::tests::huge_compound_form_uses_digest_storage ... ok
+test text::tests::pathological_component_occurrence_deduplicates_with_disk_spill ... ok
+test text::tests::long_tokens_are_bounded_and_symmetric ... ok
+test store::admission::tests::protected_reservations_survive_saturation_overlap_and_delivery_order ... ok
+test sessions::session_stream::tests::huge_record_searches_complete_tail_without_value_allocation ... ok
+
+test result: ok. 73 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.39s
+
+     Running unittests src/main.rs (target/debug/deps/bm25_mcp-a181a6569006a4b4)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/checkpoints.rs (target/debug/deps/checkpoints-b5e5848049a5aebe)
+
+running 5 tests
+test crash_writer_helper ... ok
+test disk_parser_state_is_atomic_with_chunks_and_checkpoint ... ok
+test tokenizer_upgrade_discards_only_derived_index_state ... ok
+test crash_during_transaction_preserves_last_committed_offset ... ok
+test session_chunks_and_offsets_commit_and_roll_back_together ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/collection_coverage.rs (target/debug/deps/collection_coverage-f33f5c97733fff91)
+
+running 8 tests
+test project_precise_scan_preserves_rejected_text_without_source_rows ... ok
+test only_authoritative_full_scans_can_remove_unseen_rejected_sources ... ok
+test legacy_checkpoints_replay_inspection_diagnostics_before_claiming_coverage ... ok
+test restart_requires_full_reconstruction_despite_durable_checkpoints ... ok
+test cancelled_precise_scan_keeps_unvisited_outcomes_and_unaffected_content ... ok
+test unrelated_precise_success_does_not_clear_discovery_or_run_failure ... ok
+test failed_discovery_preserves_unseen_outcomes_even_without_source_rows ... ok
+test repairs_deletions_and_repeated_precise_scans_replace_source_outcomes ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.64s
+
+     Running tests/indexing_progress.rs (target/debug/deps/indexing_progress-078f55d1a6aeb44f)
+
+running 8 tests
+test snapshots_are_bounded_and_polling_does_not_change_work_timestamps ... ok
+test cancelled_scan_never_reports_a_committed_chunk ... ok
+test precise_project_reconciliation_preserves_unrelated_sources ... ok
+test precise_project_scan_respects_ignore_policy_for_post_ready_env_changes ... ok
+test precise_session_reconciliation_preserves_unrelated_checkpoints ... ok
+test scratch_batch_counters_match_successful_commit_boundaries ... ok
+test precise_session_append_normalizes_only_the_changed_suffix ... ok
+test large_json_record_reports_parser_work_before_commit ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.31s
+
+     Running tests/mcp.rs (target/debug/deps/mcp-8fcc73ffd46bb24d)
+
+running 10 tests
+test status_resource_can_be_pipelined_behind_a_search_request ... ok
+test mcp_search_excludes_incidental_stopwords_but_keeps_lexical_fallback ... ok
+test claude_and_copilot_discovery_filters_and_context_reach_mcp ... ok
+test codex_history_is_scoped_and_context_uses_the_same_tool ... ok
+test copied_messages_and_copy_context_are_available_over_mcp ... ok
+test deleting_a_jsonl_named_session_directory_falls_back_safely ... ok
+test post_ready_ignored_project_sources_stay_excluded ... ok
+test mcp_search_refresh_and_multiple_clients ... ok
+test precise_session_updates_preserve_collection_coverage ... ok
+test mcp_saturated_stopwords_do_not_hide_meaningful_results ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.78s
+
+     Running tests/meaningful_admission.rs (target/debug/deps/meaningful_admission-efed105e82ce5c6b)
+
+running 7 tests
+test meaningful_lane_uses_the_existing_query_reduction_policy ... ok
+test meaningful_admission_preserves_streamed_boundary_evidence ... ok
+test meaningful_and_expansion_reservations_keep_overlap_and_fill_capacity ... ok
+test meaningful_lane_filters_before_its_limit_for_projects_and_sessions ... ok
+test meaningful_terms_keep_compound_digest_identity_and_raw_query_multiplicity ... ok
+test saturated_project_pool_keeps_meaningful_evidence ... ok
+test saturated_session_pool_keeps_meaningful_evidence ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.27s
+
+     Running tests/oracle.rs (target/debug/deps/oracle-28a4dc5aa7b59027)
+
+running 1 test
+test durable_replacements_and_deletions_match_fresh_upstream_builds ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
+
+     Running tests/ranking_policy.rs (target/debug/deps/ranking_policy-7a3257673e1f49c2)
+
+running 24 tests
+test all_stopword_queries_keep_a_lexical_term ... ok
+test all_stopword_fallback_remains_eligible ... ok
+test dotted_historical_identity_is_exact_and_exempt_from_decay ... ok
+test dotted_identity_uses_normalized_tokenizer_surface_with_punctuation ... ok
+test dotted_identity_requires_the_complete_surface ... ok
+test declaration_components_do_not_become_exact_definitions ... ok
+test acronym_declarations_contribute_each_symbol_component ... ok
+test declaration_components_contribute_symbol_field_evidence ... ok
+test indexed_body_evidence_drives_fragment_boundary_scoring ... ok
+test expansion_is_bounded_and_keeps_provenance ... ok
+test mmr_reduces_redundant_results_when_dedupe_is_disabled ... ok
+test historical_qualified_symbols_require_the_complete_surface ... ok
+test path_basename_and_diagnostic_matches_get_exact_tiers ... ok
+test session_decay_has_floor_and_exact_exemption ... ok
+test project_qualified_references_keep_the_complete_surface_tier ... ok
+test proximity_bonus_is_relative_and_capped ... ok
+test unsupported_stopword_incidental_match_is_not_eligible ... ok
+test unqualified_camel_identity_survives_surrounding_punctuation ... ok
+test query_classification_and_surface_exactness_are_deterministic ... ok
+test weighted_jaccard_is_symmetric_and_mmr_keeps_distinct_content ... ok
+test unsupported_stopword_match_stays_ineligible_without_fields_or_exact ... ok
+test old_exact_session_survives_decay_while_recent_nonexact_wins_over_tool_spam ... ok
+test exact_symbol_beats_repeated_prose_and_project_time_is_ignored ... ok
+test concise_assistant_reasoning_beats_repeated_tool_output ... ok
+
+test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/ranking_store.rs (target/debug/deps/ranking_store-1f75eaaffcc94b45)
+
+running 16 tests
+test expanded_only_candidates_have_zero_original_baseline ... ok
+test hot_and_disk_ranked_results_match_under_pressure ... ok
+test path_literal_is_casefolded_and_sql_wildcards_are_literal ... ok
+test ranked_search_preserves_raw_baseline_score_and_updates ... ok
+test ranked_search_preserves_a_token_completed_after_the_storage_boundary ... ok
+test replacing_source_refreshes_token_statistics_without_stale_hits ... ok
+test ranked_search_with_at_is_repeatable_for_session_decay ... ok
+test exact_definition_is_admitted_beyond_raw_top_two_hundred ... ok
+test declaration_index_lifecycle_and_legacy_rebuild_preserve_raw_stats ... ok
+test content_cache_restore_rebuilds_definition_metadata ... ok
+test tokenizer_v3_store_is_invalidated_before_v4_reindex ... ok
+test declaration_lane_filters_before_limit_and_bounds_deterministically ... ok
+test session_replica_group_reports_copies ... ok
+test weak_full_original_pool_reserves_space_for_alias_candidates ... ok
+test exact_path_survives_large_fanout_and_glob_filter ... ok
+test compound_and_unicode_boundary_evidence_survives_store_lifecycle ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.46s
+
+     Running tests/recovery.rs (target/debug/deps/recovery-4f8cdf588883a041)
+
+running 6 tests
+test concurrent_frontends_replace_a_stale_endpoint_and_share_one_owner ... ok
+test live_frontend_recovers_after_its_owner_process_crashes ... ok
+test git_worktrees_share_sessions_but_keep_code_collections_separate ... ok
+test owner_releases_endpoint_and_lock_after_last_client_disconnects ... ok
+test restarted_owner_recovers_persisted_index_after_offline_edit ... ok
+test restarted_owner_reconstructs_unresolved_session_coverage ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.09s
+
+     Running tests/tools.rs (target/debug/deps/tools-1317fedbf0212663)
+
+running 16 tests
+test filters_are_applied_before_top_k_and_collections_are_isolated ... ok
+test public_coverage_omits_raw_errors_and_unknown_diagnostic_names ... ok
+test compact_excerpt_maps_casefold_expansion_to_contiguous_source_bytes ... ok
+test compact_excerpt_prefers_late_whole_identifier_over_early_component ... ok
+test responses_obey_utf8_budgets_and_reject_invalid_modes ... ok
+test budgeted_excerpt_keeps_a_late_matching_term_and_decoded_offset ... ok
+test copies_pagination_rejects_stale_or_mismatched_cursors ... ok
+test message_copy_grouping_keeps_tool_and_legacy_chunks_once_per_occurrence ... ok
+test default_search_keeps_ten_long_hits_with_compact_excerpts ... ok
+test adjacent_same_id_message_contexts_remain_separate ... ok
+test enhanced_tools_suppress_unsupported_hits_without_changing_raw_search ... ok
+test session_dedup_preserves_missing_ids_conflicting_content_and_repeated_chunks ... ok
+test same_file_replayed_message_contexts_remain_separate ... ok
+test session_copy_groups_respect_provider_session_time_and_owner_filters ... ok
+test copied_session_events_refill_results_and_preserve_each_source_context ... ok
+test session_context_paginates_utf8_without_losing_text ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.51s
+
+     Running unittests examples/evaluate_admission.rs (target/debug/examples/evaluate_admission-3361350352ed5786)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests examples/evaluate_ranking.rs (target/debug/examples/evaluate_ranking-cb713476c46e6768)
+
+running 4 tests
+test tests::source_grain_metrics_report_zero_for_no_relevant_results ... ok
+test tests::source_grain_metrics_report_zero_for_empty_judgments ... ok
+test tests::source_grain_metrics_deduplicate_one_source_with_multiple_chunks ... ok
+test tests::source_grain_metrics_rank_many_sources_once_each ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests examples/evaluate_ranking_stress.rs (target/debug/examples/evaluate_ranking_stress-f81dc9abe8cb3059)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests examples/evaluate_real_ranking.rs (target/debug/examples/evaluate_real_ranking-c333d79042845745)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests examples/evaluate_session_copies.rs (target/debug/examples/evaluate_session_copies-fdea3d1d2abd35db)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests examples/evaluate_stage_contracts.rs (target/debug/examples/evaluate_stage_contracts-0669b4ebba5bc8d5)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

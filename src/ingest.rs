@@ -180,6 +180,29 @@ pub fn scan_project_observed(
     cache: Option<&mut ContentCache>,
     progress: &ProgressReporter,
 ) -> Result<ScanReport> {
+    scan_project_publishing(
+        root,
+        store,
+        collection,
+        changes,
+        should_continue,
+        cache,
+        progress,
+        None,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn scan_project_publishing(
+    root: &Path,
+    store: &Store,
+    collection: &str,
+    changes: Option<&HashSet<PathBuf>>,
+    should_continue: &dyn Fn() -> bool,
+    cache: Option<&mut ContentCache>,
+    progress: &ProgressReporter,
+    publisher: Option<crate::reconciliation::Publisher>,
+) -> Result<ScanReport> {
     progress.begin_run();
     let result = scan_project_observed_inner(
         root,
@@ -189,6 +212,7 @@ pub fn scan_project_observed(
         should_continue,
         cache,
         progress,
+        publisher,
     );
     match &result {
         Ok(report) if report.cancelled => progress.finish_run(ProgressPhase::Cancelled),
@@ -205,6 +229,7 @@ pub fn scan_project_observed(
     result
 }
 
+#[allow(clippy::too_many_arguments)]
 fn scan_project_observed_inner(
     root: &Path,
     store: &Store,
@@ -213,6 +238,7 @@ fn scan_project_observed_inner(
     should_continue: &dyn Fn() -> bool,
     mut cache: Option<&mut ContentCache>,
     progress: &ProgressReporter,
+    publisher: Option<crate::reconciliation::Publisher>,
 ) -> Result<ScanReport> {
     let root = fs::canonicalize(root)
         .with_context(|| format!("canonicalizing project root {}", root.display()))?;
@@ -249,6 +275,7 @@ fn scan_project_observed_inner(
         .map(|source| (source.key.as_str(), source.version.as_str()))
         .collect();
     let mut report = ScanReport::default();
+    report.coverage.publisher = publisher;
     report.coverage.full = changes.is_none();
     let mut seen = HashSet::new();
     let mut candidate_walk_failed = false;
@@ -268,20 +295,22 @@ fn scan_project_observed_inner(
                 Ok(metadata) if metadata.file_type().is_symlink() => {
                     record_discovered_exclusion(
                         &mut report,
+                        store,
                         collection,
                         &root,
                         path,
                         "symlink_excluded",
-                    );
+                    )?;
                 }
                 Ok(_) => {
                     record_discovered_exclusion(
                         &mut report,
+                        store,
                         collection,
                         &root,
                         path,
                         "non_file_change",
-                    );
+                    )?;
                 }
                 Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
                     // Preserve deleted candidates so the final reconciliation
@@ -298,7 +327,7 @@ fn scan_project_observed_inner(
                         store.remove_source(&key)?;
                     }
                     seen.insert(key.clone());
-                    report.record_source(key, source_report);
+                    report.record_source(store, key, None, source_report)?;
                 }
             }
         }
@@ -308,6 +337,7 @@ fn scan_project_observed_inner(
     };
     let (files, mut walk_failed) = discover_project_files(
         &root,
+        store,
         collection,
         precise_candidates.as_ref(),
         should_continue,
@@ -346,6 +376,7 @@ fn scan_project_observed_inner(
         };
         let key = source_key(collection, &relative);
         let mut source_report = ScanReport::default();
+        let mut published_version = None;
         progress.record_current_source_bytes(0);
         progress.set_phase(ProgressPhase::Normalization);
         match read_source(
@@ -357,6 +388,7 @@ fn scan_project_observed_inner(
         ) {
             Ok(ReadOutcome::Unchanged { version }) => {
                 seen.insert(key.clone());
+                published_version = Some(version.clone());
                 let source = Source {
                     key: key.clone(),
                     collection: collection.to_owned(),
@@ -379,6 +411,7 @@ fn scan_project_observed_inner(
             }) => {
                 bump_diagnostic(&mut source_report, "content_cache_hit");
                 seen.insert(key.clone());
+                published_version = Some(version.clone());
                 let source = Source {
                     key: key.clone(),
                     collection: collection.to_owned(),
@@ -418,6 +451,7 @@ fn scan_project_observed_inner(
                     bump_diagnostic(&mut source_report, "content_cache_miss");
                 }
                 seen.insert(key.clone());
+                published_version = Some(version.clone());
                 let source = Source {
                     key: key.clone(),
                     collection: collection.to_owned(),
@@ -487,8 +521,8 @@ fn scan_project_observed_inner(
                 progress.record_file_completed();
             }
         }
+        report.record_source(store, key, published_version.as_deref(), source_report)?;
         ensure!(should_continue(), "indexing_cancelled");
-        report.record_source(key, source_report);
     }
 
     // A precise change set only reconciles the requested source keys. A full
@@ -499,6 +533,9 @@ fn scan_project_observed_inner(
                 store
                     .remove_source(&source.key)
                     .with_context(|| format!("removing stale source {}", source.key))?;
+                if !report.coverage.sources.contains_key(&source.key) {
+                    report.record_removal(store, source.key.clone())?;
+                }
                 progress.record_file_completed();
             }
         }
@@ -506,7 +543,9 @@ fn scan_project_observed_inner(
             for path in paths {
                 if let Ok(relative) = path.strip_prefix(&root) {
                     let key = source_key(collection, &normalize_relative(relative));
-                    report.coverage.sources.entry(key).or_insert(None);
+                    if !report.coverage.sources.contains_key(&key) {
+                        report.record_removal(store, key)?;
+                    }
                 }
             }
         }
@@ -517,6 +556,7 @@ fn scan_project_observed_inner(
 
 fn discover_project_files(
     root: &Path,
+    store: &Store,
     collection: &str,
     candidates: Option<&HashSet<PathBuf>>,
     should_continue: &dyn Fn() -> bool,
@@ -567,24 +607,39 @@ fn discover_project_files(
             if path.is_file() {
                 record_discovered_exclusion(
                     report,
+                    store,
                     collection,
                     root,
                     path,
                     "git_metadata_excluded",
-                );
+                )?;
             }
             continue;
         }
         let file_type = match entry.file_type() {
             Some(file_type) => file_type,
             None => {
-                record_discovered_exclusion(report, collection, root, path, "non_file_change");
+                record_discovered_exclusion(
+                    report,
+                    store,
+                    collection,
+                    root,
+                    path,
+                    "non_file_change",
+                )?;
                 continue;
             }
         };
         if !file_type.is_file() {
             if file_type.is_symlink() {
-                record_discovered_exclusion(report, collection, root, path, "symlink_excluded");
+                record_discovered_exclusion(
+                    report,
+                    store,
+                    collection,
+                    root,
+                    path,
+                    "symlink_excluded",
+                )?;
             }
             continue;
         }
@@ -601,11 +656,12 @@ fn discover_project_files(
 
 fn record_discovered_exclusion(
     report: &mut ScanReport,
+    store: &Store,
     collection: &str,
     root: &Path,
     path: &Path,
     category: &str,
-) {
+) -> Result<()> {
     let mut outcome = ScanReport {
         excluded_count: 1,
         ..ScanReport::default()
@@ -615,9 +671,11 @@ fn record_discovered_exclusion(
         .strip_prefix(root)
         .expect("discovery stays within root");
     report.record_source(
+        store,
         source_key(collection, &normalize_relative(relative)),
+        None,
         outcome,
-    );
+    )
 }
 
 fn canonical_or_normalized(path: &Path) -> PathBuf {

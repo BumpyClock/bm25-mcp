@@ -1,0 +1,23 @@
+--- a/src/reconciliation.rs
++++ b/src/reconciliation.rs
+@@ -143,6 +143,10 @@
+     }
+ 
+     fn queue(state: &mut State, scope: Scope) {
++        let scope = match scope {
++            Scope::Sources(paths) if paths.len() > 1024 => Scope::Full,
++            scope => scope,
++        };
+         if let Some(pending) = &mut state.pending {
+             pending.merge(scope);
+         } else {
+--- a/src/reconciliation_tests.rs
++++ b/src/reconciliation_tests.rs
+@@ -233,6 +233,7 @@
+         Scope::Sources((0..1025).map(|i| PathBuf::from(i.to_string())).collect()),
+         false,
+     );
++    assert_eq!(controller.state.lock().unwrap().pending, Some(Scope::Full));
+     controller.observe(Scope::Sources(HashSet::new()), false);
+     assert!(matches!(controller.begin().unwrap().scope(), Scope::Full));
+ }

@@ -1,0 +1,224 @@
+    Checking bm25-mcp v0.1.0 (/Users/adityasharma/Projects/bm25-mcp)
+error: cannot find macro `ensure` in this scope
+   --> src/store.rs:423:21
+    |
+423 |             None => ensure!(
+    |                     ^^^^^^
+
+error: cannot find macro `ensure` in this scope
+   --> src/store.rs:417:30
+    |
+417 |             Some(version) => ensure!(
+    |                              ^^^^^^
+
+error: cannot find macro `ensure` in this scope
+   --> src/store.rs:435:9
+    |
+435 |         ensure!(
+    |         ^^^^^^
+
+error[E0425]: cannot find value `owner_key` in this scope
+   --> src/runtime.rs:810:26
+    |
+810 |                         &owner_key,
+    |                          ^^^^^^^^^ not found in this scope
+
+error[E0061]: this function takes 6 arguments but 5 arguments were supplied
+   --> src/ingest.rs:578:17
+    |
+578 |                 record_discovered_exclusion(
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+579 |                     report,
+580 |                     collection,
+    |                     ---------- argument #2 of type `&Store` is missing
+    |
+note: function defined here
+   --> src/ingest.rs:626:4
+    |
+626 | fn record_discovered_exclusion(
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+627 |     report: &mut ScanReport,
+628 |     store: &Store,
+    |     -------------
+help: provide the argument
+    |
+578 ~                 record_discovered_exclusion(
+579 +                     report,
+580 +                     /* &Store */,
+581 +                     collection,
+582 +                     path,
+583 +                     root,
+584 +                     "git_metadata_excluded",
+585 ~                 );
+    |
+
+error[E0061]: this function takes 6 arguments but 5 arguments were supplied
+   --> src/ingest.rs:578:17
+    |
+578 |                 record_discovered_exclusion(
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+579 |                     report,
+580 |                     collection,
+    |                     ---------- argument #2 of type `&store::Store` is missing
+    |
+note: function defined here
+   --> src/ingest.rs:626:4
+    |
+626 | fn record_discovered_exclusion(
+    |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+627 |     report: &mut ScanReport,
+628 |     store: &Store,
+    |     -------------
+help: provide the argument
+    |
+578 ~                 record_discovered_exclusion(
+579 +                     report,
+580 +                     /* &store::Store */,
+581 +                     collection,
+582 +                     path,
+583 +                     root,
+584 +                     "git_metadata_excluded",
+585 ~                 );
+    |
+
+error[E0308]: mismatched types
+    --> src/store.rs:415:35
+     |
+ 415 |         let current = source_info(&conn, key)?;
+     |                       ----------- ^^^^^ expected `&Transaction<'_>`, found `&MutexGuard<'_, Connection>`
+     |                       |
+     |                       arguments to this function are incorrect
+     |
+     = note: expected reference `&Transaction<'_>`
+                found reference `&std::sync::MutexGuard<'_, Connection>`
+note: function defined here
+    --> src/store.rs:1485:4
+     |
+1485 | fn source_info(tx: &Transaction<'_>, key: &str) -> Result<Option<SourceInfo>> {
+     |    ^^^^^^^^^^^ --------------------
+
+error[E0599]: no method named `clone` found for struct `Store` in the current scope
+   --> src/runtime.rs:627:31
+    |
+627 |     let monitor_store = store.clone();
+    |                               ^^^^^ method not found in `Store`
+    |
+   ::: src/store.rs:109:1
+    |
+109 | pub struct Store {
+    | ---------------- method `clone` not found for this struct
+    |
+    = help: items from traits can only be used if the trait is implemented and in scope
+    = note: the following trait defines an item `clone`, perhaps you need to implement it:
+            candidate #1: `Clone`
+
+error[E0599]: no method named `clone` found for struct `Store` in the current scope
+   --> src/runtime.rs:649:30
+    |
+649 |     let worker_store = store.clone();
+    |                              ^^^^^ method not found in `Store`
+    |
+   ::: src/store.rs:109:1
+    |
+109 | pub struct Store {
+    | ---------------- method `clone` not found for this struct
+    |
+    = help: items from traits can only be used if the trait is implemented and in scope
+    = note: the following trait defines an item `clone`, perhaps you need to implement it:
+            candidate #1: `Clone`
+
+error[E0599]: no method named `clone` found for struct `Store` in the current scope
+   --> src/runtime.rs:746:31
+    |
+746 |     let session_store = store.clone();
+    |                               ^^^^^ method not found in `Store`
+    |
+   ::: src/store.rs:109:1
+    |
+109 | pub struct Store {
+    | ---------------- method `clone` not found for this struct
+    |
+    = help: items from traits can only be used if the trait is implemented and in scope
+    = note: the following trait defines an item `clone`, perhaps you need to implement it:
+            candidate #1: `Clone`
+
+error[E0599]: no method named `clone` found for struct `Store` in the current scope
+   --> src/runtime.rs:796:35
+    |
+796 |                 let store = store.clone();
+    |                                   ^^^^^ method not found in `Store`
+    |
+   ::: src/store.rs:109:1
+    |
+109 | pub struct Store {
+    | ---------------- method `clone` not found for this struct
+    |
+    = help: items from traits can only be used if the trait is implemented and in scope
+    = note: the following trait defines an item `clone`, perhaps you need to implement it:
+            candidate #1: `Clone`
+
+error[E0599]: no method named `clone` found for struct `store::Store` in the current scope
+   --> src/runtime.rs:627:31
+    |
+627 |     let monitor_store = store.clone();
+    |                               ^^^^^ method not found in `store::Store`
+    |
+   ::: src/store.rs:109:1
+    |
+109 | pub struct Store {
+    | ---------------- method `clone` not found for this struct
+    |
+    = help: items from traits can only be used if the trait is implemented and in scope
+    = note: the following trait defines an item `clone`, perhaps you need to implement it:
+            candidate #1: `Clone`
+
+error[E0599]: no method named `clone` found for struct `store::Store` in the current scope
+   --> src/runtime.rs:649:30
+    |
+649 |     let worker_store = store.clone();
+    |                              ^^^^^ method not found in `store::Store`
+    |
+   ::: src/store.rs:109:1
+    |
+109 | pub struct Store {
+    | ---------------- method `clone` not found for this struct
+    |
+    = help: items from traits can only be used if the trait is implemented and in scope
+    = note: the following trait defines an item `clone`, perhaps you need to implement it:
+            candidate #1: `Clone`
+
+error[E0599]: no method named `clone` found for struct `store::Store` in the current scope
+   --> src/runtime.rs:746:31
+    |
+746 |     let session_store = store.clone();
+    |                               ^^^^^ method not found in `store::Store`
+    |
+   ::: src/store.rs:109:1
+    |
+109 | pub struct Store {
+    | ---------------- method `clone` not found for this struct
+    |
+    = help: items from traits can only be used if the trait is implemented and in scope
+    = note: the following trait defines an item `clone`, perhaps you need to implement it:
+            candidate #1: `Clone`
+
+error[E0599]: no method named `clone` found for struct `store::Store` in the current scope
+   --> src/runtime.rs:796:35
+    |
+796 |                 let store = store.clone();
+    |                                   ^^^^^ method not found in `store::Store`
+    |
+   ::: src/store.rs:109:1
+    |
+109 | pub struct Store {
+    | ---------------- method `clone` not found for this struct
+    |
+    = help: items from traits can only be used if the trait is implemented and in scope
+    = note: the following trait defines an item `clone`, perhaps you need to implement it:
+            candidate #1: `Clone`
+
+Some errors have detailed explanations: E0061, E0308, E0425, E0599.
+For more information about an error, try `rustc --explain E0061`.
+error: could not compile `bm25-mcp` (lib) due to 10 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `bm25-mcp` (lib test) due to 10 previous errors

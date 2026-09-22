@@ -2,8 +2,9 @@ use bm25_mcp::{
     model::{Chunk, Hit, Source},
     query::{QueryClass, QueryPlan, classify},
     ranking::{
-        BodyEvidence, CorpusStats, ExactClass, RankingOptions, prepare, prepare_indexed, rerank,
-        temporal_factor, weighted_jaccard,
+        BodyEvidence, CorpusStats, ExactClass, RankingOptions, temporal_factor,
+        testing::{prepare, prepare_indexed, rerank},
+        weighted_jaccard,
     },
 };
 use chrono::{Duration, Utc};

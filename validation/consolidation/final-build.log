@@ -1,0 +1,5 @@
+   Compiling bm25-mcp v0.1.0 (/Users/adityasharma/Projects/bm25-mcp)
+    Finished `release` profile [optimized] target(s) in 15.07s
+   Compiling bm25_turbo v0.2.0 (/Users/adityasharma/Projects/bm25-mcp/vendor/bm25_turbo)
+   Compiling bm25-mcp v0.1.0 (/Users/adityasharma/Projects/bm25-mcp)
+    Finished `release` profile [optimized] target(s) in 10.35s

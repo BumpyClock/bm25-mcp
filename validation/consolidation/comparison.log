@@ -1,0 +1,266 @@
+{
+  "exact_differential": {
+    "records": 147,
+    "equal": true,
+    "sha256": "13bcac75f164ef67185cf9d7e8596bd850c5388e364f8dc6370c485f7b83a77e"
+  },
+  "ranking_cases_equal": 143,
+  "latency_ms": {
+    "enhanced_fixture_mean": {
+      "before": {
+        "p50": 3.0845256923076922,
+        "p95": 3.2996764615384615
+      },
+      "after": {
+        "p50": 2.8248142307692308,
+        "p95": 3.096327
+      }
+    },
+    "high_fanout": {
+      "before": {
+        "p50": 38.388417000000004,
+        "p95": 39.29625
+      },
+      "after": {
+        "p50": 38.310249999999996,
+        "p95": 39.590417
+      }
+    },
+    "stress_distinct": {
+      "before": {
+        "p50_ms": 457.813167,
+        "p95_ms": 460.049792
+      },
+      "after": {
+        "p50_ms": 446.593709,
+        "p95_ms": 450.535416
+      }
+    },
+    "stress_identical": {
+      "before": {
+        "p50_ms": 112.83770799999999,
+        "p95_ms": 113.877333
+      },
+      "after": {
+        "p50_ms": 101.38412500000001,
+        "p95_ms": 102.6535
+      }
+    }
+  },
+  "individual_query_latency_ms": [
+    {
+      "query": "HybridPersistenceCoordinator",
+      "kind": "project",
+      "before_p95": 2.3938330000000003,
+      "after_p95": 2.1982500000000003
+    },
+    {
+      "query": "persistence coordinator",
+      "kind": "project",
+      "before_p95": 2.1454590000000002,
+      "after_p95": 2.052834
+    },
+    {
+      "query": "manager-search.ts",
+      "kind": "project",
+      "before_p95": 2.494166,
+      "after_p95": 2.399667
+    },
+    {
+      "query": "src/empty-manager.ts",
+      "kind": "project",
+      "before_p95": 2.327042,
+      "after_p95": 2.187583
+    },
+    {
+      "query": "Foo::Bar::bazValue",
+      "kind": "project",
+      "before_p95": 0.459042,
+      "after_p95": 0.547875
+    },
+    {
+      "query": "\"Zone Not Found\"",
+      "kind": "session",
+      "before_p95": 1.626334,
+      "after_p95": 1.700666
+    },
+    {
+      "query": "why did subscriptions disappear after cloud sync?",
+      "kind": "session",
+      "before_p95": 14.546583,
+      "after_p95": 13.162500000000001
+    },
+    {
+      "query": "why did subscriptions disappear after cloud sync?",
+      "kind": "project",
+      "before_p95": 0.544292,
+      "after_p95": 0.7304590000000001
+    },
+    {
+      "query": "architectural decision atomic checkpoint",
+      "kind": "session",
+      "before_p95": 13.516709,
+      "after_p95": 12.174624999999999
+    },
+    {
+      "query": "HybridPersistenceCoordinator",
+      "kind": "session",
+      "before_p95": 1.5441669999999998,
+      "after_p95": 1.6447079999999998
+    },
+    {
+      "query": "subscription active state",
+      "kind": "project",
+      "before_p95": 0.450083,
+      "after_p95": 0.513334
+    },
+    {
+      "query": "panic",
+      "kind": "project",
+      "before_p95": 0.350667,
+      "after_p95": 0.452042
+    },
+    {
+      "query": "fixCache",
+      "kind": "project",
+      "before_p95": 0.497417,
+      "after_p95": 0.487708
+    }
+  ],
+  "fixture_direct_store_indexing": {
+    "fixture_indexing_before_ms": 39.66525,
+    "fixture_indexing_after_ms": 40.779125,
+    "note": "This fixture uses Store directly; it does not measure scanner publication confirmation."
+  },
+  "real_ingest_regressions_equal": true,
+  "status_latency": {
+    "before": {
+      "records": 4000,
+      "poll_interval_seconds": 0.005,
+      "all": {
+        "samples": 320,
+        "p50_ms": 1.3407084999998986,
+        "p95_ms": 1.5805420000001291,
+        "max_ms": 3.671874999999991
+      },
+      "during_durable_transaction": {
+        "samples": 19,
+        "p50_ms": 1.3505419999999546,
+        "p95_ms": 1.7563750000002543,
+        "max_ms": 2.410290999999898
+      },
+      "phase_samples": {
+        "complete": 12,
+        "durable_transaction": 19,
+        "idle": 2,
+        "json_inspection": 116,
+        "normalization": 169,
+        "ownership": 2
+      },
+      "limits": "Phase is sampled at response time; this is a shared developer machine, not a blocked-writer latency guarantee."
+    },
+    "after": {
+      "records": 4000,
+      "poll_interval_seconds": 0.005,
+      "all": {
+        "samples": 320,
+        "p50_ms": 1.3163330000001139,
+        "p95_ms": 1.5040419999998722,
+        "max_ms": 2.31795800000012
+      },
+      "during_durable_transaction": {
+        "samples": 19,
+        "p50_ms": 1.2902499999998263,
+        "p95_ms": 1.511958999999674,
+        "max_ms": 1.712874999999947
+      },
+      "phase_samples": {
+        "complete": 10,
+        "durable_transaction": 19,
+        "idle": 2,
+        "json_inspection": 121,
+        "normalization": 166,
+        "ownership": 2
+      },
+      "limits": "Phase is sampled at response time; this is a shared developer machine, not a blocked-writer latency guarantee."
+    }
+  },
+  "precise_updates": {
+    "session_append_suffix": {
+      "before": {
+        "pass": true,
+        "server_counters": {
+          "files_discovered": 1,
+          "files_completed": 1,
+          "records_processed": 2,
+          "records_inspected": 2,
+          "bytes_read": 8884796,
+          "bytes_hashed_for_verification": 8884796,
+          "chunks_prepared": 2,
+          "chunks_committed": 2
+        },
+        "source_read_ratio": 14907.375838926175,
+        "total_reconciliation_elapsed_ms": 92,
+        "p50_search_during_ingestion_ms": 161.63912500000066,
+        "p95_search_during_ingestion_ms": 174.3728750000031,
+        "search_probe_samples": 3
+      },
+      "after": {
+        "pass": true,
+        "server_counters": {
+          "files_discovered": 1,
+          "files_completed": 1,
+          "records_processed": 2,
+          "records_inspected": 2,
+          "bytes_read": 8884796,
+          "bytes_hashed_for_verification": 8884796,
+          "chunks_prepared": 2,
+          "chunks_committed": 2
+        },
+        "source_read_ratio": 14907.375838926175,
+        "total_reconciliation_elapsed_ms": 102,
+        "p50_search_during_ingestion_ms": 158.99591599999852,
+        "p95_search_during_ingestion_ms": 163.39308399999908,
+        "search_probe_samples": 3
+      }
+    },
+    "session_changed_one_of_eight": {
+      "before": {
+        "pass": true,
+        "server_counters": {
+          "files_discovered": 1,
+          "files_completed": 1,
+          "records_processed": 2,
+          "records_inspected": 2,
+          "bytes_read": 1644,
+          "bytes_hashed_for_verification": 1644,
+          "chunks_prepared": 1,
+          "chunks_committed": 1
+        },
+        "source_read_ratio": 4.0,
+        "total_reconciliation_elapsed_ms": 33,
+        "p50_search_during_ingestion_ms": 160.56283300000018,
+        "p95_search_during_ingestion_ms": 163.33991700000183,
+        "search_probe_samples": 3
+      },
+      "after": {
+        "pass": true,
+        "server_counters": {
+          "files_discovered": 1,
+          "files_completed": 1,
+          "records_processed": 2,
+          "records_inspected": 2,
+          "bytes_read": 1644,
+          "bytes_hashed_for_verification": 1644,
+          "chunks_prepared": 1,
+          "chunks_committed": 1
+        },
+        "source_read_ratio": 4.0,
+        "total_reconciliation_elapsed_ms": 34,
+        "p50_search_during_ingestion_ms": 154.35754099999954,
+        "p95_search_during_ingestion_ms": 160.00270800000038,
+        "search_probe_samples": 3
+      }
+    }
+  }
+}

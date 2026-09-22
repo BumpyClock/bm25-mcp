@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Consolidate collection reconciliation, source-outcome publication, and read
+  validation under one controller; retain committed source repairs when later
+  work is cancelled and qualify reads across publication boundaries.
+- Consolidate bounded candidate admission and require persisted evidence and
+  snapshot-consistent statistics at the production ranking boundary, preserving
+  retrieval policy, scores, and public schemas.
 - Preserve collection-wide pending work, errors, and exclusions across precise
   source updates, including rejected sources without indexed rows; keep failed
   discovery, cancellation, and restart coverage incomplete until reconciled.

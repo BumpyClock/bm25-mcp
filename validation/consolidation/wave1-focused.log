@@ -1,0 +1,44 @@
+   Compiling bm25-mcp v0.1.0 (/Users/adityasharma/Projects/bm25-mcp)
+error[E0425]: cannot find value `publication` in this scope
+  --> src/reconciliation.rs:96:41
+   |
+96 |             state.ledger.publish_source(publication.key(), outcome);
+   |                                         ^^^^^^^^^^^ not found in this scope
+
+error[E0308]: mismatched types
+  --> src/model.rs:93:30
+   |
+93 |             publisher.source(&publication, Some(&outcome));
+   |                       ------ ^^^^^^^^^^^^ expected `&str`, found `&SourcePublication`
+   |                       |
+   |                       arguments to this method are incorrect
+   |
+   = note: expected reference `&str`
+              found reference `&SourcePublication`
+note: method defined here
+  --> src/reconciliation.rs:93:19
+   |
+93 |     pub(crate) fn source(&self, key: &str, outcome: Option<&crate::coverage::SourceOutcome>) {
+   |                   ^^^^^^        ---------
+
+error[E0308]: mismatched types
+   --> src/model.rs:117:30
+    |
+117 |             publisher.source(&publication, None);
+    |                       ------ ^^^^^^^^^^^^ expected `&str`, found `&SourcePublication`
+    |                       |
+    |                       arguments to this method are incorrect
+    |
+    = note: expected reference `&str`
+               found reference `&SourcePublication`
+note: method defined here
+   --> src/reconciliation.rs:93:19
+    |
+ 93 |     pub(crate) fn source(&self, key: &str, outcome: Option<&crate::coverage::SourceOutcome>) {
+    |                   ^^^^^^        ---------
+
+Some errors have detailed explanations: E0308, E0425.
+For more information about an error, try `rustc --explain E0308`.
+error: could not compile `bm25-mcp` (lib) due to 3 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `bm25-mcp` (lib test) due to 3 previous errors

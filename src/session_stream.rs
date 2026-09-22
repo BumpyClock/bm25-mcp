@@ -426,10 +426,12 @@ pub(super) fn scan(
         None,
         should_continue,
         &ProgressReporter::noop(),
+        None,
     )
 }
 
 /// Reconcile provider files while publishing bounded progress.
+#[allow(clippy::too_many_arguments)]
 pub(super) fn scan_observed(
     root: &Path,
     owner_key: &str,
@@ -438,6 +440,7 @@ pub(super) fn scan_observed(
     changes: Option<&HashSet<PathBuf>>,
     should_continue: &dyn Fn() -> bool,
     progress: &ProgressReporter,
+    publisher: Option<crate::reconciliation::Publisher>,
 ) -> Result<ScanReport> {
     super::validate_own_tool_names_env()?;
     let root = fs::canonicalize(root)
@@ -467,6 +470,7 @@ pub(super) fn scan_observed(
     });
 
     let mut report = ScanReport::default();
+    report.coverage.publisher = publisher;
     report.coverage.full = changes.is_none();
     report.coverage.discovery_complete = true;
     progress.set_phase(ProgressPhase::Discovery);
@@ -554,7 +558,7 @@ pub(super) fn scan_observed(
                     store.remove_source(&old.key)?;
                 }
                 seen_sources.insert(key.clone());
-                report.record_source(key, source_report);
+                report.record_source(store, key, None, source_report)?;
                 progress.record_file_completed();
                 continue;
             }
@@ -568,9 +572,9 @@ pub(super) fn scan_observed(
                     source_report
                         .diagnostics
                         .insert("non_file_change".into(), 1);
-                    report.record_source(key, source_report);
+                    report.record_source(store, key, None, source_report)?;
                 } else {
-                    report.coverage.sources.insert(key, None);
+                    report.record_removal(store, key)?;
                 }
                 progress.record_file_completed();
                 continue;
@@ -601,7 +605,7 @@ pub(super) fn scan_observed(
                     store.remove_source(&old.key)?;
                 }
                 seen_sources.insert(key.clone());
-                report.record_source(key, source_report);
+                report.record_source(store, key, None, source_report)?;
                 progress.record_file_completed();
                 continue;
             }
@@ -623,7 +627,7 @@ pub(super) fn scan_observed(
                     store.remove_source(&old.key)?;
                 }
                 seen_sources.insert(key.clone());
-                report.record_source(key, source_report);
+                report.record_source(store, key, None, source_report)?;
                 progress.record_file_completed();
                 continue;
             }
@@ -694,7 +698,7 @@ pub(super) fn scan_observed(
         }
         progress.record_work(WorkKind::DurableTxn, commit_started.elapsed());
         progress.record_committed_chunks(prepared_chunk_count);
-        report.record_source(key, source_report);
+        report.record_source(store, key, Some(&source.version), source_report)?;
         progress.record_file_completed();
     }
 
@@ -706,7 +710,7 @@ pub(super) fn scan_observed(
                 && !seen_sources.contains(&source.key)
             {
                 store.remove_source(&source.key)?;
-                report.coverage.sources.insert(source.key.clone(), None);
+                report.record_removal(store, source.key.clone())?;
                 progress.record_file_completed();
             }
         }

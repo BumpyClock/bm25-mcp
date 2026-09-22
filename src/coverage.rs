@@ -1,10 +1,11 @@
 //! Current collection outcomes, separate from scan-run work counters.
 
-use crate::{model::ScanReport, tools::Coverage};
+use crate::model::ScanReport;
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 #[derive(Clone, Debug, Default)]
 pub struct SourceOutcome {
+    pub(crate) version: Option<String>,
     pub pending: u64,
     pub errors: u64,
     pub excluded: u64,
@@ -14,6 +15,7 @@ pub struct SourceOutcome {
 impl SourceOutcome {
     pub(crate) fn from_report(report: &ScanReport) -> Self {
         Self {
+            version: None,
             pending: report.pending_count,
             errors: report.error_count,
             excluded: report.excluded_count,
@@ -57,6 +59,7 @@ impl SourceOutcome {
 /// Keys include collection identity. `None` means a confirmed durable removal.
 #[derive(Clone, Debug, Default)]
 pub struct CoverageUpdate {
+    pub(crate) publisher: Option<crate::reconciliation::Publisher>,
     pub full: bool,
     pub discovery_complete: bool,
     pub sources: BTreeMap<String, Option<SourceOutcome>>,
@@ -64,7 +67,7 @@ pub struct CoverageUpdate {
     pub scope: HashSet<String>,
 }
 
-/// Owned by the collection's single scan worker, never by the status reader.
+/// The controller owns this ledger; snapshots never enumerate source rows.
 #[derive(Default)]
 pub struct CollectionCoverage {
     sources: HashMap<String, SourceOutcome>,
@@ -113,14 +116,7 @@ impl CollectionCoverage {
             self.scan_failed = false;
         }
         for (key, outcome) in &update.sources {
-            self.unfinished_sources.remove(key);
-            if let Some(old) = self.sources.remove(key) {
-                self.totals.subtract(&old);
-            }
-            if let Some(outcome) = outcome {
-                self.totals.add(outcome);
-                self.sources.insert(key.clone(), outcome.clone());
-            }
+            self.publish_source(key, outcome.as_ref());
         }
         if update.full && !report.cancelled {
             self.discovery = update.discovery.clone();
@@ -133,7 +129,25 @@ impl CollectionCoverage {
         }
     }
 
-    pub fn snapshot(&self) -> Coverage {
+    pub(crate) fn publish_source(&mut self, key: &str, outcome: Option<&SourceOutcome>) {
+        self.unfinished_sources.remove(key);
+        if let Some(old) = self.sources.remove(key) {
+            self.totals.subtract(&old);
+        }
+        if let Some(outcome) = outcome {
+            self.totals.add(outcome);
+            self.sources.insert(key.to_owned(), outcome.clone());
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn sources_version_for_test(&self, key: &str) -> Option<&str> {
+        self.sources
+            .get(key)
+            .and_then(|outcome| outcome.version.as_deref())
+    }
+
+    pub fn snapshot(&self) -> CoverageSnapshot {
         let mut total = self.totals.clone();
         total.add(&self.discovery);
         total.add(&self.scoped_discovery);
@@ -141,7 +155,7 @@ impl CollectionCoverage {
             total.errors += 1;
             total.diagnostics.insert("reconciliation_failed".into(), 1);
         }
-        Coverage {
+        CoverageSnapshot {
             pending_changes: (self.reconstructed
                 && !self.unfinished
                 && !self.scan_failed
@@ -152,7 +166,36 @@ impl CollectionCoverage {
             excluded_count: total.excluded,
             diagnostics: total.diagnostics,
             reconciled_at: self.reconciled_at.clone(),
-            ..Coverage::default()
+            ..CoverageSnapshot::default()
+        }
+    }
+}
+
+/// Internal coverage facts. Wire adapters add memory observations and redact errors.
+#[derive(Clone, Debug, Default)]
+pub struct CoverageSnapshot {
+    pub diagnostics: BTreeMap<String, u64>,
+    pub reconciled_at: Option<String>,
+    pub pending_changes: Option<u64>,
+    pub excluded_count: u64,
+    pub error_count: u64,
+    pub errors: Vec<String>,
+}
+
+impl CoverageSnapshot {
+    pub(crate) fn status(&self) -> &'static str {
+        if self.pending_changes.is_none() {
+            if self.reconciled_at.is_none() {
+                "building"
+            } else {
+                "refreshing"
+            }
+        } else if self.pending_changes.is_some_and(|count| count > 0) {
+            "refreshing"
+        } else if self.error_count > 0 {
+            "degraded"
+        } else {
+            "ready"
         }
     }
 }

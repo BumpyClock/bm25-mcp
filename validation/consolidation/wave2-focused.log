@@ -1,0 +1,74 @@
+   Compiling bm25-mcp v0.1.0 (/Users/adityasharma/Projects/bm25-mcp)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.63s
+     Running tests/meaningful_admission.rs (target/debug/deps/meaningful_admission-efed105e82ce5c6b)
+
+running 7 tests
+test meaningful_lane_uses_the_existing_query_reduction_policy ... ok
+test meaningful_admission_preserves_streamed_boundary_evidence ... ok
+test meaningful_and_expansion_reservations_keep_overlap_and_fill_capacity ... ok
+test meaningful_lane_filters_before_its_limit_for_projects_and_sessions ... ok
+test meaningful_terms_keep_compound_digest_identity_and_raw_query_multiplicity ... ok
+test saturated_project_pool_keeps_meaningful_evidence ... ok
+test saturated_session_pool_keeps_meaningful_evidence ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.17s
+
+     Running tests/oracle.rs (target/debug/deps/oracle-28a4dc5aa7b59027)
+
+running 1 test
+test durable_replacements_and_deletions_match_fresh_upstream_builds ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+
+     Running tests/ranking_policy.rs (target/debug/deps/ranking_policy-7a3257673e1f49c2)
+
+running 24 tests
+test dotted_identity_uses_normalized_tokenizer_surface_with_punctuation ... ok
+test acronym_declarations_contribute_each_symbol_component ... ok
+test dotted_identity_requires_the_complete_surface ... ok
+test all_stopword_fallback_remains_eligible ... ok
+test all_stopword_queries_keep_a_lexical_term ... ok
+test dotted_historical_identity_is_exact_and_exempt_from_decay ... ok
+test declaration_components_do_not_become_exact_definitions ... ok
+test indexed_body_evidence_drives_fragment_boundary_scoring ... ok
+test declaration_components_contribute_symbol_field_evidence ... ok
+test expansion_is_bounded_and_keeps_provenance ... ok
+test historical_qualified_symbols_require_the_complete_surface ... ok
+test mmr_reduces_redundant_results_when_dedupe_is_disabled ... ok
+test path_basename_and_diagnostic_matches_get_exact_tiers ... ok
+test project_qualified_references_keep_the_complete_surface_tier ... ok
+test session_decay_has_floor_and_exact_exemption ... ok
+test proximity_bonus_is_relative_and_capped ... ok
+test unsupported_stopword_incidental_match_is_not_eligible ... ok
+test unqualified_camel_identity_survives_surrounding_punctuation ... ok
+test query_classification_and_surface_exactness_are_deterministic ... ok
+test weighted_jaccard_is_symmetric_and_mmr_keeps_distinct_content ... ok
+test unsupported_stopword_match_stays_ineligible_without_fields_or_exact ... ok
+test old_exact_session_survives_decay_while_recent_nonexact_wins_over_tool_spam ... ok
+test exact_symbol_beats_repeated_prose_and_project_time_is_ignored ... ok
+test concise_assistant_reasoning_beats_repeated_tool_output ... ok
+
+test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/ranking_store.rs (target/debug/deps/ranking_store-1f75eaaffcc94b45)
+
+running 16 tests
+test path_literal_is_casefolded_and_sql_wildcards_are_literal ... ok
+test expanded_only_candidates_have_zero_original_baseline ... ok
+test hot_and_disk_ranked_results_match_under_pressure ... ok
+test ranked_search_with_at_is_repeatable_for_session_decay ... ok
+test replacing_source_refreshes_token_statistics_without_stale_hits ... ok
+test ranked_search_preserves_raw_baseline_score_and_updates ... ok
+test exact_definition_is_admitted_beyond_raw_top_two_hundred ... ok
+test declaration_index_lifecycle_and_legacy_rebuild_preserve_raw_stats ... ok
+test ranked_search_preserves_a_token_completed_after_the_storage_boundary ... ok
+test tokenizer_v3_store_is_invalidated_before_v4_reindex ... ok
+test content_cache_restore_rebuilds_definition_metadata ... ok
+test declaration_lane_filters_before_limit_and_bounds_deterministically ... ok
+test session_replica_group_reports_copies ... ok
+test weak_full_original_pool_reserves_space_for_alias_candidates ... ok
+test exact_path_survives_large_fanout_and_glob_filter ... ok
+test compound_and_unicode_boundary_evidence_survives_store_lifecycle ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.49s
+
