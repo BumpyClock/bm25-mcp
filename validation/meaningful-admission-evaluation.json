@@ -1,0 +1,2559 @@
+{
+  "reviewed_head": "ebb655427489638ce4f2091e60f15656bdbbca03",
+  "evaluation_now": "2026-09-21T00:00:00Z",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "toolchain": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "warmups": 5,
+  "query_samples": 50,
+  "stress_samples": 30,
+  "quality_aggregates": {
+    "before": {
+      "raw": {
+        "recall10": 0.6153846153846154,
+        "recall20": 0.6153846153846154,
+        "mrr": 0.5769230769230769,
+        "ndcg10": 0.5766218095170967,
+        "duplicate_rate10": 0.4
+      },
+      "enhanced": {
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "mrr": 0.9230769230769231,
+        "ndcg10": 0.9380471438440716,
+        "duplicate_rate10": 0.0
+      },
+      "no_fields": {
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "mrr": 0.9038461538461539,
+        "ndcg10": 0.9266801102366615,
+        "duplicate_rate10": 0.0
+      },
+      "no_classification": {
+        "recall10": 0.8461538461538461,
+        "recall20": 0.8461538461538461,
+        "mrr": 0.7307692307692307,
+        "ndcg10": 0.7597597343586102,
+        "duplicate_rate10": 0.0
+      },
+      "no_exact": {
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "mrr": 0.8461538461538461,
+        "ndcg10": 0.8852158692487223,
+        "duplicate_rate10": 0.0
+      },
+      "no_proximity": {
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "mrr": 0.9230769230769231,
+        "ndcg10": 0.9380471438440716,
+        "duplicate_rate10": 0.0
+      },
+      "no_expansion": {
+        "recall10": 0.9230769230769231,
+        "recall20": 0.9230769230769231,
+        "mrr": 0.8461538461538461,
+        "ndcg10": 0.8611240669209946,
+        "duplicate_rate10": 0.0
+      },
+      "no_decay": {
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "mrr": 0.9230769230769231,
+        "ndcg10": 0.9380471438440716,
+        "duplicate_rate10": 0.0
+      },
+      "no_dedupe": {
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "mrr": 0.9230769230769231,
+        "ndcg10": 0.9153975009060425,
+        "duplicate_rate10": 0.35384615384615387
+      },
+      "no_similarity": {
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "mrr": 0.9230769230769231,
+        "ndcg10": 0.9380471438440716,
+        "duplicate_rate10": 0.0
+      },
+      "no_mmr": {
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "mrr": 0.9230769230769231,
+        "ndcg10": 0.9380471438440716,
+        "duplicate_rate10": 0.0
+      }
+    },
+    "after": {
+      "raw": {
+        "recall10": 0.6153846153846154,
+        "recall20": 0.6153846153846154,
+        "mrr": 0.5769230769230769,
+        "ndcg10": 0.5766218095170967,
+        "duplicate_rate10": 0.4
+      },
+      "enhanced": {
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "mrr": 0.9230769230769231,
+        "ndcg10": 0.9380471438440716,
+        "duplicate_rate10": 0.0
+      },
+      "no_fields": {
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "mrr": 0.9038461538461539,
+        "ndcg10": 0.9266801102366615,
+        "duplicate_rate10": 0.0
+      },
+      "no_classification": {
+        "recall10": 0.8461538461538461,
+        "recall20": 0.8461538461538461,
+        "mrr": 0.7307692307692307,
+        "ndcg10": 0.7597597343586102,
+        "duplicate_rate10": 0.0
+      },
+      "no_exact": {
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "mrr": 0.8461538461538461,
+        "ndcg10": 0.8852158692487223,
+        "duplicate_rate10": 0.0
+      },
+      "no_proximity": {
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "mrr": 0.9230769230769231,
+        "ndcg10": 0.9380471438440716,
+        "duplicate_rate10": 0.0
+      },
+      "no_expansion": {
+        "recall10": 0.9230769230769231,
+        "recall20": 0.9230769230769231,
+        "mrr": 0.8461538461538461,
+        "ndcg10": 0.8611240669209946,
+        "duplicate_rate10": 0.0
+      },
+      "no_decay": {
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "mrr": 0.9230769230769231,
+        "ndcg10": 0.9380471438440716,
+        "duplicate_rate10": 0.0
+      },
+      "no_dedupe": {
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "mrr": 0.9230769230769231,
+        "ndcg10": 0.9153975009060425,
+        "duplicate_rate10": 0.35384615384615387
+      },
+      "no_similarity": {
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "mrr": 0.9230769230769231,
+        "ndcg10": 0.9380471438440716,
+        "duplicate_rate10": 0.0
+      },
+      "no_mmr": {
+        "recall10": 1.0,
+        "recall20": 1.0,
+        "mrr": 0.9230769230769231,
+        "ndcg10": 0.9380471438440716,
+        "duplicate_rate10": 0.0
+      }
+    }
+  },
+  "quality_metric_changes": [],
+  "per_query": [
+    {
+      "mode": "raw",
+      "kind": "project",
+      "query": "HybridPersistenceCoordinator",
+      "before": {
+        "candidate_count": null,
+        "admission_counts": null,
+        "probes": 0,
+        "meaningful_retrievals": null,
+        "additional_retrievals": null,
+        "latency_ms_p50": 0.21241700000000002,
+        "latency_ms_p95": 0.34870799999999996,
+        "metrics": {
+          "duplicate_rate10": 0.9,
+          "mrr": 0.0,
+          "ndcg10": 0.0,
+          "rank": null,
+          "recall10": 0.0,
+          "recall20": 0.0,
+          "top": [
+            "repeat-10",
+            "repeat-4",
+            "repeat-0",
+            "repeat-2",
+            "repeat-17",
+            "repeat-8",
+            "repeat-11",
+            "repeat-14",
+            "repeat-12",
+            "repeat-9"
+          ]
+        }
+      },
+      "after": {
+        "candidate_count": null,
+        "admission_counts": null,
+        "probes": 0,
+        "meaningful_retrievals": 0,
+        "additional_retrievals": 0,
+        "latency_ms_p50": 0.21229199999999998,
+        "latency_ms_p95": 0.313208,
+        "metrics": {
+          "duplicate_rate10": 0.9,
+          "mrr": 0.0,
+          "ndcg10": 0.0,
+          "rank": null,
+          "recall10": 0.0,
+          "recall20": 0.0,
+          "top": [
+            "repeat-10",
+            "repeat-4",
+            "repeat-0",
+            "repeat-2",
+            "repeat-17",
+            "repeat-8",
+            "repeat-11",
+            "repeat-14",
+            "repeat-12",
+            "repeat-9"
+          ]
+        }
+      }
+    },
+    {
+      "mode": "enhanced",
+      "kind": "project",
+      "query": "HybridPersistenceCoordinator",
+      "before": {
+        "candidate_count": 21,
+        "admission_counts": {
+          "definitions": 1,
+          "expansion": 0,
+          "lexical": 21,
+          "path": 0
+        },
+        "probes": 0,
+        "meaningful_retrievals": null,
+        "additional_retrievals": null,
+        "latency_ms_p50": 2.186292,
+        "latency_ms_p95": 2.3800000000000003,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 1.0,
+          "ndcg10": 0.9753714271839448,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "definition",
+            "repeat-10",
+            "test",
+            "caller"
+          ]
+        }
+      },
+      "after": {
+        "candidate_count": 21,
+        "admission_counts": {
+          "definitions": 1,
+          "expansion": 0,
+          "lexical": 21,
+          "meaningful": 0,
+          "path": 0
+        },
+        "probes": 0,
+        "meaningful_retrievals": 0,
+        "additional_retrievals": 0,
+        "latency_ms_p50": 2.141,
+        "latency_ms_p95": 2.478291,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 1.0,
+          "ndcg10": 0.9753714271839448,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "definition",
+            "repeat-10",
+            "test",
+            "caller"
+          ]
+        }
+      }
+    },
+    {
+      "mode": "raw",
+      "kind": "project",
+      "query": "persistence coordinator",
+      "before": {
+        "candidate_count": null,
+        "admission_counts": null,
+        "probes": 0,
+        "meaningful_retrievals": null,
+        "additional_retrievals": null,
+        "latency_ms_p50": 0.204709,
+        "latency_ms_p95": 0.24925000000000003,
+        "metrics": {
+          "duplicate_rate10": 0.9,
+          "mrr": 0.0,
+          "ndcg10": 0.0,
+          "rank": null,
+          "recall10": 0.0,
+          "recall20": 0.0,
+          "top": [
+            "repeat-10",
+            "repeat-4",
+            "repeat-0",
+            "repeat-2",
+            "repeat-17",
+            "repeat-8",
+            "repeat-11",
+            "repeat-14",
+            "repeat-12",
+            "repeat-9"
+          ]
+        }
+      },
+      "after": {
+        "candidate_count": null,
+        "admission_counts": null,
+        "probes": 0,
+        "meaningful_retrievals": 0,
+        "additional_retrievals": 0,
+        "latency_ms_p50": 0.20666700000000002,
+        "latency_ms_p95": 0.305875,
+        "metrics": {
+          "duplicate_rate10": 0.9,
+          "mrr": 0.0,
+          "ndcg10": 0.0,
+          "rank": null,
+          "recall10": 0.0,
+          "recall20": 0.0,
+          "top": [
+            "repeat-10",
+            "repeat-4",
+            "repeat-0",
+            "repeat-2",
+            "repeat-17",
+            "repeat-8",
+            "repeat-11",
+            "repeat-14",
+            "repeat-12",
+            "repeat-9"
+          ]
+        }
+      }
+    },
+    {
+      "mode": "enhanced",
+      "kind": "project",
+      "query": "persistence coordinator",
+      "before": {
+        "candidate_count": 21,
+        "admission_counts": {
+          "definitions": 0,
+          "expansion": 0,
+          "lexical": 21,
+          "path": 0
+        },
+        "probes": 0,
+        "meaningful_retrievals": null,
+        "additional_retrievals": null,
+        "latency_ms_p50": 1.987042,
+        "latency_ms_p95": 2.276708,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 0.5,
+          "ndcg10": 0.6576351038729463,
+          "rank": 2,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "repeat-10",
+            "definition",
+            "test",
+            "caller"
+          ]
+        }
+      },
+      "after": {
+        "candidate_count": 21,
+        "admission_counts": {
+          "definitions": 0,
+          "expansion": 0,
+          "lexical": 21,
+          "meaningful": 0,
+          "path": 0
+        },
+        "probes": 0,
+        "meaningful_retrievals": 0,
+        "additional_retrievals": 0,
+        "latency_ms_p50": 1.938834,
+        "latency_ms_p95": 2.079875,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 0.5,
+          "ndcg10": 0.6576351038729463,
+          "rank": 2,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "repeat-10",
+            "definition",
+            "test",
+            "caller"
+          ]
+        }
+      }
+    },
+    {
+      "mode": "raw",
+      "kind": "project",
+      "query": "manager-search.ts",
+      "before": {
+        "candidate_count": null,
+        "admission_counts": null,
+        "probes": 0,
+        "meaningful_retrievals": null,
+        "additional_retrievals": null,
+        "latency_ms_p50": 0.207166,
+        "latency_ms_p95": 0.236375,
+        "metrics": {
+          "duplicate_rate10": 0.9,
+          "mrr": 0.0,
+          "ndcg10": 0.0,
+          "rank": null,
+          "recall10": 0.0,
+          "recall20": 0.0,
+          "top": [
+            "repeat-10",
+            "repeat-4",
+            "repeat-0",
+            "repeat-2",
+            "repeat-17",
+            "repeat-8",
+            "repeat-11",
+            "repeat-14",
+            "repeat-12",
+            "repeat-9"
+          ]
+        }
+      },
+      "after": {
+        "candidate_count": null,
+        "admission_counts": null,
+        "probes": 0,
+        "meaningful_retrievals": 0,
+        "additional_retrievals": 0,
+        "latency_ms_p50": 0.205792,
+        "latency_ms_p95": 0.24695899999999998,
+        "metrics": {
+          "duplicate_rate10": 0.9,
+          "mrr": 0.0,
+          "ndcg10": 0.0,
+          "rank": null,
+          "recall10": 0.0,
+          "recall20": 0.0,
+          "top": [
+            "repeat-10",
+            "repeat-4",
+            "repeat-0",
+            "repeat-2",
+            "repeat-17",
+            "repeat-8",
+            "repeat-11",
+            "repeat-14",
+            "repeat-12",
+            "repeat-9"
+          ]
+        }
+      }
+    },
+    {
+      "mode": "enhanced",
+      "kind": "project",
+      "query": "manager-search.ts",
+      "before": {
+        "candidate_count": 19,
+        "admission_counts": {
+          "definitions": 0,
+          "expansion": 0,
+          "lexical": 18,
+          "path": 1
+        },
+        "probes": 0,
+        "meaningful_retrievals": null,
+        "additional_retrievals": null,
+        "latency_ms_p50": 2.064959,
+        "latency_ms_p95": 2.170292,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 1.0,
+          "ndcg10": 1.0,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "definition",
+            "repeat-10"
+          ]
+        }
+      },
+      "after": {
+        "candidate_count": 19,
+        "admission_counts": {
+          "definitions": 0,
+          "expansion": 0,
+          "lexical": 18,
+          "meaningful": 0,
+          "path": 1
+        },
+        "probes": 0,
+        "meaningful_retrievals": 0,
+        "additional_retrievals": 0,
+        "latency_ms_p50": 2.249917,
+        "latency_ms_p95": 2.4993749999999997,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 1.0,
+          "ndcg10": 1.0,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "definition",
+            "repeat-10"
+          ]
+        }
+      }
+    },
+    {
+      "mode": "raw",
+      "kind": "project",
+      "query": "src/empty-manager.ts",
+      "before": {
+        "candidate_count": null,
+        "admission_counts": null,
+        "probes": 0,
+        "meaningful_retrievals": null,
+        "additional_retrievals": null,
+        "latency_ms_p50": 0.21475,
+        "latency_ms_p95": 0.268333,
+        "metrics": {
+          "duplicate_rate10": 0.9,
+          "mrr": 0.0,
+          "ndcg10": 0.0,
+          "rank": null,
+          "recall10": 0.0,
+          "recall20": 0.0,
+          "top": [
+            "repeat-10",
+            "repeat-4",
+            "repeat-0",
+            "repeat-2",
+            "repeat-17",
+            "repeat-8",
+            "repeat-11",
+            "repeat-14",
+            "repeat-12",
+            "repeat-9"
+          ]
+        }
+      },
+      "after": {
+        "candidate_count": null,
+        "admission_counts": null,
+        "probes": 0,
+        "meaningful_retrievals": 0,
+        "additional_retrievals": 0,
+        "latency_ms_p50": 0.21229199999999998,
+        "latency_ms_p95": 0.243917,
+        "metrics": {
+          "duplicate_rate10": 0.9,
+          "mrr": 0.0,
+          "ndcg10": 0.0,
+          "rank": null,
+          "recall10": 0.0,
+          "recall20": 0.0,
+          "top": [
+            "repeat-10",
+            "repeat-4",
+            "repeat-0",
+            "repeat-2",
+            "repeat-17",
+            "repeat-8",
+            "repeat-11",
+            "repeat-14",
+            "repeat-12",
+            "repeat-9"
+          ]
+        }
+      }
+    },
+    {
+      "mode": "enhanced",
+      "kind": "project",
+      "query": "src/empty-manager.ts",
+      "before": {
+        "candidate_count": 19,
+        "admission_counts": {
+          "definitions": 0,
+          "expansion": 0,
+          "lexical": 18,
+          "path": 1
+        },
+        "probes": 0,
+        "meaningful_retrievals": null,
+        "additional_retrievals": null,
+        "latency_ms_p50": 1.9689579999999998,
+        "latency_ms_p95": 2.242459,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 1.0,
+          "ndcg10": 1.0,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "path",
+            "repeat-10"
+          ]
+        }
+      },
+      "after": {
+        "candidate_count": 19,
+        "admission_counts": {
+          "definitions": 0,
+          "expansion": 0,
+          "lexical": 18,
+          "meaningful": 0,
+          "path": 1
+        },
+        "probes": 0,
+        "meaningful_retrievals": 0,
+        "additional_retrievals": 0,
+        "latency_ms_p50": 2.112,
+        "latency_ms_p95": 2.298959,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 1.0,
+          "ndcg10": 1.0,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "path",
+            "repeat-10"
+          ]
+        }
+      }
+    },
+    {
+      "mode": "raw",
+      "kind": "project",
+      "query": "Foo::Bar::bazValue",
+      "before": {
+        "candidate_count": null,
+        "admission_counts": null,
+        "probes": 0,
+        "meaningful_retrievals": null,
+        "additional_retrievals": null,
+        "latency_ms_p50": 0.174125,
+        "latency_ms_p95": 0.19775,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 1.0,
+          "ndcg10": 1.0,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "qualified"
+          ]
+        }
+      },
+      "after": {
+        "candidate_count": null,
+        "admission_counts": null,
+        "probes": 0,
+        "meaningful_retrievals": 0,
+        "additional_retrievals": 0,
+        "latency_ms_p50": 0.169125,
+        "latency_ms_p95": 0.204,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 1.0,
+          "ndcg10": 1.0,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "qualified"
+          ]
+        }
+      }
+    },
+    {
+      "mode": "enhanced",
+      "kind": "project",
+      "query": "Foo::Bar::bazValue",
+      "before": {
+        "candidate_count": 1,
+        "admission_counts": {
+          "definitions": 1,
+          "expansion": 0,
+          "lexical": 1,
+          "path": 0
+        },
+        "probes": 0,
+        "meaningful_retrievals": null,
+        "additional_retrievals": null,
+        "latency_ms_p50": 0.33575,
+        "latency_ms_p95": 0.403917,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 1.0,
+          "ndcg10": 1.0,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "qualified"
+          ]
+        }
+      },
+      "after": {
+        "candidate_count": 1,
+        "admission_counts": {
+          "definitions": 1,
+          "expansion": 0,
+          "lexical": 1,
+          "meaningful": 0,
+          "path": 0
+        },
+        "probes": 0,
+        "meaningful_retrievals": 0,
+        "additional_retrievals": 0,
+        "latency_ms_p50": 0.33720799999999995,
+        "latency_ms_p95": 0.42204200000000003,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 1.0,
+          "ndcg10": 1.0,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "qualified"
+          ]
+        }
+      }
+    },
+    {
+      "mode": "raw",
+      "kind": "session",
+      "query": "\"Zone Not Found\"",
+      "before": {
+        "candidate_count": null,
+        "admission_counts": null,
+        "probes": 0,
+        "meaningful_retrievals": null,
+        "additional_retrievals": null,
+        "latency_ms_p50": 1.193667,
+        "latency_ms_p95": 1.349459,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 1.0,
+          "ndcg10": 1.0,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "diagnostic",
+            "reasoning"
+          ]
+        }
+      },
+      "after": {
+        "candidate_count": null,
+        "admission_counts": null,
+        "probes": 0,
+        "meaningful_retrievals": 0,
+        "additional_retrievals": 0,
+        "latency_ms_p50": 1.136958,
+        "latency_ms_p95": 1.300875,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 1.0,
+          "ndcg10": 1.0,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "diagnostic",
+            "reasoning"
+          ]
+        }
+      }
+    },
+    {
+      "mode": "enhanced",
+      "kind": "session",
+      "query": "\"Zone Not Found\"",
+      "before": {
+        "candidate_count": 2,
+        "admission_counts": {
+          "definitions": 0,
+          "expansion": 0,
+          "lexical": 2,
+          "path": 0
+        },
+        "probes": 0,
+        "meaningful_retrievals": null,
+        "additional_retrievals": null,
+        "latency_ms_p50": 1.404833,
+        "latency_ms_p95": 1.5904999999999998,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 1.0,
+          "ndcg10": 1.0,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "diagnostic",
+            "reasoning"
+          ]
+        }
+      },
+      "after": {
+        "candidate_count": 2,
+        "admission_counts": {
+          "definitions": 0,
+          "expansion": 0,
+          "lexical": 2,
+          "meaningful": 0,
+          "path": 0
+        },
+        "probes": 0,
+        "meaningful_retrievals": 0,
+        "additional_retrievals": 0,
+        "latency_ms_p50": 1.373375,
+        "latency_ms_p95": 1.566166,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 1.0,
+          "ndcg10": 1.0,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "diagnostic",
+            "reasoning"
+          ]
+        }
+      }
+    },
+    {
+      "mode": "raw",
+      "kind": "session",
+      "query": "why did subscriptions disappear after cloud sync?",
+      "before": {
+        "candidate_count": null,
+        "admission_counts": null,
+        "probes": 0,
+        "meaningful_retrievals": null,
+        "additional_retrievals": null,
+        "latency_ms_p50": 1.400417,
+        "latency_ms_p95": 1.670167,
+        "metrics": {
+          "duplicate_rate10": 0.8,
+          "mrr": 1.0,
+          "ndcg10": 0.9173194127129571,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "reasoning",
+            "tool-0",
+            "tool-4",
+            "tool-8",
+            "tool-5",
+            "tool-1",
+            "tool-15",
+            "tool-11",
+            "tool-12",
+            "tool-7"
+          ]
+        }
+      },
+      "after": {
+        "candidate_count": null,
+        "admission_counts": null,
+        "probes": 0,
+        "meaningful_retrievals": 0,
+        "additional_retrievals": 0,
+        "latency_ms_p50": 1.358875,
+        "latency_ms_p95": 1.5745,
+        "metrics": {
+          "duplicate_rate10": 0.8,
+          "mrr": 1.0,
+          "ndcg10": 0.9173194127129571,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "reasoning",
+            "tool-0",
+            "tool-4",
+            "tool-8",
+            "tool-5",
+            "tool-1",
+            "tool-15",
+            "tool-11",
+            "tool-12",
+            "tool-7"
+          ]
+        }
+      }
+    },
+    {
+      "mode": "enhanced",
+      "kind": "session",
+      "query": "why did subscriptions disappear after cloud sync?",
+      "before": {
+        "candidate_count": 20,
+        "admission_counts": {
+          "definitions": 0,
+          "expansion": 0,
+          "lexical": 20,
+          "path": 0
+        },
+        "probes": 0,
+        "meaningful_retrievals": null,
+        "additional_retrievals": null,
+        "latency_ms_p50": 13.0615,
+        "latency_ms_p95": 13.356583,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 1.0,
+          "ndcg10": 0.9828422279067397,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "reasoning",
+            "tool-0",
+            "diagnostic"
+          ]
+        }
+      },
+      "after": {
+        "candidate_count": 20,
+        "admission_counts": {
+          "definitions": 0,
+          "expansion": 0,
+          "lexical": 20,
+          "meaningful": 20,
+          "path": 0
+        },
+        "probes": 0,
+        "meaningful_retrievals": 1,
+        "additional_retrievals": 1,
+        "latency_ms_p50": 13.960333,
+        "latency_ms_p95": 14.673209,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 1.0,
+          "ndcg10": 0.9828422279067397,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "reasoning",
+            "tool-0",
+            "diagnostic"
+          ]
+        }
+      }
+    },
+    {
+      "mode": "raw",
+      "kind": "project",
+      "query": "why did subscriptions disappear after cloud sync?",
+      "before": {
+        "candidate_count": null,
+        "admission_counts": null,
+        "probes": 0,
+        "meaningful_retrievals": null,
+        "additional_retrievals": null,
+        "latency_ms_p50": 0.179209,
+        "latency_ms_p95": 0.242375,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 1.0,
+          "ndcg10": 1.0,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "definition",
+            "test",
+            "caller"
+          ]
+        }
+      },
+      "after": {
+        "candidate_count": null,
+        "admission_counts": null,
+        "probes": 0,
+        "meaningful_retrievals": 0,
+        "additional_retrievals": 0,
+        "latency_ms_p50": 0.171209,
+        "latency_ms_p95": 0.182375,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 1.0,
+          "ndcg10": 1.0,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "definition",
+            "test",
+            "caller"
+          ]
+        }
+      }
+    },
+    {
+      "mode": "enhanced",
+      "kind": "project",
+      "query": "why did subscriptions disappear after cloud sync?",
+      "before": {
+        "candidate_count": 3,
+        "admission_counts": {
+          "definitions": 0,
+          "expansion": 0,
+          "lexical": 3,
+          "path": 0
+        },
+        "probes": 1,
+        "meaningful_retrievals": null,
+        "additional_retrievals": null,
+        "latency_ms_p50": 0.46529200000000004,
+        "latency_ms_p95": 0.563125,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 1.0,
+          "ndcg10": 1.0,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "definition",
+            "test",
+            "caller"
+          ]
+        }
+      },
+      "after": {
+        "candidate_count": 3,
+        "admission_counts": {
+          "definitions": 0,
+          "expansion": 0,
+          "lexical": 3,
+          "meaningful": 3,
+          "path": 0
+        },
+        "probes": 0,
+        "meaningful_retrievals": 1,
+        "additional_retrievals": 1,
+        "latency_ms_p50": 0.475709,
+        "latency_ms_p95": 0.5722919999999999,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 1.0,
+          "ndcg10": 1.0,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "definition",
+            "test",
+            "caller"
+          ]
+        }
+      }
+    },
+    {
+      "mode": "raw",
+      "kind": "session",
+      "query": "architectural decision atomic checkpoint",
+      "before": {
+        "candidate_count": null,
+        "admission_counts": null,
+        "probes": 0,
+        "meaningful_retrievals": null,
+        "additional_retrievals": null,
+        "latency_ms_p50": 1.406666,
+        "latency_ms_p95": 1.715166,
+        "metrics": {
+          "duplicate_rate10": 0.8,
+          "mrr": 1.0,
+          "ndcg10": 1.0,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "decision",
+            "tool-0",
+            "tool-4",
+            "tool-8",
+            "tool-5",
+            "tool-1",
+            "tool-15",
+            "tool-11",
+            "tool-12",
+            "tool-7"
+          ]
+        }
+      },
+      "after": {
+        "candidate_count": null,
+        "admission_counts": null,
+        "probes": 0,
+        "meaningful_retrievals": 0,
+        "additional_retrievals": 0,
+        "latency_ms_p50": 1.378667,
+        "latency_ms_p95": 1.571041,
+        "metrics": {
+          "duplicate_rate10": 0.8,
+          "mrr": 1.0,
+          "ndcg10": 1.0,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "decision",
+            "tool-0",
+            "tool-4",
+            "tool-8",
+            "tool-5",
+            "tool-1",
+            "tool-15",
+            "tool-11",
+            "tool-12",
+            "tool-7"
+          ]
+        }
+      }
+    },
+    {
+      "mode": "enhanced",
+      "kind": "session",
+      "query": "architectural decision atomic checkpoint",
+      "before": {
+        "candidate_count": 21,
+        "admission_counts": {
+          "definitions": 0,
+          "expansion": 0,
+          "lexical": 21,
+          "path": 0
+        },
+        "probes": 0,
+        "meaningful_retrievals": null,
+        "additional_retrievals": null,
+        "latency_ms_p50": 13.20925,
+        "latency_ms_p95": 13.573958000000001,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 1.0,
+          "ndcg10": 1.0,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "decision",
+            "new-noise",
+            "tool-0",
+            "old-symbol"
+          ]
+        }
+      },
+      "after": {
+        "candidate_count": 21,
+        "admission_counts": {
+          "definitions": 0,
+          "expansion": 0,
+          "lexical": 21,
+          "meaningful": 0,
+          "path": 0
+        },
+        "probes": 0,
+        "meaningful_retrievals": 0,
+        "additional_retrievals": 0,
+        "latency_ms_p50": 13.000582999999999,
+        "latency_ms_p95": 13.556833000000001,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 1.0,
+          "ndcg10": 1.0,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "decision",
+            "new-noise",
+            "tool-0",
+            "old-symbol"
+          ]
+        }
+      }
+    },
+    {
+      "mode": "raw",
+      "kind": "session",
+      "query": "HybridPersistenceCoordinator",
+      "before": {
+        "candidate_count": null,
+        "admission_counts": null,
+        "probes": 0,
+        "meaningful_retrievals": null,
+        "additional_retrievals": null,
+        "latency_ms_p50": 1.1515,
+        "latency_ms_p95": 1.254375,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 1.0,
+          "ndcg10": 1.0,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "old-symbol"
+          ]
+        }
+      },
+      "after": {
+        "candidate_count": null,
+        "admission_counts": null,
+        "probes": 0,
+        "meaningful_retrievals": 0,
+        "additional_retrievals": 0,
+        "latency_ms_p50": 1.280958,
+        "latency_ms_p95": 1.481542,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 1.0,
+          "ndcg10": 1.0,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "old-symbol"
+          ]
+        }
+      }
+    },
+    {
+      "mode": "enhanced",
+      "kind": "session",
+      "query": "HybridPersistenceCoordinator",
+      "before": {
+        "candidate_count": 1,
+        "admission_counts": {
+          "definitions": 0,
+          "expansion": 0,
+          "lexical": 1,
+          "path": 0
+        },
+        "probes": 0,
+        "meaningful_retrievals": null,
+        "additional_retrievals": null,
+        "latency_ms_p50": 1.2499580000000001,
+        "latency_ms_p95": 1.449834,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 1.0,
+          "ndcg10": 1.0,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "old-symbol"
+          ]
+        }
+      },
+      "after": {
+        "candidate_count": 1,
+        "admission_counts": {
+          "definitions": 0,
+          "expansion": 0,
+          "lexical": 1,
+          "meaningful": 0,
+          "path": 0
+        },
+        "probes": 0,
+        "meaningful_retrievals": 0,
+        "additional_retrievals": 0,
+        "latency_ms_p50": 1.312541,
+        "latency_ms_p95": 1.4668750000000002,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 1.0,
+          "ndcg10": 1.0,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "old-symbol"
+          ]
+        }
+      }
+    },
+    {
+      "mode": "raw",
+      "kind": "project",
+      "query": "subscription active state",
+      "before": {
+        "candidate_count": null,
+        "admission_counts": null,
+        "probes": 0,
+        "meaningful_retrievals": null,
+        "additional_retrievals": null,
+        "latency_ms_p50": 0.158166,
+        "latency_ms_p95": 0.210125,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 0.5,
+          "ndcg10": 0.5787641110093001,
+          "rank": 2,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "caller",
+            "definition"
+          ]
+        }
+      },
+      "after": {
+        "candidate_count": null,
+        "admission_counts": null,
+        "probes": 0,
+        "meaningful_retrievals": 0,
+        "additional_retrievals": 0,
+        "latency_ms_p50": 0.182291,
+        "latency_ms_p95": 0.265709,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 0.5,
+          "ndcg10": 0.5787641110093001,
+          "rank": 2,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "caller",
+            "definition"
+          ]
+        }
+      }
+    },
+    {
+      "mode": "enhanced",
+      "kind": "project",
+      "query": "subscription active state",
+      "before": {
+        "candidate_count": 2,
+        "admission_counts": {
+          "definitions": 0,
+          "expansion": 0,
+          "lexical": 2,
+          "path": 0
+        },
+        "probes": 0,
+        "meaningful_retrievals": null,
+        "additional_retrievals": null,
+        "latency_ms_p50": 0.337917,
+        "latency_ms_p95": 0.484792,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 0.5,
+          "ndcg10": 0.5787641110093001,
+          "rank": 2,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "caller",
+            "definition"
+          ]
+        }
+      },
+      "after": {
+        "candidate_count": 2,
+        "admission_counts": {
+          "definitions": 0,
+          "expansion": 0,
+          "lexical": 2,
+          "meaningful": 0,
+          "path": 0
+        },
+        "probes": 0,
+        "meaningful_retrievals": 0,
+        "additional_retrievals": 0,
+        "latency_ms_p50": 0.395417,
+        "latency_ms_p95": 0.476292,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 0.5,
+          "ndcg10": 0.5787641110093001,
+          "rank": 2,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "caller",
+            "definition"
+          ]
+        }
+      }
+    },
+    {
+      "mode": "raw",
+      "kind": "project",
+      "query": "panic",
+      "before": {
+        "candidate_count": null,
+        "admission_counts": null,
+        "probes": 0,
+        "meaningful_retrievals": null,
+        "additional_retrievals": null,
+        "latency_ms_p50": 0.13425,
+        "latency_ms_p95": 0.18737499999999999,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 0.0,
+          "ndcg10": -0.0,
+          "rank": null,
+          "recall10": 0.0,
+          "recall20": 0.0,
+          "top": []
+        }
+      },
+      "after": {
+        "candidate_count": null,
+        "admission_counts": null,
+        "probes": 0,
+        "meaningful_retrievals": 0,
+        "additional_retrievals": 0,
+        "latency_ms_p50": 0.138042,
+        "latency_ms_p95": 0.17841600000000002,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 0.0,
+          "ndcg10": -0.0,
+          "rank": null,
+          "recall10": 0.0,
+          "recall20": 0.0,
+          "top": []
+        }
+      }
+    },
+    {
+      "mode": "enhanced",
+      "kind": "project",
+      "query": "panic",
+      "before": {
+        "candidate_count": 1,
+        "admission_counts": {
+          "definitions": 0,
+          "expansion": 1,
+          "lexical": 0,
+          "path": 0
+        },
+        "probes": 1,
+        "meaningful_retrievals": null,
+        "additional_retrievals": null,
+        "latency_ms_p50": 0.238625,
+        "latency_ms_p95": 0.255875,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 1.0,
+          "ndcg10": 1.0,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "alias"
+          ]
+        }
+      },
+      "after": {
+        "candidate_count": 1,
+        "admission_counts": {
+          "definitions": 0,
+          "expansion": 1,
+          "lexical": 0,
+          "meaningful": 0,
+          "path": 0
+        },
+        "probes": 1,
+        "meaningful_retrievals": 0,
+        "additional_retrievals": 1,
+        "latency_ms_p50": 0.318208,
+        "latency_ms_p95": 0.522375,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 1.0,
+          "ndcg10": 1.0,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "alias"
+          ]
+        }
+      }
+    },
+    {
+      "mode": "raw",
+      "kind": "project",
+      "query": "fixCache",
+      "before": {
+        "candidate_count": null,
+        "admission_counts": null,
+        "probes": 0,
+        "meaningful_retrievals": null,
+        "additional_retrievals": null,
+        "latency_ms_p50": 0.1515,
+        "latency_ms_p95": 0.16520900000000002,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 1.0,
+          "ndcg10": 1.0,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "literal",
+            "qualified"
+          ]
+        }
+      },
+      "after": {
+        "candidate_count": null,
+        "admission_counts": null,
+        "probes": 0,
+        "meaningful_retrievals": 0,
+        "additional_retrievals": 0,
+        "latency_ms_p50": 0.19062500000000002,
+        "latency_ms_p95": 0.259417,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 1.0,
+          "ndcg10": 1.0,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "literal",
+            "qualified"
+          ]
+        }
+      }
+    },
+    {
+      "mode": "enhanced",
+      "kind": "project",
+      "query": "fixCache",
+      "before": {
+        "candidate_count": 2,
+        "admission_counts": {
+          "definitions": 1,
+          "expansion": 0,
+          "lexical": 2,
+          "path": 0
+        },
+        "probes": 0,
+        "meaningful_retrievals": null,
+        "additional_retrievals": null,
+        "latency_ms_p50": 0.34287500000000004,
+        "latency_ms_p95": 0.444417,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 1.0,
+          "ndcg10": 1.0,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "literal",
+            "qualified"
+          ]
+        }
+      },
+      "after": {
+        "candidate_count": 2,
+        "admission_counts": {
+          "definitions": 1,
+          "expansion": 0,
+          "lexical": 2,
+          "meaningful": 0,
+          "path": 0
+        },
+        "probes": 0,
+        "meaningful_retrievals": 0,
+        "additional_retrievals": 0,
+        "latency_ms_p50": 0.386917,
+        "latency_ms_p95": 0.473458,
+        "metrics": {
+          "duplicate_rate10": 0.0,
+          "mrr": 1.0,
+          "ndcg10": 1.0,
+          "rank": 1,
+          "recall10": 1.0,
+          "recall20": 1.0,
+          "top": [
+            "literal",
+            "qualified"
+          ]
+        }
+      }
+    }
+  ],
+  "saturation": {
+    "before": {
+      "cases": [
+        {
+          "additional_retrievals": 0,
+          "admission_counts": {
+            "definitions": 0,
+            "expansion": 0,
+            "lexical": 200,
+            "path": 0
+          },
+          "candidate_count": 200,
+          "deterministic": true,
+          "kind": "project",
+          "optional_probes": 0,
+          "p50_ms": 2.913875,
+          "p95_ms": 3.211625,
+          "query": "why does indexing fail",
+          "results": []
+        },
+        {
+          "additional_retrievals": 0,
+          "admission_counts": {
+            "definitions": 0,
+            "expansion": 0,
+            "lexical": 1,
+            "path": 0
+          },
+          "candidate_count": 1,
+          "deterministic": true,
+          "kind": "project",
+          "optional_probes": 0,
+          "p50_ms": 2.469834,
+          "p95_ms": 2.682125,
+          "query": "indexing fail",
+          "results": [
+            {
+              "score": 0.12808333337306976,
+              "source": "target"
+            }
+          ]
+        },
+        {
+          "additional_retrievals": 0,
+          "admission_counts": {
+            "definitions": 0,
+            "expansion": 0,
+            "lexical": 0,
+            "path": 0
+          },
+          "candidate_count": 0,
+          "deterministic": true,
+          "kind": "project",
+          "optional_probes": 0,
+          "p50_ms": 0.1565,
+          "p95_ms": 0.195833,
+          "query": "is",
+          "results": []
+        },
+        {
+          "additional_retrievals": 0,
+          "admission_counts": {
+            "definitions": 0,
+            "expansion": 0,
+            "lexical": 200,
+            "path": 0
+          },
+          "candidate_count": 200,
+          "deterministic": true,
+          "kind": "project",
+          "optional_probes": 0,
+          "p50_ms": 3.851625,
+          "p95_ms": 4.237208,
+          "query": "neutral",
+          "results": [
+            {
+              "score": 0.17097505927085876,
+              "source": "background-940"
+            }
+          ]
+        },
+        {
+          "additional_retrievals": 0,
+          "admission_counts": {
+            "definitions": 0,
+            "expansion": 0,
+            "lexical": 200,
+            "path": 0
+          },
+          "candidate_count": 200,
+          "deterministic": true,
+          "kind": "session",
+          "optional_probes": 0,
+          "p50_ms": 5.117958,
+          "p95_ms": 5.529959,
+          "query": "why does indexing fail",
+          "results": []
+        },
+        {
+          "additional_retrievals": 0,
+          "admission_counts": {
+            "definitions": 0,
+            "expansion": 0,
+            "lexical": 1,
+            "path": 0
+          },
+          "candidate_count": 1,
+          "deterministic": true,
+          "kind": "session",
+          "optional_probes": 0,
+          "p50_ms": 4.397125,
+          "p95_ms": 4.715583,
+          "query": "indexing fail",
+          "results": [
+            {
+              "score": 1.013427734375,
+              "source": "target"
+            }
+          ]
+        },
+        {
+          "additional_retrievals": 0,
+          "admission_counts": {
+            "definitions": 0,
+            "expansion": 0,
+            "lexical": 0,
+            "path": 0
+          },
+          "candidate_count": 0,
+          "deterministic": true,
+          "kind": "session",
+          "optional_probes": 0,
+          "p50_ms": 1.568916,
+          "p95_ms": 1.926917,
+          "query": "is",
+          "results": []
+        },
+        {
+          "additional_retrievals": 0,
+          "admission_counts": {
+            "definitions": 0,
+            "expansion": 0,
+            "lexical": 200,
+            "path": 0
+          },
+          "candidate_count": 200,
+          "deterministic": true,
+          "kind": "session",
+          "optional_probes": 0,
+          "p50_ms": 12.155333,
+          "p95_ms": 13.076,
+          "query": "neutral",
+          "results": [
+            {
+              "score": 0.18212734162807465,
+              "source": "background-288"
+            }
+          ]
+        }
+      ],
+      "evaluation_now": "2026-09-21T00:00:00Z",
+      "notes": [
+        "Synthetic admission regression; not a production relevance claim."
+      ],
+      "samples": 50,
+      "sources_per_kind": 1202,
+      "target_bytes": 16014,
+      "warmups": 5
+    },
+    "after": {
+      "cases": [
+        {
+          "additional_retrievals": 1,
+          "admission_counts": {
+            "definitions": 0,
+            "expansion": 0,
+            "lexical": 200,
+            "meaningful": 1,
+            "path": 0
+          },
+          "admission_evidence": [
+            {
+              "definition": false,
+              "expansion_bm25": null,
+              "lexical": false,
+              "meaningful_bm25": 0.1113768219947815,
+              "path": false
+            }
+          ],
+          "candidate_count": 200,
+          "deterministic": true,
+          "kind": "project",
+          "meaningful_retrievals": 1,
+          "optional_probes": 0,
+          "original_contributions": [
+            0.11137681538318137
+          ],
+          "p50_ms": 5.56125,
+          "p95_ms": 5.9802919999999995,
+          "query": "why does indexing fail",
+          "results": [
+            {
+              "score": 0.12808333337306976,
+              "source": "target"
+            }
+          ]
+        },
+        {
+          "additional_retrievals": 0,
+          "admission_counts": {
+            "definitions": 0,
+            "expansion": 0,
+            "lexical": 1,
+            "meaningful": 0,
+            "path": 0
+          },
+          "admission_evidence": [
+            {
+              "definition": false,
+              "expansion_bm25": null,
+              "lexical": true,
+              "meaningful_bm25": null,
+              "path": false
+            }
+          ],
+          "candidate_count": 1,
+          "deterministic": true,
+          "kind": "project",
+          "meaningful_retrievals": 0,
+          "optional_probes": 0,
+          "original_contributions": [
+            0.11137681538318137
+          ],
+          "p50_ms": 2.5390420000000002,
+          "p95_ms": 2.725875,
+          "query": "indexing fail",
+          "results": [
+            {
+              "score": 0.12808333337306976,
+              "source": "target"
+            }
+          ]
+        },
+        {
+          "additional_retrievals": 0,
+          "admission_counts": {
+            "definitions": 0,
+            "expansion": 0,
+            "lexical": 0,
+            "meaningful": 0,
+            "path": 0
+          },
+          "admission_evidence": [],
+          "candidate_count": 0,
+          "deterministic": true,
+          "kind": "project",
+          "meaningful_retrievals": 0,
+          "optional_probes": 0,
+          "original_contributions": [],
+          "p50_ms": 0.167375,
+          "p95_ms": 0.230708,
+          "query": "is",
+          "results": []
+        },
+        {
+          "additional_retrievals": 0,
+          "admission_counts": {
+            "definitions": 0,
+            "expansion": 0,
+            "lexical": 200,
+            "meaningful": 0,
+            "path": 0
+          },
+          "admission_evidence": [
+            {
+              "definition": false,
+              "expansion_bm25": null,
+              "lexical": true,
+              "meaningful_bm25": null,
+              "path": false
+            }
+          ],
+          "candidate_count": 200,
+          "deterministic": true,
+          "kind": "project",
+          "meaningful_retrievals": 0,
+          "optional_probes": 0,
+          "original_contributions": [
+            0.17097505218098472
+          ],
+          "p50_ms": 3.944834,
+          "p95_ms": 4.319166999999999,
+          "query": "neutral",
+          "results": [
+            {
+              "score": 0.17097505927085876,
+              "source": "background-940"
+            }
+          ]
+        },
+        {
+          "additional_retrievals": 1,
+          "admission_counts": {
+            "definitions": 0,
+            "expansion": 0,
+            "lexical": 200,
+            "meaningful": 1,
+            "path": 0
+          },
+          "admission_evidence": [
+            {
+              "definition": false,
+              "expansion_bm25": null,
+              "lexical": false,
+              "meaningful_bm25": 0.1113768219947815,
+              "path": false
+            }
+          ],
+          "candidate_count": 200,
+          "deterministic": true,
+          "kind": "session",
+          "meaningful_retrievals": 1,
+          "optional_probes": 0,
+          "original_contributions": [
+            0.8812415338277709
+          ],
+          "p50_ms": 9.471209,
+          "p95_ms": 9.83175,
+          "query": "why does indexing fail",
+          "results": [
+            {
+              "score": 1.013427734375,
+              "source": "target"
+            }
+          ]
+        },
+        {
+          "additional_retrievals": 0,
+          "admission_counts": {
+            "definitions": 0,
+            "expansion": 0,
+            "lexical": 1,
+            "meaningful": 0,
+            "path": 0
+          },
+          "admission_evidence": [
+            {
+              "definition": false,
+              "expansion_bm25": null,
+              "lexical": true,
+              "meaningful_bm25": null,
+              "path": false
+            }
+          ],
+          "candidate_count": 1,
+          "deterministic": true,
+          "kind": "session",
+          "meaningful_retrievals": 0,
+          "optional_probes": 0,
+          "original_contributions": [
+            0.8812415338277709
+          ],
+          "p50_ms": 4.554625,
+          "p95_ms": 4.827833,
+          "query": "indexing fail",
+          "results": [
+            {
+              "score": 1.013427734375,
+              "source": "target"
+            }
+          ]
+        },
+        {
+          "additional_retrievals": 0,
+          "admission_counts": {
+            "definitions": 0,
+            "expansion": 0,
+            "lexical": 0,
+            "meaningful": 0,
+            "path": 0
+          },
+          "admission_evidence": [],
+          "candidate_count": 0,
+          "deterministic": true,
+          "kind": "session",
+          "meaningful_retrievals": 0,
+          "optional_probes": 0,
+          "original_contributions": [],
+          "p50_ms": 1.698291,
+          "p95_ms": 1.830292,
+          "query": "is",
+          "results": []
+        },
+        {
+          "additional_retrievals": 0,
+          "admission_counts": {
+            "definitions": 0,
+            "expansion": 0,
+            "lexical": 200,
+            "meaningful": 0,
+            "path": 0
+          },
+          "admission_evidence": [
+            {
+              "definition": false,
+              "expansion_bm25": null,
+              "lexical": true,
+              "meaningful_bm25": null,
+              "path": false
+            }
+          ],
+          "candidate_count": 200,
+          "deterministic": true,
+          "kind": "session",
+          "meaningful_retrievals": 0,
+          "optional_probes": 0,
+          "original_contributions": [
+            0.18212734236308495
+          ],
+          "p50_ms": 12.638916,
+          "p95_ms": 13.251792,
+          "query": "neutral",
+          "results": [
+            {
+              "score": 0.18212734162807465,
+              "source": "background-288"
+            }
+          ]
+        }
+      ],
+      "evaluation_now": "2026-09-21T00:00:00Z",
+      "notes": [
+        "Synthetic admission regression; not a production relevance claim."
+      ],
+      "samples": 50,
+      "sources_per_kind": 1202,
+      "target_bytes": 16014,
+      "warmups": 5
+    }
+  },
+  "stress": {
+    "before": {
+      "cases": {
+        "distinct": {
+          "admission_counts": {
+            "definitions": 0,
+            "expansion": 0,
+            "lexical": 200,
+            "path": 0
+          },
+          "candidate_count": 200,
+          "collection": "stress",
+          "compact_ms": 1.455708,
+          "database_bytes": 8187984,
+          "database_bytes_after_close": 3928064,
+          "database_bytes_after_close_files": {
+            "main": 3928064,
+            "shm": 0,
+            "total": 3928064,
+            "wal": 0
+          },
+          "database_bytes_after_rebuild": 3960832,
+          "database_bytes_after_rebuild_files": {
+            "main": 3928064,
+            "shm": 32768,
+            "total": 3960832,
+            "wal": 0
+          },
+          "database_bytes_open": {
+            "main": 3928064,
+            "shm": 32768,
+            "total": 8187984,
+            "wal": 4227152
+          },
+          "database_bytes_stage": "store-open-post-compact",
+          "declaration_rebuild": {
+            "database_bytes_after_close": 3928064,
+            "database_bytes_after_close_files": {
+              "main": 3928064,
+              "shm": 0,
+              "total": 3928064,
+              "wal": 0
+            },
+            "database_bytes_after_rebuild": 3960832,
+            "database_bytes_after_rebuild_files": {
+              "main": 3928064,
+              "shm": 32768,
+              "total": 3960832,
+              "wal": 0
+            },
+            "database_bytes_before_store_close": 8187984,
+            "database_bytes_delta_from_store_open": -4227152,
+            "database_bytes_growth_after_store_close": 32768,
+            "declaration_index_version": "bm25-mcp-declarations-v1",
+            "declarations_after": 0,
+            "declarations_before": 0,
+            "raw_statistics_after": [
+              220,
+              441978,
+              447,
+              447,
+              2198
+            ],
+            "raw_statistics_before": [
+              220,
+              441978,
+              447,
+              447,
+              2198
+            ],
+            "raw_statistics_unchanged": true,
+            "rebuild_ms": 6.66325,
+            "source_shape_after": [
+              220,
+              220,
+              "bm25-mcp-tokenizer-v4-unicode-17.0.0-casefold-9.0.0"
+            ],
+            "source_shape_before": [
+              220,
+              220,
+              "bm25-mcp-tokenizer-v4-unicode-17.0.0-casefold-9.0.0"
+            ],
+            "source_tokenizer_state_unchanged": true,
+            "supported": true
+          },
+          "deterministic": true,
+          "deterministic_checks": 34,
+          "documents": 220,
+          "expansion_probes": 0,
+          "final_pool_size": 200,
+          "indexing_ms": 500.73645799999997,
+          "kind": "project",
+          "latency_ms": {
+            "p50_ms": 460.58466599999997,
+            "p95_ms": 468.48820800000004
+          },
+          "rss_bytes": {
+            "after": 102023168,
+            "before": 52510720,
+            "observed_peak": 102023168
+          },
+          "samples": 30,
+          "text_bytes": {
+            "max": 16052,
+            "min": 16050
+          },
+          "update_ms": 2.6519999999999997,
+          "warmups": 5
+        },
+        "identical": {
+          "admission_counts": {
+            "definitions": 0,
+            "expansion": 0,
+            "lexical": 200,
+            "path": 0
+          },
+          "candidate_count": 200,
+          "collection": "stress",
+          "compact_ms": 1.9182089999999998,
+          "database_bytes": 8097776,
+          "database_bytes_after_close": 3854336,
+          "database_bytes_after_close_files": {
+            "main": 3854336,
+            "shm": 0,
+            "total": 3854336,
+            "wal": 0
+          },
+          "database_bytes_after_rebuild": 3887104,
+          "database_bytes_after_rebuild_files": {
+            "main": 3854336,
+            "shm": 32768,
+            "total": 3887104,
+            "wal": 0
+          },
+          "database_bytes_open": {
+            "main": 3854336,
+            "shm": 32768,
+            "total": 8097776,
+            "wal": 4210672
+          },
+          "database_bytes_stage": "store-open-post-compact",
+          "declaration_rebuild": {
+            "database_bytes_after_close": 3854336,
+            "database_bytes_after_close_files": {
+              "main": 3854336,
+              "shm": 0,
+              "total": 3854336,
+              "wal": 0
+            },
+            "database_bytes_after_rebuild": 3887104,
+            "database_bytes_after_rebuild_files": {
+              "main": 3854336,
+              "shm": 32768,
+              "total": 3887104,
+              "wal": 0
+            },
+            "database_bytes_before_store_close": 8097776,
+            "database_bytes_delta_from_store_open": -4210672,
+            "database_bytes_growth_after_store_close": 32768,
+            "declaration_index_version": "bm25-mcp-declarations-v1",
+            "declarations_after": 0,
+            "declarations_before": 0,
+            "raw_statistics_after": [
+              220,
+              441321,
+              8,
+              8,
+              1541
+            ],
+            "raw_statistics_before": [
+              220,
+              441321,
+              8,
+              8,
+              1541
+            ],
+            "raw_statistics_unchanged": true,
+            "rebuild_ms": 6.607166,
+            "source_shape_after": [
+              220,
+              220,
+              "bm25-mcp-tokenizer-v4-unicode-17.0.0-casefold-9.0.0"
+            ],
+            "source_shape_before": [
+              220,
+              220,
+              "bm25-mcp-tokenizer-v4-unicode-17.0.0-casefold-9.0.0"
+            ],
+            "source_tokenizer_state_unchanged": true,
+            "supported": true
+          },
+          "deterministic": true,
+          "deterministic_checks": 34,
+          "documents": 220,
+          "expansion_probes": 0,
+          "final_pool_size": 200,
+          "indexing_ms": 480.893917,
+          "kind": "project",
+          "latency_ms": {
+            "p50_ms": 113.512959,
+            "p95_ms": 115.930667
+          },
+          "rss_bytes": {
+            "after": 52494336,
+            "before": 12206080,
+            "observed_peak": 52477952
+          },
+          "samples": 30,
+          "text_bytes": {
+            "max": 16031,
+            "min": 16031
+          },
+          "update_ms": 2.4539169999999997,
+          "warmups": 5
+        }
+      },
+      "clock_mode": "search_ranked_with_at explicit timestamp",
+      "evaluation_now": "2026-09-21T00:00:00Z",
+      "mode": "bounded_ranking_stress",
+      "notes": [
+        "release-mode bounded stress probe",
+        "220 documents force the 200-candidate cap",
+        "each chunk is below the 16 KiB production bound",
+        "SQLite main/WAL/SHM bytes, process RSS, update and compaction costs are reported",
+        "declaration_rebuild drops only the derived table/meta key, reopens the index, and verifies raw/source/tokenizer state",
+        "timings are machine-local and require same-machine pre/post comparison"
+      ],
+      "platform": {
+        "arch": "aarch64",
+        "os": "macos"
+      },
+      "revision": "working-tree",
+      "samples": 30,
+      "schema": 2,
+      "toolchain": "rustc 1.98.1 (48a229cea 2026-09-01)",
+      "warmups": 5
+    },
+    "after": {
+      "cases": {
+        "distinct": {
+          "additional_retrievals": 0,
+          "admission_counts": {
+            "definitions": 0,
+            "expansion": 0,
+            "lexical": 200,
+            "meaningful": 0,
+            "path": 0
+          },
+          "candidate_count": 200,
+          "collection": "stress",
+          "compact_ms": 1.6264999999999998,
+          "database_bytes": 8187984,
+          "database_bytes_after_close": 3928064,
+          "database_bytes_after_close_files": {
+            "main": 3928064,
+            "shm": 0,
+            "total": 3928064,
+            "wal": 0
+          },
+          "database_bytes_after_rebuild": 3960832,
+          "database_bytes_after_rebuild_files": {
+            "main": 3928064,
+            "shm": 32768,
+            "total": 3960832,
+            "wal": 0
+          },
+          "database_bytes_open": {
+            "main": 3928064,
+            "shm": 32768,
+            "total": 8187984,
+            "wal": 4227152
+          },
+          "database_bytes_stage": "store-open-post-compact",
+          "declaration_rebuild": {
+            "database_bytes_after_close": 3928064,
+            "database_bytes_after_close_files": {
+              "main": 3928064,
+              "shm": 0,
+              "total": 3928064,
+              "wal": 0
+            },
+            "database_bytes_after_rebuild": 3960832,
+            "database_bytes_after_rebuild_files": {
+              "main": 3928064,
+              "shm": 32768,
+              "total": 3960832,
+              "wal": 0
+            },
+            "database_bytes_before_store_close": 8187984,
+            "database_bytes_delta_from_store_open": -4227152,
+            "database_bytes_growth_after_store_close": 32768,
+            "declaration_index_version": "bm25-mcp-declarations-v1",
+            "declarations_after": 0,
+            "declarations_before": 0,
+            "raw_statistics_after": [
+              220,
+              441978,
+              447,
+              447,
+              2198
+            ],
+            "raw_statistics_before": [
+              220,
+              441978,
+              447,
+              447,
+              2198
+            ],
+            "raw_statistics_unchanged": true,
+            "rebuild_ms": 6.841167,
+            "source_shape_after": [
+              220,
+              220,
+              "bm25-mcp-tokenizer-v4-unicode-17.0.0-casefold-9.0.0"
+            ],
+            "source_shape_before": [
+              220,
+              220,
+              "bm25-mcp-tokenizer-v4-unicode-17.0.0-casefold-9.0.0"
+            ],
+            "source_tokenizer_state_unchanged": true,
+            "supported": true
+          },
+          "deterministic": true,
+          "deterministic_checks": 34,
+          "documents": 220,
+          "expansion_probes": 0,
+          "final_pool_size": 200,
+          "indexing_ms": 489.190291,
+          "kind": "project",
+          "latency_ms": {
+            "p50_ms": 451.78079199999996,
+            "p95_ms": 466.622625
+          },
+          "rss_bytes": {
+            "after": 102170624,
+            "before": 51871744,
+            "observed_peak": 102170624
+          },
+          "samples": 30,
+          "text_bytes": {
+            "max": 16052,
+            "min": 16050
+          },
+          "update_ms": 2.475041,
+          "warmups": 5
+        },
+        "identical": {
+          "additional_retrievals": 0,
+          "admission_counts": {
+            "definitions": 0,
+            "expansion": 0,
+            "lexical": 200,
+            "meaningful": 0,
+            "path": 0
+          },
+          "candidate_count": 200,
+          "collection": "stress",
+          "compact_ms": 1.502833,
+          "database_bytes": 8093656,
+          "database_bytes_after_close": 3854336,
+          "database_bytes_after_close_files": {
+            "main": 3854336,
+            "shm": 0,
+            "total": 3854336,
+            "wal": 0
+          },
+          "database_bytes_after_rebuild": 3887104,
+          "database_bytes_after_rebuild_files": {
+            "main": 3854336,
+            "shm": 32768,
+            "total": 3887104,
+            "wal": 0
+          },
+          "database_bytes_open": {
+            "main": 3854336,
+            "shm": 32768,
+            "total": 8093656,
+            "wal": 4206552
+          },
+          "database_bytes_stage": "store-open-post-compact",
+          "declaration_rebuild": {
+            "database_bytes_after_close": 3854336,
+            "database_bytes_after_close_files": {
+              "main": 3854336,
+              "shm": 0,
+              "total": 3854336,
+              "wal": 0
+            },
+            "database_bytes_after_rebuild": 3887104,
+            "database_bytes_after_rebuild_files": {
+              "main": 3854336,
+              "shm": 32768,
+              "total": 3887104,
+              "wal": 0
+            },
+            "database_bytes_before_store_close": 8093656,
+            "database_bytes_delta_from_store_open": -4206552,
+            "database_bytes_growth_after_store_close": 32768,
+            "declaration_index_version": "bm25-mcp-declarations-v1",
+            "declarations_after": 0,
+            "declarations_before": 0,
+            "raw_statistics_after": [
+              220,
+              441321,
+              8,
+              8,
+              1541
+            ],
+            "raw_statistics_before": [
+              220,
+              441321,
+              8,
+              8,
+              1541
+            ],
+            "raw_statistics_unchanged": true,
+            "rebuild_ms": 7.123042,
+            "source_shape_after": [
+              220,
+              220,
+              "bm25-mcp-tokenizer-v4-unicode-17.0.0-casefold-9.0.0"
+            ],
+            "source_shape_before": [
+              220,
+              220,
+              "bm25-mcp-tokenizer-v4-unicode-17.0.0-casefold-9.0.0"
+            ],
+            "source_tokenizer_state_unchanged": true,
+            "supported": true
+          },
+          "deterministic": true,
+          "deterministic_checks": 34,
+          "documents": 220,
+          "expansion_probes": 0,
+          "final_pool_size": 200,
+          "indexing_ms": 511.39987499999995,
+          "kind": "project",
+          "latency_ms": {
+            "p50_ms": 114.212125,
+            "p95_ms": 115.490833
+          },
+          "rss_bytes": {
+            "after": 51855360,
+            "before": 12271616,
+            "observed_peak": 51855360
+          },
+          "samples": 30,
+          "text_bytes": {
+            "max": 16031,
+            "min": 16031
+          },
+          "update_ms": 2.4268750000000003,
+          "warmups": 5
+        }
+      },
+      "clock_mode": "search_ranked_with_at explicit timestamp",
+      "evaluation_now": "2026-09-21T00:00:00Z",
+      "mode": "bounded_ranking_stress",
+      "notes": [
+        "release-mode bounded stress probe",
+        "220 documents force the 200-candidate cap",
+        "each chunk is below the 16 KiB production bound",
+        "SQLite main/WAL/SHM bytes, process RSS, update and compaction costs are reported",
+        "declaration_rebuild drops only the derived table/meta key, reopens the index, and verifies raw/source/tokenizer state",
+        "timings are machine-local and require same-machine pre/post comparison"
+      ],
+      "platform": {
+        "arch": "aarch64",
+        "os": "macos"
+      },
+      "revision": "working-tree",
+      "samples": 30,
+      "schema": 2,
+      "toolchain": "rustc 1.98.1 (48a229cea 2026-09-01)",
+      "warmups": 5
+    }
+  },
+  "notes": [
+    "Serial same-machine runs completed before starting sibling evaluation workers.",
+    "Source labels unchanged; synthetic regression evidence is not a production relevance claim.",
+    "Retained-query admission now returns a 16014-byte target that the baseline omitted; extra work and latency are reported.",
+    "Supplemental raw BM25 hydration also adds cost to some alias/path queries."
+  ]
+}

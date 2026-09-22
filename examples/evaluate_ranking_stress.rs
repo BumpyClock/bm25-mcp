@@ -192,6 +192,7 @@ fn run(unique: bool) -> Result<serde_json::Value> {
     let mut deterministic_checks = 0;
     let mut admission_counts = None;
     let mut probes = 0;
+    let mut additional_retrievals = 0;
     let mut candidate_count = 0;
     let rss_before = rss_bytes();
     let mut rss_peak = rss_before;
@@ -211,12 +212,8 @@ fn run(unique: bool) -> Result<serde_json::Value> {
         );
         candidate_count = diagnostic.candidate_count;
         probes = diagnostic.probes.len();
-        admission_counts = Some(json!({
-            "lexical": diagnostic.admission_counts.lexical,
-            "definitions": diagnostic.admission_counts.definitions,
-            "path": diagnostic.admission_counts.path,
-            "expansion": diagnostic.admission_counts.expansion,
-        }));
+        additional_retrievals = diagnostic.additional_retrievals;
+        admission_counts = Some(json!(diagnostic.admission_counts));
         let signature: Vec<_> = diagnostic
             .hits
             .iter()
@@ -273,6 +270,7 @@ fn run(unique: bool) -> Result<serde_json::Value> {
         "final_pool_size": candidate_count,
         "admission_counts": admission_counts,
         "expansion_probes": probes,
+        "additional_retrievals": additional_retrievals,
         "indexing_ms": indexing_ms,
         "update_ms": update_ms,
         "compact_ms": compact_ms,

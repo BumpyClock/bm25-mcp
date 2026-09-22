@@ -32,6 +32,7 @@ pub struct QueryPlan {
     pub class: QueryClass,
     pub literal: String,
     pub original: Vec<String>,
+    pub stopwords_removed: bool,
     pub probes: Vec<Probe>,
 }
 
@@ -197,6 +198,7 @@ impl QueryPlan {
         } else {
             all_terms.clone()
         };
+        let stopwords_removed = !original.is_empty() && original.len() < all_terms.len();
         // Stopword reduction is a ranking aid, never a guaranteed miss.  A
         // literal query such as `is` can still be a meaningful code/text
         // lookup and must reach the existing lexical index.
@@ -214,7 +216,7 @@ impl QueryPlan {
                 .cloned()
                 .collect::<Vec<_>>()
                 .join(" ");
-            if !reduced.is_empty() && reduced != literal {
+            if !stopwords_removed && !reduced.is_empty() && reduced != literal {
                 probes.push(Probe {
                     query: reduced,
                     weight: DERIVED_WEIGHT,
@@ -266,11 +268,12 @@ impl QueryPlan {
         // query. Reissuing it would produce exactly the same candidate pool.
         let mut seen = BTreeSet::new();
         probes.retain(|p| seen.insert(p.query.clone()));
-        probes.truncate(MAX_PROBES);
+        probes.truncate(MAX_PROBES - usize::from(stopwords_removed));
         Ok(Self {
             class,
             literal,
             original,
+            stopwords_removed,
             probes,
         })
     }

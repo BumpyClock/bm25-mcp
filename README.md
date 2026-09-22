@@ -41,7 +41,10 @@ complete case-folded identifiers and camel/snake components. Natural-language
 ranking suppresses common stopwords when useful and falls back to the literal
 terms if reduction would empty the query; there is no stemming. Incidental
 stopword matches without remaining query evidence are not returned by enhanced
-search. Indexed body evidence is preserved even when a token crosses a storage
+search. When the query policy removes stopwords, retained meaningful terms get
+a bounded admission opportunity even if discarded words saturate the raw BM25
+pool. This is not an exhaustive-recall guarantee. Indexed body evidence is
+preserved even when a token crosses a storage
 chunk boundary.
 
 Responses include generation, coverage, verification timestamps, and `building`, `ready`, `refreshing`, or `degraded` status. Ongoing indexing is a successful tool response with `building` or `refreshing` status, even when separate coverage diagnostics exist; `degraded` describes a completed reconciliation with coverage issues. Reconciliation can return partial or empty results; check coverage before treating absence as definitive. Date filtering uses inclusive `after` and exclusive `before`; undated session events do not satisfy date filters. Excerpt budgets count serialized UTF-8 bytes, not model tokens. Search excerpts are compact contiguous windows of at most 640 UTF-8 bytes, centered on a query match. Each hit reports `excerpt_byte_offset` within its full decoded indexed chunk and `excerpt_truncated`; the original chunk/event source bounds are preserved. Response-level `truncated` reports further trimming to satisfy the response budget. Session context expansion retains its existing pagination and larger text windows.

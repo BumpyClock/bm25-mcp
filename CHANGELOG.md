@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Protect bounded meaningful-query admission when discarded stopwords saturate
+  the raw candidate pool; preserve canonical terms, original evidence, and the
+  existing six-additional-retrieval and 200-candidate limits.
 - Reserve bounded exact-definition admission independently of BM25 mentions,
   with derived declaration metadata rebuilt automatically for older indexes.
 - Score candidate bodies from persisted token evidence across chunk boundaries;

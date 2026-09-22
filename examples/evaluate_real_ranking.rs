@@ -40,12 +40,7 @@ fn signature(hits: &[Hit]) -> Vec<(String, u32)> {
 }
 
 fn admission_counts(result: &bm25_mcp::ranking::RankedSearch) -> serde_json::Value {
-    json!({
-        "lexical": result.admission_counts.lexical,
-        "definitions": result.admission_counts.definitions,
-        "path": result.admission_counts.path,
-        "expansion": result.admission_counts.expansion,
-    })
+    json!(result.admission_counts)
 }
 
 fn write_boundary_fixture(root: &Path) -> Result<()> {

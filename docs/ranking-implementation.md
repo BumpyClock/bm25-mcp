@@ -68,8 +68,10 @@ postings, change raw BM25 corpus statistics, or regenerate match IDs.
 Tokenizer-version invalidation remains a separate operation that triggers
 refresh/rebuild and may regenerate internal match IDs. Exact path handling
 continues to use the existing `sources.path` authority.
-Project and session tools remain separate. Expansion is bounded to six probes
-with derived/morphology/alias weights 0.8/0.6/0.4 and contribution caps; field
+Project and session tools remain separate. Additional lexical retrieval is
+bounded to six calls, including at most one meaningful-query retrieval.
+Optional expansion retains derived/morphology/alias weights 0.8/0.6/0.4 and
+contribution caps; field
 extraction remains heuristic with fixed metadata priors. Candidate retrieval
 is lexical OR retrieval supplemented by exact-definition and path admission.
 Reranking still cannot recover a document absent from all bounded admission
@@ -108,6 +110,39 @@ more than one lane, so counts need not sum to the final pool size. Collection,
 eligibility, path, agent, session, and time filters apply before each lane's
 limit.
 
+When the enhanced query policy removes stopwords, retained meaningful terms
+receive a bounded candidate-admission opportunity even if raw BM25 is saturated
+by candidates supported only by those discarded words. This lane retrieves
+at most 40 candidates, ordered by retained-term BM25 and match ID, and protects
+their slots before raw-score-first filling. It uses canonical `QueryPlan.original`
+terms directly, preserving compound and long-token digest identities. Merely
+changing whitespace, order, or multiplicity does not trigger this lane.
+All-stopword fallback and non-reduced query classes keep their existing policy.
+
+Admission reserves definitions first, then meaningful-query results, then
+optional expansion results; match-ID overlap consumes only one slot. Each
+reservation is at most 40 and unused capacity remains available to the other
+candidates. Meaningful reduction currently applies only to natural queries,
+so it cannot compete with identifier-definition or exact-path queries. The
+existing path priority is unchanged. The final pool remains at most 200.
+
+The meaningful search runs independently of the weak-pool heuristic and the
+expansion ablation. It replaces the reduced-query probe for these plans and
+uses one of the existing six additional-retrieval slots, leaving at most five
+optional probes. There is no refill loop. The weak-score threshold is unchanged.
+The returned `probes` list records optional probes; `meaningful_retrievals` and
+`additional_retrievals` expose executed search counts, including empty searches.
+`admission_counts.meaningful` counts retrieved candidates, and trace admission
+evidence retains overlapping lane membership and separate retrieval scores.
+
+Retained terms remain original evidence, not capped synonym evidence.
+`baseline_bm25` is the original raw-query score, including its token
+multiplicity. For supplemental candidates absent from raw top K, the store
+hydrates that score in bounded batches using the existing scoring kernel and
+persisted postings in the same snapshot. It neither substitutes a reduced-query
+score nor infers zero from absence. These score-only reads cannot admit more
+candidates. Public relevance and internal MMR selection scores remain distinct.
+
 `declarations(chunk_id, symbol)` and its symbol lookup index contain only
 derived project metadata. Chunk insertion and replacement populate this
 metadata in the source transaction; deletion cascades with the chunk.
@@ -131,7 +166,7 @@ historical-identity matches are exempt; ordinary full-query literal matches
 use square-root decay. Structural duplicate collapse precedes MMR. MMR uses weighted Jaccard
 over at most 128 salient terms plus source/range identity, lambda 0.85, and the
 bounded candidate pool. Thin pools are below 20 candidates; weak pools use a
-0.25 strongest-score threshold; expansion reserves 40 candidates. Expansion
+0.25 strongest-score threshold; optional expansion reserves 40 candidates. Expansion
 contributions are capped at 35% of original evidence, or an absolute 0.5 score
 for expansion-only hits. Final MCP limits remain 10 by default and 50 maximum.
 

@@ -156,6 +156,41 @@ fn mcp_search_excludes_incidental_stopwords_but_keeps_lexical_fallback() {
 }
 
 #[test]
+fn mcp_saturated_stopwords_do_not_hide_meaningful_results() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().join("project");
+    std::fs::create_dir(&root).unwrap();
+    for index in 0..1_201 {
+        let text = if index < 201 {
+            "why does this happen".into()
+        } else {
+            "neutral ".repeat(20)
+        };
+        std::fs::write(root.join(format!("{index}.txt")), text).unwrap();
+    }
+    std::fs::write(
+        root.join("1201.txt"),
+        format!("indexing fail {}", "padding ".repeat(2_000)),
+    )
+    .unwrap();
+    let mut client = Client::start(&root, &dir.path().join("cache"), &dir.path().join("homes"));
+    let ready = client.until("indexing fail", |value| {
+        value["status"] == "ready"
+            && value["coverage"]["reconciled_at"].is_string()
+            && value["results"]
+                .as_array()
+                .is_some_and(|results| !results.is_empty())
+    });
+    assert_eq!(ready["coverage"]["error_count"], 0);
+    assert_eq!(ready["results"][0]["relative_path"], "1201.txt");
+    let result = client.search("why does indexing fail");
+    assert_eq!(result["status"], "ready");
+    assert_eq!(result["results"].as_array().unwrap().len(), 1);
+    assert_eq!(result["results"][0]["relative_path"], "1201.txt");
+    assert!(result["results"][0]["score"].as_f64().unwrap() > 0.0);
+}
+
+#[test]
 fn codex_history_is_scoped_and_context_uses_the_same_tool() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path().join("project");

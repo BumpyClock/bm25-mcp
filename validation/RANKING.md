@@ -1,5 +1,90 @@
 # Ranking correctness and evaluation
 
+## Meaningful-query admission follow-up
+
+Reviewed HEAD: `ebb655427489638ce4f2091e60f15656bdbbca03`, with an initially
+clean checkout. The saturated-stopword failure reproduced in both project and
+session Store tests and in stdio MCP after indexing reached ready coverage.
+All preconditions passed: 200 noise candidates above the weak threshold, no
+target in raw top-200, and successful retrieval using `indexing fail`.
+Before the fix, enhanced retrieval returned no result.
+
+Natural queries whose existing policy actually removes stopwords now receive
+one guaranteed retrieval over canonical retained terms. Up to 40 results are
+protected within the existing 200-candidate pool. Definition reservations
+remain first, meaningful-query reservations second, and optional expansion
+reservations third; overlap consumes one slot and unused space remains
+available. Meaningful reduction currently cannot coexist with identifier or
+path classification. The search replaces the reduced-query probe and counts
+toward the existing six-additional-retrieval budget. No persistence schema,
+scoring weights, weak threshold, or public MCP contract changed.
+
+Retained words contribute original evidence without synonym caps. Per-hit
+diagnostics retain overlapping admission provenance and separate meaningful
+and expansion retrieval scores. Supplemental raw-query BM25 is computed only
+for already-admitted candidates, in bounded batches using the existing kernel,
+postings, and original query multiplicity in the retrieval snapshot. Absence
+from raw top-200 is not reported as proof of a zero score.
+
+The seven tests in `tests/meaningful_admission.rs` cover project/session
+saturation, deterministic scores, cached/disk paths, canonical compound and
+long-token identities, raw query multiplicity, all query-policy classes,
+six-call bounds, overlap, capacity reuse, original versus expansion evidence,
+all pre-limit filters, no meaningful match, and persisted boundary tokens.
+`mcp_saturated_stopwords_do_not_hide_meaningful_results` covers the actual
+stdio endpoint with ready/reconciled coverage. Existing path, definition,
+oracle, lifecycle, ownership, copies, and context regressions remain intact.
+
+The full suite passed 139 tests. Formatting, Clippy with warnings/unsafe code
+denied, and `git diff --check` passed. A subsequent zero-limit diagnostic
+assertion also passed the focused suite and full Clippy. Release binaries ran
+the existing ranking, stress, real-ingestion examples and the new
+`evaluate_admission` example. Its fixture is 1,202 distinct sources per kind:
+201 noise sources, 1,000 background sources, and a 16,014-byte target.
+Session events have distinct logical identities.
+
+Paired runs were serial on the same macOS arm64 machine, before launching
+sibling-evaluation workers. They used `2026-09-21T00:00:00Z`, five warmups,
+50 measured query samples, and 30 stress samples. The complete per-query
+comparison is in `meaningful-admission-evaluation.json`; historical labels
+were not changed.
+
+| Query/workload | Before p50 / p95, ms | After p50 / p95, ms | Result |
+| --- | ---: | ---: | --- |
+| Saturated project: `why does indexing fail` | 2.914 / 3.212 | 5.561 / 5.980 | Empty becomes target at rank 1 |
+| Saturated session: `why does indexing fail` | 5.118 / 5.530 | 9.471 / 9.832 | Empty becomes target at rank 1 |
+| Project retained-only control: `indexing fail` | 2.470 / 2.682 | 2.539 / 2.726 | Target remains rank 1 |
+| Session retained-only control: `indexing fail` | 4.397 / 4.716 | 4.555 / 4.828 | Target remains rank 1 |
+| Distinct near-16-KiB stress | 460.585 / 468.488 | 451.781 / 466.623 | Final pool remains 200 |
+| Identical near-16-KiB stress | 113.513 / 115.931 | 114.212 / 115.491 | Final pool remains 200 |
+
+Both saturation searches retrieve 200 raw candidates and one meaningful
+candidate, rerank 200, execute one additional retrieval instead of zero,
+and return only the target. Its positive original contribution is uncapped
+and its expansion contribution is zero. The retained-only, all-stopword, and
+background controls execute no meaningful retrieval. Repeated ordering and
+score bits are stable.
+
+The fix performs more work than the false-empty baseline, including scoring
+the long target. Other regressions are visible: the historical session
+cloud-sync query, which previously skipped reduced retrieval, changes from
+13.357 to 14.673 ms p95; the alias-only `panic` case changes from 0.256 to
+0.522 ms with truthful supplemental raw-score hydration. These costs are not
+hidden by an aggregate average. No quality metric changed for any of the
+13 historical queries or nine ablations. Raw/enhanced Recall@10 remains
+0.6154/1.0000 and enhanced MRR/nDCG@10 remains 0.9231/0.9380.
+
+The intended guarantee is bounded admission of retained meaningful terms when
+the policy removes stopwords, even if discarded terms saturate the raw pool.
+It is not exhaustive recall across every pool overflow, and the synthetic
+fixture does not establish production-wide relevance improvement.
+
+## Previous correctness pass
+
+The sections below retain the measurements and evidence from the earlier
+correctness pass; their baseline and capture files are separate from this
+follow-up.
+
 The reviewed baseline was `efa7f606f2403d2f99d1683ccc16c6c02c3f04d3`
 (`Add bounded lexical ranking and evaluation harness`). The checkout was clean.
 This pass preserves the raw BM25 API, tokenizer version, MCP schema, session

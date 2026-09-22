@@ -18,6 +18,7 @@ pub const CANDIDATE_LIMIT: usize = 200;
 pub const THIN_POOL: usize = 20;
 pub const WEAK_BM25_THRESHOLD: f32 = 0.25;
 pub const EXPANSION_RESERVE: usize = 40;
+pub const MEANINGFUL_RESERVE: usize = 40;
 pub const PROXIMITY_CAP: f64 = 0.15;
 pub const HALF_LIFE_DAYS: f64 = 45.;
 pub const DECAY_FLOOR: f64 = 0.25;
@@ -80,6 +81,7 @@ pub struct Trace {
     pub query_class: QueryClass,
     pub exact_class: ExactClass,
     pub baseline_bm25: f32,
+    pub admission: AdmissionEvidence,
     pub matched_fields: BTreeMap<String, f64>,
     pub original_contribution: f64,
     pub expanded_contribution: f64,
@@ -96,6 +98,15 @@ pub struct Trace {
     pub position: usize,
 }
 
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct AdmissionEvidence {
+    pub lexical: bool,
+    pub definition: bool,
+    pub path: bool,
+    pub meaningful_bm25: Option<f32>,
+    pub expansion_bm25: Option<f32>,
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct BodyEvidence {
     pub terms: BTreeMap<String, usize>,
@@ -105,6 +116,7 @@ pub struct BodyEvidence {
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct CandidateCounts {
     pub lexical: usize,
+    pub meaningful: usize,
     pub definitions: usize,
     pub path: usize,
     pub expansion: usize,
@@ -118,6 +130,8 @@ pub struct RankedSearch {
     pub probes: Vec<crate::query::Probe>,
     pub candidate_count: usize,
     pub admission_counts: CandidateCounts,
+    pub meaningful_retrievals: usize,
+    pub additional_retrievals: usize,
 }
 
 #[derive(Default)]
@@ -509,6 +523,7 @@ fn prepare_indexed_inner(
                 query_class: plan.class,
                 exact_class: ExactClass::None,
                 baseline_bm25: hit.score,
+                admission: AdmissionEvidence::default(),
                 matched_fields: BTreeMap::new(),
                 original_contribution: 0.,
                 expanded_contribution: 0.,

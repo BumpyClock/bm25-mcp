@@ -589,9 +589,11 @@ impl Store {
                 generation,
                 hits: Vec::new(),
                 traces: Vec::new(),
-                probes: plan.probes,
+                probes: Vec::new(),
                 candidate_count: 0,
                 admission_counts: ranking::CandidateCounts::default(),
+                meaningful_retrievals: 0,
+                additional_retrievals: 0,
             });
         }
         let mut candidates = std::collections::BTreeMap::<String, Hit>::new();
@@ -601,6 +603,7 @@ impl Store {
         let mut path_ids = HashSet::new();
         let mut expansion_ids = HashSet::new();
         let mut expanded_scores = HashMap::<String, f32>::new();
+        let mut meaningful_scores = HashMap::<String, f32>::new();
         // Keep the raw tokenizer's multiplicity and stopword behavior for the
         // first retrieval. QueryPlan terms are the reranker surface, not the
         // baseline oracle query.
@@ -618,6 +621,24 @@ impl Store {
             lexical_ids.insert(hit.match_id.clone());
             original_ids.insert(hit.match_id.clone());
             candidates.entry(hit.match_id.clone()).or_insert(hit);
+        }
+        let meaningful_retrievals = usize::from(plan.stopwords_removed);
+        if plan.stopwords_removed {
+            // Retained terms are already canonical, including long-token digests.
+            // Their admission must not depend on discarded stopword scores.
+            for mut hit in retrieve_terms(
+                &self.hot,
+                &tx,
+                generation,
+                &plan.original,
+                filter,
+                path_glob.as_ref(),
+                ranking::MEANINGFUL_RESERVE,
+            )? {
+                meaningful_scores.insert(hit.match_id.clone(), hit.score);
+                hit.score = 0.;
+                candidates.entry(hit.match_id.clone()).or_insert(hit);
+            }
         }
         if filter.kind == "project" && plan.class == query::QueryClass::Identifier {
             for hit in retrieve_declaration_hits(&tx, &plan.literal, filter, DEFINITION_RESERVE)? {
@@ -648,14 +669,14 @@ impl Store {
                     path_glob.as_ref(),
                     ranking::CANDIDATE_LIMIT,
                 )? {
+                    expansion_ids.insert(hit.match_id.clone());
+                    expanded_scores
+                        .entry(hit.match_id.clone())
+                        .and_modify(|score| *score = score.max(hit.score))
+                        .or_insert(hit.score);
                     if !original_ids.contains(&hit.match_id) {
-                        // Expanded-only rows are useful candidates, but they
-                        // have no baseline score from the user's query.
-                        expansion_ids.insert(hit.match_id.clone());
-                        expanded_scores
-                            .entry(hit.match_id.clone())
-                            .and_modify(|score| *score = score.max(hit.score))
-                            .or_insert(hit.score);
+                        // The probe score is not the original-query BM25 score.
+                        // Hydrate that score for the final supplemental pool below.
                         hit.score = 0.;
                         candidates.entry(hit.match_id.clone()).or_insert(hit);
                     }
@@ -688,15 +709,17 @@ impl Store {
                 candidates.entry(hit.match_id.clone()).or_insert(hit);
             }
         }
-        let hits = admit_ranked_candidates(
+        let mut hits = admit_ranked_candidates(
             candidates.into_values().collect(),
             &original_ids,
             &definition_ids,
+            &meaningful_scores,
             &expanded_scores,
             &plan,
             weak_pool,
         );
         let candidate_count = hits.len();
+        hydrate_baseline_scores(&tx, &mut hits, &terms, &original_ids)?;
         let mut body_evidence = hydrate_body_evidence(&tx, &hits)?;
         let indexed_hits = hits
             .into_iter()
@@ -710,7 +733,17 @@ impl Store {
         let prepared = ranking::prepare_indexed(indexed_hits, &plan)?;
         let stat_terms = ranking::statistics_terms(&prepared, &plan)?;
         let stats = corpus_stats(&tx, filter, &stat_terms)?;
-        let (hits, traces) = ranking::rerank(prepared, &plan, &stats, options, now, limit)?;
+        let (hits, mut traces) = ranking::rerank(prepared, &plan, &stats, options, now, limit)?;
+        for trace in &mut traces {
+            trace.admission = ranking::AdmissionEvidence {
+                lexical: original_ids.contains(&trace.match_id),
+                definition: definition_ids.contains(&trace.match_id),
+                path: path_ids.contains(&trace.match_id),
+                meaningful_bm25: meaningful_scores.get(&trace.match_id).copied(),
+                expansion_bm25: expanded_scores.get(&trace.match_id).copied(),
+            };
+        }
+        let additional_retrievals = meaningful_retrievals + plan.probes.len();
         tx.commit()?;
         Ok(ranking::RankedSearch {
             generation,
@@ -720,10 +753,13 @@ impl Store {
             candidate_count,
             admission_counts: ranking::CandidateCounts {
                 lexical: lexical_ids.len(),
+                meaningful: meaningful_scores.len(),
                 definitions: definition_ids.len(),
                 path: path_ids.len(),
                 expansion: expansion_ids.len(),
             },
+            meaningful_retrievals,
+            additional_retrievals,
         })
     }
 
@@ -1538,6 +1574,7 @@ fn admit_ranked_candidates(
     mut hits: Vec<Hit>,
     original_ids: &HashSet<String>,
     definition_ids: &HashSet<String>,
+    meaningful_scores: &HashMap<String, f32>,
     expanded_scores: &HashMap<String, f32>,
     plan: &query::QueryPlan,
     weak_pool: bool,
@@ -1581,6 +1618,19 @@ fn admit_ranked_candidates(
         .into_iter()
         .filter(|hit| !definition_keep.contains(&hit.match_id))
         .collect::<Vec<_>>();
+    let mut meaningful = remaining
+        .iter()
+        .filter(|hit| meaningful_scores.contains_key(&hit.match_id))
+        .cloned()
+        .collect::<Vec<_>>();
+    meaningful.sort_by(|a, b| {
+        meaningful_scores[&b.match_id]
+            .total_cmp(&meaningful_scores[&a.match_id])
+            .then_with(|| a.match_id.cmp(&b.match_id))
+    });
+    meaningful.truncate(ranking::MEANINGFUL_RESERVE);
+    let meaningful_keep: HashSet<_> = meaningful.iter().map(|hit| &hit.match_id).collect();
+    remaining.retain(|hit| !meaningful_keep.contains(&hit.match_id));
     let mut expanded = Vec::new();
     if weak_pool && !expanded_scores.is_empty() {
         expanded = remaining
@@ -1605,13 +1655,73 @@ fn admit_ranked_candidates(
     remaining.retain(|hit| !expanded_keep.contains(&hit.match_id));
     remaining.sort_by(compare);
 
-    let reserved = definitions.len().saturating_add(expanded.len());
+    let reserved = definitions.len() + meaningful.len() + expanded.len();
     remaining.truncate(ranking::CANDIDATE_LIMIT.saturating_sub(reserved));
     definitions.extend(expanded);
+    definitions.extend(meaningful);
     definitions.extend(remaining);
     definitions.sort_by(compare);
     definitions.truncate(ranking::CANDIDATE_LIMIT);
     definitions
+}
+
+fn set_query_terms(tx: &Transaction<'_>, terms: &[String]) -> Result<()> {
+    create_query_tables(tx)?;
+    tx.execute("DELETE FROM bm25_query_terms", [])?;
+    let mut stmt = tx.prepare_cached("INSERT INTO bm25_query_terms(term_id,weight) SELECT id,1 FROM terms WHERE term=?1 ON CONFLICT(term_id) DO UPDATE SET weight=weight+1")?;
+    for term in terms {
+        stmt.execute(params![term])?;
+    }
+    Ok(())
+}
+
+fn hydrate_baseline_scores(
+    tx: &Transaction<'_>,
+    hits: &mut [Hit],
+    terms: &[String],
+    original_ids: &HashSet<String>,
+) -> Result<()> {
+    let mut supplemental: Vec<_> = hits
+        .iter_mut()
+        .filter(|hit| !original_ids.contains(&hit.match_id))
+        .collect();
+    if supplemental.is_empty() {
+        return Ok(());
+    }
+    set_query_terms(tx, terms)?;
+    for batch in supplemental.chunks_mut(BODY_EVIDENCE_BATCH) {
+        let placeholders = std::iter::repeat_n("?", batch.len())
+            .collect::<Vec<_>>()
+            .join(",");
+        // Score only already-admitted chunks, using the raw scorer's kernel and
+        // query multiplicity. Not appearing in raw top K does not mean score zero.
+        let sql = format!(
+            "SELECT c.match_id,(
+                 SELECT COALESCE(SUM(bm25_score(p.tf,c.token_len,st.doc_count,
+                     ts.doc_freq,st.total_tokens,qt.weight)),0)
+                 FROM postings p
+                 JOIN bm25_query_terms qt ON qt.term_id=p.term_id
+                 JOIN term_stats ts ON ts.term_id=p.term_id
+                     AND ts.collection=s.collection AND ts.kind=s.kind
+                 WHERE p.chunk_id=c.id)
+             FROM chunks c JOIN sources s ON s.key=c.source_key AND s.eligible=1
+             JOIN stats st ON st.collection=s.collection AND st.kind=s.kind
+             WHERE c.match_id IN ({placeholders})"
+        );
+        let mut statement = tx.prepare(&sql)?;
+        let scores = statement
+            .query_map(
+                rusqlite::params_from_iter(batch.iter().map(|hit| hit.match_id.as_str())),
+                |row| Ok((row.get::<_, String>(0)?, row.get::<_, f32>(1)?)),
+            )?
+            .collect::<rusqlite::Result<HashMap<_, _>>>()?;
+        for hit in batch {
+            hit.score = *scores
+                .get(&hit.match_id)
+                .ok_or_else(|| anyhow!("missing baseline score for {}", hit.match_id))?;
+        }
+    }
+    Ok(())
 }
 
 fn retrieve_declaration_hits(
@@ -1733,13 +1843,8 @@ fn retrieve_ranked_terms(
     if terms.is_empty() {
         return Ok(Vec::new());
     }
-    create_query_tables(tx)?;
-    tx.execute("DELETE FROM bm25_query_terms", [])?;
+    set_query_terms(tx, terms)?;
     tx.execute("DELETE FROM bm25_query_accum", [])?;
-    let mut stmt = tx.prepare_cached("INSERT INTO bm25_query_terms(term_id,weight) SELECT id,1 FROM terms WHERE term=?1 ON CONFLICT(term_id) DO UPDATE SET weight=weight+1")?;
-    for term in terms {
-        stmt.execute(params![term])?;
-    }
     let sql = "INSERT INTO bm25_query_accum(chunk_id,score)
         SELECT p.chunk_id,SUM(bm25_score(p.tf,c.token_len,st.doc_count,ts.doc_freq,st.total_tokens,qt.weight))
         FROM bm25_query_terms qt JOIN postings p ON p.term_id=qt.term_id

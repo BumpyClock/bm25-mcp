@@ -313,12 +313,7 @@ fn high_fanout_benchmark() -> Result<Value> {
                 )?;
                 assert!(ranked.candidate_count <= 200);
                 candidate_count = Some(ranked.candidate_count);
-                admission_counts = json!({
-                    "lexical": ranked.admission_counts.lexical,
-                    "definitions": ranked.admission_counts.definitions,
-                    "path": ranked.admission_counts.path,
-                    "expansion": ranked.admission_counts.expansion,
-                });
+                admission_counts = json!(ranked.admission_counts);
                 hits = ranked.hits;
             }
             let signature: Vec<_> = hits
@@ -401,6 +396,8 @@ fn main() -> Result<()> {
             let mut hits = Vec::new();
             let mut candidate_count = None;
             let mut probes = 0;
+            let mut meaningful_retrievals = 0;
+            let mut additional_retrievals = 0;
             let mut admission_counts = None;
             let mut expected_signature = None;
             let mut deterministic_checks = 0;
@@ -423,12 +420,9 @@ fn main() -> Result<()> {
                     );
                     candidate_count = Some(ranked.candidate_count);
                     probes = ranked.probes.len();
-                    admission_counts = Some(json!({
-                        "lexical": ranked.admission_counts.lexical,
-                        "definitions": ranked.admission_counts.definitions,
-                        "path": ranked.admission_counts.path,
-                        "expansion": ranked.admission_counts.expansion,
-                    }));
+                    meaningful_retrievals = ranked.meaningful_retrievals;
+                    additional_retrievals = ranked.additional_retrievals;
+                    admission_counts = Some(json!(ranked.admission_counts));
                     hits = ranked.hits;
                 }
                 let signature: Vec<_> = hits
@@ -457,7 +451,7 @@ fn main() -> Result<()> {
                 }
             }
             let mut p = times.clone();
-            records.push(json!({"mode": mode, "query": case.query, "kind": case.kind, "candidate_count": candidate_count, "final_pool_size": candidate_count, "admission_counts": admission_counts, "probes": probes, "latency_ms_p50": percentile(&mut p, 0.50), "latency_ms_p95": percentile(&mut p, 0.95), "deterministic": deterministic_checks == WARMUPS + SAMPLES - 1, "deterministic_checks": deterministic_checks, "metrics": metrics(&hits, case)}));
+            records.push(json!({"mode": mode, "query": case.query, "kind": case.kind, "candidate_count": candidate_count, "final_pool_size": candidate_count, "admission_counts": admission_counts, "probes": probes, "meaningful_retrievals": meaningful_retrievals, "additional_retrievals": additional_retrievals, "latency_ms_p50": percentile(&mut p, 0.50), "latency_ms_p95": percentile(&mut p, 0.95), "deterministic": deterministic_checks == WARMUPS + SAMPLES - 1, "deterministic_checks": deterministic_checks, "metrics": metrics(&hits, case)}));
         }
     }
     let raw_vs_enhanced = cases
